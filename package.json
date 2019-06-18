@@ -1,0 +1,21 @@
+{
+  "name": "@dorg/bc-dao",
+  "version": "0.0.1-alpha",
+  "description": "Bonding Curves for DAOs",
+  "files": [
+    "contracts/",
+    "build/contracts/",
+    "migrations/",
+    "test/",
+    "truffle-config.js"
+  ],
+  "scripts": {
+    "test": "npx truffle test",
+    "build": "npx truffle compile"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "@daostack/arc": "0.0.1-rc.16",
+    "openzeppelin-solidity": "2.2.0"
+  }
+}
