@@ -1,3 +1,5 @@
+`NOTE: Do not use these contracts in production! All contracts in this repository are currently in alpha stage unless stated otherwise.`
+
 # Bonding Curves For DAOs  
 In this document, we'll describe how to configure your DAO to:  
 1. deploy and administrate its own Bonding Curve  
