@@ -110,24 +110,27 @@ TODO: link to auto generated contract docs (still WIP, Milestone 2)
 
 # Bonding Curve  
 **[Utility]**  
-TODO: short description (high level architecture + diagram)  
+Bonding Curves can be used to enable continuous funding for a DAO. Our implementation is heavily inspired by the Continous Organization model described in the [cOrg whitepaper](https://github.com/C-ORG/whitepaper). 
 
-Bonding Curves can be deployed in the service of a DAO, or independently. Our initial implementation offers support for various curve implementations and dividends to distribute earnings to token holders.
+The current iteration supports modular curve implementations and gives token holders rights to dividend distribtions as the DAO gains revenue.
 
 ### Key Terms
 
-* **bondingCurve**: The 'avatar' of the bonding curve. It serves as the external interface to interact with the curve, with automated market maker and dividend tracking functions.
+* **bondingCurve**: The 'avatar' of the bonding curve. It serves as the external interface to interact with the curve, with automated market maker and dividend right tracking functions.
 * **bondedToken**: Token native to the curve. The bondingCurve Contract has exclusive rights to mint / burn tokens.
 * **collateralToken**: Token accepted as collateral by the curve (e.g. WETH or DAI)
 * **reserve**: Balance of collateralTokens that the curve holds to repurchase bondedTokens	
-* **beneficiary**: Entity that receives collateralTokens from the curve			
-* **splitOnBuy**: % of collateralTokens distributed to beneficiary on buy(). This is implicitly set by the spread between the buy and sell curves. The remaining % is added to the reserve.
-* **splitOnPay**: % of collateralTokens distributed to beneficiary on pay(). Explicitly defined, with the remainding % being distributed among current bondedToken holders.
+* **beneficiary**: Entity that receives funding from the purchase of bondedTokens. This would typically be the DAO Avatar.
+* **splitOnBuy**: Percentage of incoming collateralTokens distributed to beneficiary on buy(). This is implicitly set by the spread between the buy and sell curves at the given point. The remaining portion is added to the reserve.
+* **splitOnPay**: Percentage of incoming collateralTokens distributed to beneficiary on pay(). This is an explicit parameter, with the remainder being distributed among current bondedToken holders.
 
-| Function | Actor | Analogy | Actor sends.. | bondedToken are.. | collateralTokens are.. | bondedToken price.. |
+### Key Actions
+The following chart describes the actions users can take to interact with the Bonding Curve:
+
+| Action | Actor | Analogy | Actor sends.. | bondedToken are.. | collateralTokens are.. | bondedToken price.. |
 | --- | --- | --- | --- | --- | --- | --- |
-| Buy() | Not beneficiary | "Investment" | collateral token | minted to sender | split between reserve and beneficiary based on splitOnBuy % | increases |
-| Buy() | beneficiary | "Buy-back" | collateral token | burned | deposited in reserve | increases |
+| Buy() | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender | split between reserve and beneficiary based on splitOnBuy % | increases |
+| Buy() | _beneficiary_ | "Buy-back" | collateral token | burned | deposited in reserve | increases |
 | Sell() | Anyone | "Divestment" | bonded token | burned | transferred to sender | decreases |
 | Pay() | Anyone | "Dividend" | collateral token | not changed | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same |
 
@@ -140,18 +143,22 @@ Bonding Curves can be deployed in the service of a DAO, or independently. Our in
 ## Setup  
 **Deployment** Bonding Curves can be deployed via a BondingCurveFactory. We will provide factories as part of the universal scheme, though users can also choose to deploy how they see fit.
 
-This will include a Bonding Curve, Bonded Token, and buy / sell Curve Logic.
+This will include deploying a Bonding Curve, Bonded Token, and buy / sell Curve Logic contracts.
 
 
 ## Usage  
-[**`buy`**](./contracts/BondingCurve/BondingCurve.sol): Buy bondedTokens in exchange for collateralTokens
+[**`buy`**](./contracts/BondingCurve/BondingCurve.sol): Buy a set number of bondedTokens in exchange for the currently required number of collateralTokens. The required amount of collateralTokens must previously have been approved by the sender.
+
+Note: The price could change if another order is executed first. Resolving this issue is in the scope of the front-running guard methods discussed in the 'Future Plans' section.
 ```
 function buy(
   uint256 numTokens
 ) public
 ```
 
-[**`sell`**](./contracts/BondingCurve/BondingCurve.sol): Create a proposal that, when passed & executed, will call the sell function on the bonding curve on behalf of the Avatar.  
+[**`sell`**](./contracts/BondingCurve/BondingCurve.sol): Sell bondedTokens in exchange for a number of collateralTokens calculated from the sell curve. 
+
+Note: The price could change if another order is executed first. Resolving this issue is in the scope of the front-running guard methods discussed in the 'Future Plans' section.
 ```
 function sell(
   uint256 numTokens
@@ -188,6 +195,33 @@ function withdraw(
 ```
 
 ## Current Limitations
+- **Dividends are only distributed on pay()** - Without hooks on ERC20 transfers, we can't execute distribution logic when ERC20 tokens are transferred to the BondingCurve of DAO Avatar via the standard transfer() method. Ideally, we could allow 'native' ERC20 payments to function as indended.
+
+  * We'll be incorporating ERC777 hooks, which will alleiviate this issue for tokens that adopt that standard.
+
+- **Dividend tracking has signicant gas costs** - In order to track who is entitled to what dividends, given tradable ERC20 bondedTokens, we need to know who owns what at what time. This is currently implemented in a manner similar to [MiniMe Token](https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol), but this approach has significant gas costs.
+
+  * We have an open discussion on this issue, and alternative implementations, [here](https://github.com/dOrgTech/BC-DAO/issues/5).
+
+- **Payments directly to DAO Avatar can circumvent dividends** - We can't stop people from sending tokens to the DAO Avatar directly. This could give the DAO voters access to funds without the dividend holders getting their share first.
+
+    * For the dxDAO use case, only the DutchX is sending payments to the dividend holders, which eliminates this concern.
+
+    * We have an open discussion on this issue [here](https://github.com/dOrgTech/BC-DAO/issues/4).
+
+## Future Plans
+We envision the following features may be useful to DAOs implementing bonding curves.
+
+### Financial Features
+- **Hatching** - An initial buying phase where selling is disabled up until a certain amount of tokens are bought. This helps ensure a certain amount of return for early investors.
+- **Vesting** - Vesting periods can be added to minted tokens, which helps fight against pumping and dumping.
+- **Taxes** - A % fee for selling back to the market can be added to encourage secondary market trading.
+- **Governance via BondedTokens** - Voting power can be given to token holders somehow, which can help further insulate their potentially risky investment.
+- **Multicurrency Reserve** - Allow multiple tokens to be added to reserve as collateralTokens.
+
+### Security Features
+
+- **Front-running Guards** (Order batching, Expected price parameter, Max gas price for transactions)
 
 
 ## Contract Docs  
