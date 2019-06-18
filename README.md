@@ -16,7 +16,7 @@ The Admin Scheme enables a DAO to deploy new curves, and administrate previously
 ![Architecture](./diagrams/out/admin_scheme_architecture.png)  
 
 ## Usage  
-[**`proposeDeploy`**](../../features/BondingCurveAdminSchemes/contracts/BondingCurveAdminScheme.sol): Create a proposal that, when passed & executed, will deploy the bonding curve with the specified parameters. Before calling this function, the curve's parameters must be set using the [`setCurveParameters`](../../features/BondingCurveAdminSchemes/contracts/BondingCurveAdminScheme.sol) function. This will return the hash of the parameters, wich should be then passed to `proposeDeploy`'s `bytes32 _curveParams` argument.  
+[**`proposeDeploy`**](./contracts/Schemes/BondingCurveAdminScheme.sol): Create a proposal that, when passed & executed, will deploy the bonding curve with the specified parameters. Before calling this function, the curve's parameters must be set using the [`setCurveParameters`](./contracts/Schemes/BondingCurveAdminScheme.sol) function. This will return the hash of the parameters, wich should be then passed to `proposeDeploy`'s `bytes32 _curveParams` argument.  
 ```
 function proposeDeploy(
   Avatar _avatar,
@@ -37,7 +37,7 @@ function setCurveParameters(
 ) public returns(bytes32)
 ```
 
-[**`propose{Admin_Func}`**](../../features/BondingCurveAdminSchemes/contracts/BondingCurveAdminScheme.sol): Create a proposal that, when passed & executed, will call the specified "Admin Function" that only the owning avatar can call. It does this through a "Generic Call", which invokes the specified function through the Avatar, making the Avatar == msg.sender. An example of an "Admin Function" Proposal is [`proposeChangeBeneficiary`](../../features/BondingCurveAdminSchemes/contracts/BondingCurveAdminScheme.sol).  
+[**`propose{Admin_Func}`**](./contracts/Schemes/BondingCurveAdminScheme.sol): Create a proposal that, when passed & executed, will call the specified "Admin Function" that only the owning avatar can call. It does this through a "Generic Call", which invokes the specified function through the Avatar, making the Avatar == msg.sender. An example of an "Admin Function" Proposal is [`proposeChangeBeneficiary`](./contracts/Schemes/BondingCurveAdminScheme.sol).  
 ```
 function proposeChangeBeneficiary(
   Avatar _avatar,
@@ -46,7 +46,7 @@ function proposeChangeBeneficiary(
 ) public returns (bytes32)
 ```
 
-[**`executeProposal`**](../../features/BondingCurveAdminSchemes/contracts/BondingCurveAdminScheme.sol): This will be called by the voting machine when the vote has passed. This will in turn call the proposal type specific execute functions.
+[**`executeProposal`**](./contracts/Schemes/BondingCurveAdminScheme.sol): This will be called by the voting machine when the vote has passed. This will in turn call the proposal type specific execute functions.
 ```
 function executeProposal(bytes32 _proposalId, int256 _param)
 external
@@ -72,7 +72,7 @@ The Invest Scheme enables a DAO to buy and sell from bonding curves. Additionall
 ![Architecture](./diagrams/out/invest_scheme_architecture.png)  
 
 ## Usage  
-[**`proposeBuy`**](../../features/BondingCurveInvestSchemes/contracts/BondingCurveInvestScheme.sol): Create a proposal that, when passed & executed, will call the buy function on the bonding curve on behalf of the Avatar.  
+[**`proposeBuy`**](./contracts/Schemes/BondingCurveInvestScheme.sol): Create a proposal that, when passed & executed, will call the buy function on the bonding curve on behalf of the Avatar.  
 ```
 function proposeBuy(
   Avatar _avatar,
@@ -81,7 +81,7 @@ function proposeBuy(
 ) public returns(bytes32)
 ```
 
-[**`proposeSell`**](../../features/BondingCurveInvestSchemes/contracts/BondingCurveInvestScheme.sol): Create a proposal that, when passed & executed, will call the sell function on the bonding curve on behalf of the Avatar.  
+[**`proposeSell`**](./contracts/Schemes/BondingCurveInvestScheme.sol): Create a proposal that, when passed & executed, will call the sell function on the bonding curve on behalf of the Avatar.  
 ```
 function proposeSell(
   Avatar _avatar,
@@ -90,7 +90,7 @@ function proposeSell(
 ) public returns(bytes32)
 ```
 
-[**`executeProposal`**](../../features/BondingCurveInvestSchemes/contracts/BondingCurveInvestScheme.sol): This will be called by the voting machine when the vote has passed. This will in turn call the proposal type specific execute functions.
+[**`executeProposal`**](./contracts/Schemes/BondingCurveInvestScheme.sol): This will be called by the voting machine when the vote has passed. This will in turn call the proposal type specific execute functions.
 ```
 function executeProposal(bytes32 _proposalId, int256 _param)
 external
@@ -142,42 +142,42 @@ This will include a Bonding Curve, Bonded Token, and buy / sell Curve Logic.
 
 
 ## Usage  
-[**`buy`**](../../utilities/BondingCurves/contracts/bonding-curve/BondingCurve.sol): Buy bondedTokens in exchange for collateralTokens
+[**`buy`**](./contracts/BondingCurve/BondingCurve.sol): Buy bondedTokens in exchange for collateralTokens
 ```
 function buy(
   uint256 numTokens
 ) public
 ```
 
-[**`sell`**](../../utilities/BondingCurves/contracts/bonding-curve/BondingCurve.sol): Create a proposal that, when passed & executed, will call the sell function on the bonding curve on behalf of the Avatar.  
+[**`sell`**](./contracts/BondingCurve/BondingCurve.sol): Create a proposal that, when passed & executed, will call the sell function on the bonding curve on behalf of the Avatar.  
 ```
 function sell(
   uint256 numTokens
 ) public
 ```
 
-[**`pay`**](../../utilities/BondingCurves/contracts/bonding-curve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bonded token holders according to the paySplit;
+[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bonded token holders according to the paySplit;
 ```
 function pay(
   uint256 amount
 ) public
 ```
 
-[**`priceToBuy`**](../../utilities/BondingCurves/contracts/bonding-curve/BondingCurve.sol): Determine the current price to buy a given number of bondedTokens. 
+[**`priceToBuy`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current price to buy a given number of bondedTokens. 
 ```
 function priceToBuy(
   uint256 numTokens
 ) public
 ```
 
-[**`rewardForSell`**](../../utilities/BondingCurves/contracts/bonding-curve/BondingCurve.sol): Determine the current payout in collateralTokens to sell a given number of bondedTokens. 
+[**`rewardForSell`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current payout in collateralTokens to sell a given number of bondedTokens. 
 ```
 function rewardForSell(
   uint256 numTokenss
 ) public
 ```
 
-[**`withdraw`**](../../utilities/BondingCurves/contracts/bonding-curve/BondingCurve.sol): Withdraw collateralToken dividends sender is entitled to for a given period, in blocks. 
+[**`withdraw`**](./contracts/BondingCurve/BondingCurve.sol): Withdraw collateralToken dividends sender is entitled to for a given period, in blocks. 
 ```
 function withdraw(
   uint start,
