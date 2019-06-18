@@ -147,6 +147,20 @@ This will include deploying a Bonding Curve, Bonded Token, and buy / sell Curve 
 
 
 ## Usage  
+[**`priceToBuy`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current price in collateralTokens to buy a given number of bondedTokens. 
+```
+function priceToBuy(
+  uint256 numTokens
+) public
+```
+
+[**`rewardForSell`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current payout in collateralTokens to sell a given number of bondedTokens. 
+```
+function rewardForSell(
+  uint256 numTokenss
+) public
+```
+
 [**`buy`**](./contracts/BondingCurve/BondingCurve.sol): Buy a set number of bondedTokens in exchange for the currently required number of collateralTokens. The required amount of collateralTokens must previously have been approved by the sender.
 
 Note: The price could change if another order is executed first. Resolving this issue is in the scope of the front-running guard methods discussed in the 'Future Plans' section.
@@ -165,24 +179,10 @@ function sell(
 ) public
 ```
 
-[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bonded token holders according to the paySplit;
+[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bondedToken holders according to the splitOnPay parameter;
 ```
 function pay(
   uint256 amount
-) public
-```
-
-[**`priceToBuy`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current price to buy a given number of bondedTokens. 
-```
-function priceToBuy(
-  uint256 numTokens
-) public
-```
-
-[**`rewardForSell`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current payout in collateralTokens to sell a given number of bondedTokens. 
-```
-function rewardForSell(
-  uint256 numTokenss
 ) public
 ```
 
@@ -195,17 +195,15 @@ function withdraw(
 ```
 
 ## Current Limitations
-- **Dividends are only distributed on pay()** - Without hooks on ERC20 transfers, we can't execute distribution logic when ERC20 tokens are transferred to the BondingCurve of DAO Avatar via the standard transfer() method. Ideally, we could allow 'native' ERC20 payments to function as indended.
+- **Dividends are only distributed on pay()** - Without hooks on ERC20 transfers, we can't execute distribution logic when ERC20 tokens are transferred to the BondingCurve via the standard transfer() method. Ideally, we could allow 'native' ERC20 payments to function just as pay() does.
 
   * We'll be incorporating ERC777 hooks, which will alleiviate this issue for tokens that adopt that standard.
 
-- **Dividend tracking has signicant gas costs** - In order to track who is entitled to what dividends, given tradable ERC20 bondedTokens, we need to know who owns what at what time. This is currently implemented in a manner similar to [MiniMe Token](https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol), but this approach has significant gas costs.
+- **Dividend tracking has signicant gas costs** - With bondedTokens represented as ERC20s, we need additional data to track who is entitled to what dividend payemnts. This is currently implemented in a manner similar to [MiniMe Token](https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol), but this approach has significant gas costs.
 
   * We have an open discussion on this issue, and alternative implementations, [here](https://github.com/dOrgTech/BC-DAO/issues/5).
 
-- **Payments directly to DAO Avatar can circumvent dividends** - We can't stop people from sending tokens to the DAO Avatar directly. This could give the DAO voters access to funds without the dividend holders getting their share first.
-
-    * For the dxDAO use case, only the DutchX is sending payments to the dividend holders, which eliminates this concern.
+- **Payments directly to DAO Avatar can circumvent dividends** - It's not possible to stop people from sending ERC20 tokens to the DAO Avatar directly. This would give the DAO voters access to funds without the dividend holders getting their share first.
 
     * We have an open discussion on this issue [here](https://github.com/dOrgTech/BC-DAO/issues/4).
 
