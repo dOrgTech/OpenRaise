@@ -219,7 +219,7 @@ We envision the following features may be useful to DAOs implementing bonding cu
 - **Multicurrency Reserve** - Allow multiple tokens to be added to reserve as collateralTokens.
 
 ### Regulatory Features
-- **KYC / Whitelisting** We can use the X list to and accreditation status for US-based investors
+- **KYC / Whitelisting** DAOs may want to ensure that bonding curve investment comes from a KYCed ethereum address. The [TPL standard](https://tplprotocol.org/) designed by Open Zeppelin offers this functionality.
 
 ### Security Features
 
