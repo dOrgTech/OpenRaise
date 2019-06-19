@@ -36,6 +36,8 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
 
     string constant internal TRANSFER_FROM_FAILED = "TRANSFER_FROM_FAILED";
     string constant internal INSUFFICENT_TOKENS = "INSUFFICENT_TOKENS";
+    string constant internal MAX_PRICE_EXCEEDED = "MAX_PRICE_EXCEEDED";
+    string constant internal PRICE_BELOW_MIN = "PRICE_BELOW_MIN";
 
     constructor(
         ERC20 _reserveToken,
@@ -82,16 +84,24 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         return paymentTokens;
     }
 
-    /// @notice             Buy new tokens with reserve currency
-    /// @param numTokens    The number of bonded tokens to buy
-    function buy(uint256 numTokens) public {
+    /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
+    /// @param numTokens    The number of bondedTokens to buy
+    /// @param maxPrice     Maximum total price allowable to pay in collateralTokens
+    /// @param recipient    Address to send the new bondedTokens to
+    function buy(
+        uint256 numTokens,
+        uint256 maxPrice,
+        address recipient
+    ) public {
         uint256 buyPrice = buyCurve.calcMintPrice(bondedToken.totalSupply(), numTokens);
+        require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
+
         uint256 sellPrice = sellCurve.calcMintPrice(bondedToken.totalSupply(), numTokens);
         
         uint256 tokensToBeneficiary = buyPrice.sub(sellPrice);
         uint256 tokensToReserve = sellPrice;
         
-        bondedToken.mint(msg.sender, numTokens); //TODO: Require? How does it fail?
+        bondedToken.mint(recipient, numTokens); //TODO: Require? How does it fail?
         
         emit Mint(numTokens, buyPrice);
         
@@ -101,12 +111,19 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         reserveToken.transfer(beneficiary, tokensToBeneficiary); //TODO: Handle failure case? We want it to not care if transfer fails
     }
 
-    /// @notice             Sell tokens to receive reserve currency
-    /// @param numTokens    The number of bonded tokens to sell
-    function sell(uint256 numTokens) public {
+    /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
+    /// @param numTokens    The number of bondedTokens to sell
+    /// @param minPrice     Minimum total price allowable to receive in collateralTokens
+    /// @param recipient    Address to send the new bondedTokens to
+    function sell(
+        uint256 numTokens,
+        uint256 minPrice,
+        address recipient
+    ) public {
         require(bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
         
         uint256 burnReward = sellCurve.calcBurnReward(bondedToken.totalSupply(), numTokens);
+        require(burnReward >= minPrice, PRICE_BELOW_MIN);
 
         bondedToken.burn(msg.sender, numTokens);
         buybackReserve = buybackReserve.sub(burnReward);
