@@ -2,17 +2,16 @@
 
 # Bonding Curves For DAOs  
 In this document, we'll describe how to configure your DAO to:  
-1. deploy and administrate its own Bonding Curve  
-2. invest in Bonding Curves  
+1. Deploy and administrate its own Bonding Curve  
+2. Invest in Bonding Curves  
 
 *Note that the "Admin" & "Invest" schemes described below have been created for a specific bonding curve implementation, and cannot be used for all implementations. See the "Bonding Curve" section below to better understand the initial implementation we're building and supporting. In the future, more schemes will be developed to support different bonding curve implementations.*  
 
 # Admin Scheme: Deploy & Administrate  
 **[Feature]**  
-The Admin Scheme enables a DAO to deploy new curves, and administrate previously deployed curves than an avatar now owns. Some examples of administrative functions may include:  
-- Changing Parameters  
-- Transfering Ownership  
-- etc  
+The Admin Scheme enables a DAO to deploy new curves and administer existing curves owned by the DAO Avatar. Some examples of administrative functions may include:  
+- Changing Parameters
+- Transfering Ownership
 
 ## Architecture  
 ![Architecture](./diagrams/out/admin_scheme_architecture.png)  
@@ -56,7 +55,7 @@ onlyVotingMachine(_proposalId)
 returns(bool)
 ```
 
-TODO: change hyperlinks to point to auto-gen docs  
+TODO: link to auto generated contract docs (still WIP, Milestone 2)  
 
 ## Setup  
 **Scheme Deployment**: This is a universal scheme, meaning it is deployed once and used for N number of DAOs. (TODO: tell reader where to find the address)  
@@ -110,7 +109,7 @@ TODO: link to auto generated contract docs (still WIP, Milestone 2)
 
 # Bonding Curve  
 **[Utility]**  
-Bonding Curves can be used to enable continuous funding for a DAO. Our implementation is heavily inspired by the Continous Organization model described in the [cOrg whitepaper](https://github.com/C-ORG/whitepaper). 
+  Bonding Curves can be used to enable continuous funding for a DAO. Our implementation is heavily inspired by the Continous Organization model described in the [cOrg whitepaper](https://github.com/C-ORG/whitepaper). 
 
 The current iteration supports modular curve implementations and gives token holders rights to dividend distribtions as the DAO gains revenue.
 
@@ -157,25 +156,27 @@ function priceToBuy(
 [**`rewardForSell`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current payout in collateralTokens to sell a given number of bondedTokens. 
 ```
 function rewardForSell(
-  uint256 numTokenss
+  uint256 numTokens,
 ) public
 ```
 
-[**`buy`**](./contracts/BondingCurve/BondingCurve.sol): Buy a set number of bondedTokens in exchange for the currently required number of collateralTokens. The required amount of collateralTokens must previously have been approved by the sender.
+[**`buy`**](./contracts/BondingCurve/BondingCurve.sol): Buy a given number of bondedTokens with an amount of collateralTokens determined by the current rate from the buy curve. The caller can specify the maximum total price in collateralTokens they're willing to pay, and a recipient address to transfer the new bondedTokens to. 
 
-Note: The price could change if another order is executed first. Resolving this issue is in the scope of the front-running guard methods discussed in the 'Future Plans' section.
+The appropriate amount of collateralTokens must have previously been approved for the bonding curve contract by the caller.
 ```
 function buy(
-  uint256 numTokens
+  uint256 numTokens,
+  uint256 maxPrice,
+  address recipient
 ) public
 ```
 
-[**`sell`**](./contracts/BondingCurve/BondingCurve.sol): Sell bondedTokens in exchange for a number of collateralTokens calculated from the sell curve. 
-
-Note: The price could change if another order is executed first. Resolving this issue is in the scope of the front-running guard methods discussed in the 'Future Plans' section.
+[**`sell`**](./contracts/BondingCurve/BondingCurve.sol): Sell a given number of bondedTokens for an amount of collateralTokens determined by the current rate from the sell curve. The caller can set a minimum total value of collateralTokens they're willing to sell for, and a recipient to transfer the proceeds of the sale to.
 ```
 function sell(
-  uint256 numTokens
+  uint256 numTokens,
+  uint256 minPrice,
+  address recipient
 ) public
 ```
 
@@ -217,9 +218,15 @@ We envision the following features may be useful to DAOs implementing bonding cu
 - **Governance via BondedTokens** - Voting power can be given to token holders somehow, which can help further insulate their potentially risky investment.
 - **Multicurrency Reserve** - Allow multiple tokens to be added to reserve as collateralTokens.
 
+### Regulatory Features
+- **KYC / Whitelisting** We can use the X list to and accreditation status for US-based investors
+
 ### Security Features
 
-- **Front-running Guards** (Order batching, Expected price parameter, Max gas price for transactions)
+- **Additional Front-running Guards** Several variants of order batching have been outlined in the community. In addition, maximum gas prices for transactions may offer a simple mechanic to discourage front-running.
+
+### Technical Features
+- **Modularity** We envision an "OpenZeppelin for bonding curves" - a standardized open source repo build your own bonding curve with the functionality for a given use case from well-established components.
 
 
 ## Contract Docs  
