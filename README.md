@@ -188,7 +188,9 @@ function withdraw(
 ```
 
 ## Current Limitations
+One limitation of our current approach is the possibility of bypassing the bonding curve and sending payments directly to the DAO. If customers pay the DAO directly rather than sending payment with the pay() function to the bonding curve, then the DAO would receive 100% of the payment, effectively cutting out token holders from receiving their cut. For instance, DutchX fees might initially be configured to hit the pay() function on the bonding curve, resulting in continuous cash-flows to both token-holders (in the form of claimable dividends) and the DAO according to **splitOnPay**. However, the DAO might vote to re-route the fees directly to itself, avoiding the pay split with token holders.
 
+We believe that the chances of such a coordinated attack will remain extremely low– as long as the prospects for continued funding are valued more than the present level of cash-flows. If the DAO was detected trying to "cheat" its token-holders in this way, we would expect a chain reaction of sell-offs and little to no prospect for future buys. Thus, the DAO would short-sightedly lose all ability to fundraise and would need to rely solely on its existing sources of revenue.
 
 ## Contract Docs  
 TODO: link to auto generated contract docs (still WIP, Milestone 2)  
