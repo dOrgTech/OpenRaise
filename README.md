@@ -82,7 +82,7 @@ The Invest Scheme enables a DAO to buy and sell from bonding curves. Additionall
 function proposeBuy(
  Avatar _avatar,
  BondingCurve _curve,
- uint256 _etherToSpend
+ uint256 _tokensToSpend
 ) public returns(bytes32)
 ```
 
