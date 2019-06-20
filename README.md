@@ -134,6 +134,8 @@ The following chart describes the actions users can take to interact with the Bo
 | Sell() | Anyone | "Divestment" | bonded token | burned | transferred to specified recipient | decreases |
 | Pay() | Anyone | "Dividend" | collateral token | not changed | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same |
 
+  * The functionality that is used when the beneficiary initiates a buy() action is still under active discussion [here](https://github.com/dOrgTech/BC-DAO/issues/16)
+
 #### Buy Flow
 ![Architecture](./diagrams/out/bonding_curve_architecture_buy.png)
 
