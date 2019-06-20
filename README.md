@@ -130,7 +130,7 @@ The following chart describes the actions users can take to interact with the Bo
 | Action | Actor | Analogy | Actor sends.. | bondedToken are.. | collateralTokens are.. | bondedToken price.. |
 | --- | --- | --- | --- | --- | --- | --- |
 | Buy() | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender | split between reserve and beneficiary based on splitOnBuy % | increases |
-| Buy() | _beneficiary_ | "Buy-back" | collateral token | burned | deposited in reserve | increases |
+| BeneficiaryBuy() | _beneficiary_ | "Investment" | collateral token | minted to sender (_beneficiary_) | fully deposited in reserve (none sent to _beneficiary_) | increases |
 | Sell() | Anyone | "Divestment" | bonded token | burned | transferred to specified recipient | decreases |
 | Pay() | Anyone | "Dividend" | collateral token | not changed | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same |
 
