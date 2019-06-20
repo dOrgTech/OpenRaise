@@ -95,7 +95,7 @@ function proposeSell(
 ) public returns(bytes32)
 ```
 
-[**`executeProposal`**](./contracts/Schemes/BondingCurveInvestScheme.sol): This will be called by the voting machine when the vote has passed. This will in turn call the proposal type specific execute functions.
+[**`executeProposal`**](./contracts/Schemes/BondingCurveInvestScheme.sol): This will be called by the voting machine when the proposal's vote has passed. This will in turn call the proposal's type-specific execute functions (ex: [`_executeBuy`](./contracts/Schemes/BondingCurveInvestScheme.sol)).
 ```
 function executeProposal(bytes32 _proposalId, int256 _param)
 external
