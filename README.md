@@ -15,7 +15,7 @@ In this document, we'll describe how to configure your DAO to:
 **[Feature]** 
 The Admin Scheme enables a DAO to deploy new curves and administer existing curves owned by the DAO Avatar. Some examples of administrative functions may include: 
 - Changing Parameters
-- Transfering Ownership
+- Transferring Ownership
 
 ## Architecture 
 ![Architecture](./diagrams/out/admin_scheme_architecture.png) 
@@ -38,7 +38,7 @@ function setCurveParameters(
  uint256 _buyIntercept,
  uint256 _sellIntercept,
  ERC20 _reserveToken,
- uint _dividendRatio
+ uint256 _splitOnPay
 ) public returns(bytes32)
 ```
 
@@ -82,7 +82,7 @@ The Invest Scheme enables a DAO to buy and sell from bonding curves. Additionall
 function proposeBuy(
  Avatar _avatar,
  BondingCurve _curve,
- uint256 _etherToSpend
+ uint256 _tokensToSpend
 ) public returns(bytes32)
 ```
 
@@ -112,19 +112,14 @@ returns(bool)
 TODO: link to auto generated contract docs (still WIP, Milestone 2) 
 
 # Bonding Curve 
-**[Utility]**
-
-Bonding Curves themselves can be deployed in the service of a DAO, or used independently.
-
-Our current iteration supports linear and Bancor-based curves, dividend distributions for bonded token holders, and a front-running guard via user-specified min and max prices.
-
+**[Utility]** Our initial bonding curve implementation supports linear and Bancor-based curves, dividend distributions for bonded token holders, and a front-running guard via user-specified min and max prices.
 
 ### Key Terms
 
-* **bondingCurve**: The 'avatar' of the bonding curve. It serves as the external interface to interact with the curve, with automated market maker and dividend right tracking functions.
-* **bondedToken**: Token native to the curve. The bondingCurve Contract has exclusive rights to mint / burn tokens.
-* **collateralToken**: Token accepted as collateral by the curve (e.g. WETH or DAI)
-* **reserve**: Balance of collateralTokens that the curve holds to repurchase bondedTokens  
+* **bondingCurve**: The 'avatar' of the bonding curve. It serves as the external interface to interact with the curve, with automated market maker and dividend tracking functions.
+* **bondedToken**: Token native to the curve. The bondingCurve Contract has exclusive rights to mint and burn tokens.
+* **collateralToken**: Token accepted as collateral by the curve. (e.g. WETH or DAI)
+* **reserve**: Balance of collateralTokens that the curve holds to repurchase bondedTokens.
 * **beneficiary**: Entity that receives funding from the purchase of bondedTokens. This would typically be the DAO Avatar.
 * **splitOnBuy**: Percentage of incoming collateralTokens distributed to beneficiary on buy(). This is implicitly set by the spread between the buy and sell curves at the given point. The remaining portion is added to the reserve.
 * **splitOnPay**: Percentage of incoming collateralTokens distributed to beneficiary on pay(). This is an explicit parameter, with the remainder being distributed among current bondedToken holders.
@@ -136,7 +131,7 @@ The following chart describes the actions users can take to interact with the Bo
 | --- | --- | --- | --- | --- | --- | --- |
 | Buy() | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender | split between reserve and beneficiary based on splitOnBuy % | increases |
 | Buy() | _beneficiary_ | "Buy-back" | collateral token | burned | deposited in reserve | increases |
-| Sell() | Anyone | "Divestment" | bonded token | burned | transferred to sender | decreases |
+| Sell() | Anyone | "Divestment" | bonded token | burned | transferred to specified recipient | decreases |
 | Pay() | Anyone | "Dividend" | collateral token | not changed | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same |
 
 #### Buy Flow
@@ -148,7 +143,11 @@ The following chart describes the actions users can take to interact with the Bo
 ## Setup 
 **Deployment** Bonding Curves can be deployed via a BondingCurveFactory. We will provide factories as part of the universal scheme, though users can also choose to deploy how they see fit.
 
-This will include deploying a Bonding Curve, Bonded Token, and buy / sell Curve Logic contracts.
+Bonding Curves are composed of several contracts, though the factory abstracts the need to know about them individually:
+* Bonding Curve
+* Bonded Token
+* Buy Curve Logic
+* Sell Curve Logic
 
 
 ## Usage 
@@ -225,18 +224,18 @@ We envision the following features may be useful to DAOs implementing bonding cu
 - **Hatching** - An initial buying phase where selling is disabled up until a certain amount of tokens are bought. This helps ensure a certain amount of return for early investors.
 - **Vesting** - Vesting periods can be added to minted tokens, which helps fight against pumping and dumping.
 - **Taxes** - A % fee for selling back to the market can be added to encourage secondary market trading.
-- **Governance via BondedTokens** - Voting power can be given to token holders somehow, which can help further insulate their potentially risky investment.
+- **Governance via BondedTokens** - Voting power can be granted to token holders, which can help further insulate their potentially risky investment.
 - **Multicurrency Reserve** - Allow multiple tokens to be added to reserve as collateralTokens.
 
 ### Regulatory Features
-- **KYC / Whitelisting** DAOs may want to ensure that bonding curve investments only come from KYCed ethereum addresses. The [TPL standard](https://tplprotocol.org/) designed by Open Zeppelin offers a standard to incorporate this functionality.
+- **KYC / Whitelisting** - DAOs may wish to ensure that bonding curve investments only come from KYC'ed ethereum addresses. The [TPL standard](https://tplprotocol.org/) designed by Open Zeppelin offers a standard to incorporate this functionality.
 
 ### Security Features
 
-- **Additional Front-running Guards** Several variants of order batching have been outlined in the community. In addition, maximum gas prices for transactions may offer a simple mechanic to discourage front-running.
+- **Additional Front-running Guards** - Several variants of order batching have been outlined in the community. In addition, maximum gas prices for transactions may offer a simple mechanic to discourage front-running.
 
 ### Technical Features
-- **Modularity** We envision an "OpenZeppelin for bonding curves" - a standardized open source repo build your own bonding curve with the functionality for a given use case from well-established components.
+- **Modularity** - We envision an "OpenZeppelin for bonding curves" - an open source repo to compose your own bonding curve from a suite of well-established components.
 
 
 ## Contract Docs 
