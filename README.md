@@ -1,9 +1,9 @@
 `NOTE: Do not use these contracts in production! All contracts in this repository are currently in alpha stage unless stated otherwise.`
 
 # Bonding Curves For DAOs 
-Bonding Curves are a mechanism for token distribution that create an automatic market for the token without relying on exchanges.
+Bonding Curves are a mechanism for continuous token distribution. By serving as an automatic market-maker for a token, the mechanism can guarantee liquidity and certain price bounds without relying on exchanges.
 
-Bonding Curves can be used to enable continuous funding for a DAO. This type of fundraising allows for more flexibility and alignment of incentives that alternative methods (such as ICOs or private fundraising). The Continuous Organization model as described in the  [cOrg whitepaper](https://github.com/C-ORG/whitepaper) provides a deeper look into the potential of this approach.
+If combined with dividend functionality, bonding curves could enable DAOs to continuously fundraise. This type of fundraising might allow for more flexibility, accountability, and alignment of incentives than alternative methods (such as ICOs or private fundraising).
 
 In this document, we'll describe how to configure your DAO to: 
 1. Deploy and administer its own Bonding Curve 
