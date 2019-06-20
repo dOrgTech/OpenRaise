@@ -117,11 +117,11 @@ TODO: link to auto generated contract docs (still WIP, Milestone 2)
 ### Key Terms
 
 * **bondingCurve**: The 'avatar' of the bonding curve. It serves as the external interface to interact with the curve, with automated market maker and dividend tracking functions.
-* **bondedToken**: Token native to the curve. The bondingCurve Contract has exclusive rights to mint and burn tokens.
+* **bondedToken**: Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
 * **collateralToken**: Token accepted as collateral by the curve. (e.g. WETH or DAI)
-* **reserve**: Balance of collateralTokens that the curve holds to repurchase bondedTokens.
+* **reserve**: Balance of collateralTokens that the curve holds. The reserve is used to pay bondedToken holders when they want to liquidate and sell their tokens back to the curve.
 * **beneficiary**: Entity that receives funding from the purchase of bondedTokens. This would typically be the DAO Avatar.
-* **splitOnBuy**: Percentage of incoming collateralTokens distributed to beneficiary on buy(). This is implicitly set by the spread between the buy and sell curves at the given point. The remaining portion is added to the reserve.
+* **splitOnBuy**: Percentage of incoming collateralTokens distributed to beneficiary on buy(). This is implicitly set by the spread between the buy and sell curves at a given point. The remaining portion is added to the reserve.
 * **splitOnPay**: Percentage of incoming collateralTokens distributed to beneficiary on pay(). This is an explicit parameter, with the remainder being distributed among current bondedToken holders.
 
 ### Key Actions
@@ -130,7 +130,7 @@ The following chart describes the actions users can take to interact with the Bo
 | Action | Actor | Analogy | Actor sends.. | bondedToken are.. | collateralTokens are.. | bondedToken price.. |
 | --- | --- | --- | --- | --- | --- | --- |
 | Buy() | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender | split between reserve and beneficiary based on splitOnBuy % | increases |
-| Buy() | _beneficiary_ | "Buy-back" | collateral token | burned | deposited in reserve | increases |
+| BeneficiaryBuy() | _beneficiary_ | "Investment" | collateral token | minted to sender (_beneficiary_) | fully deposited in reserve (none sent to _beneficiary_) | increases |
 | Sell() | Anyone | "Divestment" | bonded token | burned | transferred to specified recipient | decreases |
 | Pay() | Anyone | "Dividend" | collateral token | not changed | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same |
 
