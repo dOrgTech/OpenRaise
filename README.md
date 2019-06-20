@@ -1,6 +1,10 @@
 `NOTE: Do not use these contracts in production! All contracts in this repository are currently in alpha stage unless stated otherwise.`
 
 # Bonding Curves For DAOs  
+Bonding Curves can be used to enable continuous funding for a DAO, allowing them to implement the Continous Organization model described as in the [cOrg whitepaper](https://github.com/C-ORG/whitepaper).
+
+The current iteration supports linear and Bancor-based curves, dividend distributions for bonded token holders, and a front-running guard via user-specified min and max prices.
+
 In this document, we'll describe how to configure your DAO to:  
 1. Deploy and administrate its own Bonding Curve  
 2. Invest in Bonding Curves  
@@ -108,10 +112,9 @@ returns(bool)
 TODO: link to auto generated contract docs (still WIP, Milestone 2)  
 
 # Bonding Curve  
-**[Utility]**  
-  Bonding Curves can be used to enable continuous funding for a DAO. Our implementation is heavily inspired by the Continous Organization model described in the [cOrg whitepaper](https://github.com/C-ORG/whitepaper). 
+**[Utility]**
 
-The current iteration supports modular curve implementations and gives token holders rights to dividend distribtions as the DAO gains revenue.
+Bonding Curves themselves can be deployed in service of a DAO, or used independently.
 
 ### Key Terms
 
@@ -223,7 +226,7 @@ We envision the following features may be useful to DAOs implementing bonding cu
 - **Multicurrency Reserve** - Allow multiple tokens to be added to reserve as collateralTokens.
 
 ### Regulatory Features
-- **KYC / Whitelisting** DAOs may want to ensure that bonding curve investment comes from a KYCed ethereum address. The [TPL standard](https://tplprotocol.org/) designed by Open Zeppelin offers this functionality.
+- **KYC / Whitelisting** DAOs may want to ensure that bonding curve investments only come from KYCed ethereum addresses. The [TPL standard](https://tplprotocol.org/) designed by Open Zeppelin offers a standard to incorporate this functionality.
 
 ### Security Features
 
