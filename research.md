@@ -17,11 +17,9 @@ An overview of the features one would conceivably want a bonding curve to suppor
 
 ### Core Curve Features
 
-- *Curve Function*: Linear, Polynomial, Logarithmic, etc.
-    - (More complex math and computational costs demands a reason imo - I'd like to see some solid reasoning for one curve or another.) [This article discusses](https://medium.com/thoughtchains/on-single-bonding-curves-for-continuous-token-models-a167f5ffef89)
-    - Ideally you would be able to make your own equation of arbitrary complexity
+- *Curve Function*: Linear, Polynomial, Logarithmic, etc. [See thorough discussion of trade-offs here](https://medium.com/thoughtchains/on-single-bonding-curves-for-continuous-token-models-a167f5ffef89)
 - *ReserveRatio*: % relationship between buy and sell prices
-- *Spread/Split* (separate buy and sell curves)**:** Perhaps someone would want more control here
+- *Spread/Split* (separate buy and sell curves)**:** Difference between buy and sell curve or amount that goes to beneficiary
 
 ### Financial Features
 
