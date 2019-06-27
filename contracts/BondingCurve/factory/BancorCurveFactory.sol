@@ -5,24 +5,33 @@ import "../BondingCurve.sol";
 import "../interface/ICurveLogic.sol";
 import "../logic/BancorCurve.sol";
 
-library BancorCurveFactory {
+contract BancorCurveFactory {
 
   event BondingCurveCreated(
-    address indexed _bondingCurve,
-    address indexed _dividendToken,
+    address _bondingCurve,
+    address _dividendToken,
     address _buyCurve,
     address _sellCurve
   );
 
+  /// @notice Deploy a bonding curve with all new components.
+  /// @param name Bonded token name.
+  /// @param symbol Bonded token symbol.
+  /// @param owner Owner of bonding curve.
+  /// @param beneficiary Beneficiary of bonding curve.
+  /// @param buyParams Bancor reserveRatio.
+  /// @param sellParams Bancor reserveRatio.
+  /// @param reserveToken Reserve token to buy Bonded tokens.
+  /// @param splitOnPay Percentage allocated to beneficiary on revenue. The remainder is allocated to Bonded token holders.
   function deploy(
     string memory _name,
     string memory _symbol,
     address _owner,
     address payable _beneficiary,
-    uint256[2] memory _buyParams,
-    uint256[2] memory _sellParams,
+    uint256 memory _buyParams,
+    uint256 memory _sellParams,
     ERC20 _reserveToken,
-    uint _dividendRatio
+    uint _splitOnPay
   ) public returns(
     BondingCurve bondingCurveAddr,
     DividendToken dividendTokenAddr,
@@ -30,8 +39,8 @@ library BancorCurveFactory {
     ICurveLogic sellCurveAddr
   )
   {
-    LinearCurve buyCurve = new LinearCurve(_buyParams[0], _buyParams[1]);
-    LinearCurve sellCurve = new LinearCurve(_sellParams[0], _sellParams[1]);
+    LinearCurve buyCurve = new BancorCurve(_buyParams);
+    LinearCurve sellCurve = new BancorCurve(_sellParams);
 
     DividendToken dividendToken = new DividendToken(
       _name,
@@ -48,7 +57,7 @@ library BancorCurveFactory {
       buyCurve,
       sellCurve,
       dividendToken,
-      _dividendRatio
+      _splitOnPay
     );
 
     bondingCurve.transferOwnership(_owner);

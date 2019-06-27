@@ -12,7 +12,6 @@ import "../dividend-token/DividendPaymentTracker.sol";
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
 contract BondingCurve is Beneficiary, DividendPaymentTracker {
-
     event Mint(uint256 amount, uint256 totalCost);
     event Burn(uint256 amount, uint256 reward);
     event TokenRevenue(address indexed tokenAddress, uint256 amount, uint256 beneficiaryDistribution, uint256 buybackDistribution);
@@ -31,8 +30,8 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
     ICurveLogic public sellCurve;
     address payable beneficiary;
 
-    uint256 public buybackReserve;
-    uint256 public dividendRatio;
+    uint256 public reserveBalance;
+    uint256 public splitOnPay;
 
     string constant internal TRANSFER_FROM_FAILED = "TRANSFER_FROM_FAILED";
     string constant internal INSUFFICENT_TOKENS = "INSUFFICENT_TOKENS";
@@ -45,7 +44,7 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         ICurveLogic _buyCurve,
         ICurveLogic _sellCurve,
         DividendToken _bondedToken,
-        uint256 _dividendRatio
+        uint256 _splitOnPay
     ) public DividendPaymentTracker(_bondedToken, _reserveToken) {
         reserveToken = _reserveToken;
         beneficiary = _beneficiary;
@@ -55,7 +54,7 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
 
         // TODO: validate dividend ratio
         bondedToken = _bondedToken;
-        dividendRatio = _dividendRatio;
+        splitOnPay = _splitOnPay;
     }
     
     /// @notice             Get the price in ether to mint tokens
@@ -93,10 +92,10 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         uint256 maxPrice,
         address recipient
     ) public {
-        uint256 buyPrice = buyCurve.calcMintPrice(bondedToken.totalSupply(), numTokens);
+        uint256 buyPrice = buyCurve.calcMintPrice(bondedToken.totalSupply(), reserveBalance, numTokens);
         require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
 
-        uint256 sellPrice = sellCurve.calcMintPrice(bondedToken.totalSupply(), numTokens);
+        uint256 sellPrice = sellCurve.calcMintPrice(bondedToken.totalSupply(), reserveBalance, numTokens);
         
         uint256 tokensToBeneficiary = buyPrice.sub(sellPrice);
         uint256 tokensToReserve = sellPrice;
@@ -107,7 +106,7 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         
         require(reserveToken.transferFrom(msg.sender, address(this), buyPrice), TRANSFER_FROM_FAILED);
         
-        buybackReserve = buybackReserve.add(tokensToReserve);
+        reserveBalance = reserveBalance.add(tokensToReserve);
         reserveToken.transfer(beneficiary, tokensToBeneficiary); //TODO: Handle failure case? We want it to not care if transfer fails
     }
 
@@ -122,11 +121,11 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
     ) public {
         require(bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
         
-        uint256 burnReward = sellCurve.calcBurnReward(bondedToken.totalSupply(), numTokens);
+        uint256 burnReward = sellCurve.calcBurnReward(bondedToken.totalSupply(), reserveBalance, numTokens);
         require(burnReward >= minPrice, PRICE_BELOW_MIN);
 
         bondedToken.burn(msg.sender, numTokens);
-        buybackReserve = buybackReserve.sub(burnReward);
+        reserveBalance = reserveBalance.sub(burnReward);
 
         emit Burn(numTokens, burnReward);
 
@@ -137,7 +136,6 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
     /// @dev                Does not currently support arbitrary token payments
     /// @param amount       The number of tokens to pay the DAO
     function pay(uint256 amount) public {
-        
         ERC20 paymentToken = ERC20(getPaymentToken());
         
         uint256 tokensToBeneficiary = 0;
