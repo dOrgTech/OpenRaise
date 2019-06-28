@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 // External dependencies.
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./Controlled.sol";
 
@@ -10,7 +11,7 @@ contract ApproveAndCallFallBack {
 }
 
 /// Much structure taken from Giveth's MiniMeToken: https://github.com/Giveth/minime
-contract DividendToken is Controlled {
+contract DividendToken is Controlled, IERC20 {
     using SafeMath for uint;
 
     /// @dev `Checkpoint` is the structure that attaches a block number to a
@@ -56,11 +57,8 @@ contract DividendToken is Controlled {
 ////////////////
 // Events
 ////////////////
-    event ClaimedTokens(address indexed _token, address indexed _controller, uint _amount);
-    event ClaimedEther(address indexed _controller, uint _amount);
-    event Transfer(address indexed _from, address indexed _to, uint256 _amount);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _amount);
-
+    event ClaimedTokens(address indexed token, address indexed controller, uint value);
+    event ClaimedEther(address indexed controller, uint value);
 ////////////////
 // Constructor
 ////////////////
