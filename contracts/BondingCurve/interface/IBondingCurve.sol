@@ -23,7 +23,7 @@ interface IBondingCurve {
         uint256 numTokens,
         uint256 maxPrice,
         address recipient
-    ) external returns(uint256);
+    ) external returns(uint256 collateralSent);
 
     /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
     /// @param numTokens    The number of bondedTokens to sell
@@ -33,7 +33,7 @@ interface IBondingCurve {
         uint256 numTokens,
         uint256 minPrice,
         address recipient
-    ) external returns(uint256);
+    ) external returns(uint256 collateralReceived);
 
     /// @dev                Pay tokens to the DAO. This method ensures the dividend holders get a distribution before the DAO gets the funds
     /// @param numTokens    The number of ERC20 tokens you want to pay to the contract

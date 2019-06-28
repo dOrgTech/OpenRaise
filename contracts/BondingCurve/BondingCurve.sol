@@ -11,10 +11,6 @@ import "./dividend/DividendPaymentTracker.sol";
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
 contract BondingCurve is Beneficiary, DividendPaymentTracker {
-    event Mint(uint256 amount, uint256 totalCost);
-    event Burn(uint256 amount, uint256 reward);
-    event TokenRevenue(address indexed tokenAddress, uint256 amount, uint256 beneficiaryDistribution, uint256 buybackDistribution);
-
     using SafeMath for uint256;
 
     ERC20 public reserveToken;
@@ -90,7 +86,7 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         uint256 numTokens,
         uint256 maxPrice,
         address recipient
-    ) public {
+    ) public returns(uint256 collateralSent) {
         uint256 buyPrice = buyCurve.calcMintPrice(bondedToken.totalSupply(), reserveBalance, numTokens);
         require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
 
@@ -100,35 +96,35 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         uint256 tokensToReserve = sellPrice;
         
         bondedToken.mint(recipient, numTokens); //TODO: Require? How does it fail?
-        
-        emit Mint(numTokens, buyPrice);
-        
+                
         require(reserveToken.transferFrom(msg.sender, address(this), buyPrice), TRANSFER_FROM_FAILED);
         
         reserveBalance = reserveBalance.add(tokensToReserve);
         reserveToken.transfer(beneficiary, tokensToBeneficiary); //TODO: Handle failure case? We want it to not care if transfer fails
+
+        return buyPrice;
     }
 
     /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
     /// @param numTokens    The number of bondedTokens to sell
     /// @param minPrice     Minimum total price allowable to receive in collateralTokens
-    /// @param recipient    Address to send the new bondedTokens to
+    /// @param recipient    Address to send collateralTokens to
     function sell(
         uint256 numTokens,
         uint256 minPrice,
         address recipient
-    ) public {
+    ) public returns(uint256 collateralReceived) {
         require(bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
         
         uint256 burnReward = sellCurve.calcBurnReward(bondedToken.totalSupply(), reserveBalance, numTokens);
         require(burnReward >= minPrice, PRICE_BELOW_MIN);
 
         bondedToken.burn(msg.sender, numTokens);
+
+        reserveToken.transfer(recipient, burnReward);
         reserveBalance = reserveBalance.sub(burnReward);
 
-        emit Burn(numTokens, burnReward);
-
-        reserveToken.transfer(msg.sender, burnReward);
+        return burnReward;
     }
     
     /// @notice             Pay the DAO in the specified payment token. They will be distributed between the DAO beneficiary and bonded token holders
