@@ -14,8 +14,10 @@
     "build": "npx truffle compile"
   },
   "devDependencies": {
-    "chai": "^4.2.0",
     "@daostack/arc": "0.0.1-rc.16",
-    "openzeppelin-solidity": "2.2.0"
+    "chai": "^4.2.0",
+    "ganache-cli": "^6.4.1",
+    "openzeppelin-solidity": "2.2.0",
+    "openzeppelin-test-helpers": "^0.4.0"
   }
 }
