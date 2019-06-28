@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity >= 0.4.22 <6.0.0;
 
 
 /**
@@ -38,7 +38,7 @@ contract Power {
   */
   uint256[128] private maxExpArray;
 
-  function Power()  public {
+  constructor() public {
 //  maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
 //  maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
 //  maxExpArray[  2] = 0x637fffffffffffffffffffffffffffffff;
@@ -186,7 +186,7 @@ contract Power {
         Hence we need to determine the highest precision which can be used for the given input, before calling the exponentiation function.
         This allows us to compute "base ^ exp" with maximum accuracy and without exceeding 256 bits in any of the intermediate computations.
 */
-  function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal constant returns (uint256, uint8) {
+  function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal view returns (uint256, uint8) {
     uint256 lnBaseTimesExp = ln(_baseN, _baseD) * _expN / _expD;
     uint8 precision = findPositionInMaxExpArray(lnBaseTimesExp);
     return (fixedExp(lnBaseTimesExp >> (MAX_PRECISION - precision), precision), precision);
@@ -199,7 +199,7 @@ contract Power {
     - The output      is a value between 0 and floor(ln(2 ^ (256 - MAX_PRECISION) - 1) * 2 ^ MAX_PRECISION)
     This functions assumes that the numerator is larger than or equal to the denominator, because the output would be negative otherwise.
   */
-  function ln(uint256 _numerator, uint256 _denominator) internal constant returns (uint256) {
+  function ln(uint256 _numerator, uint256 _denominator) internal view returns (uint256) {
     assert(_numerator <= MAX_NUM);
 
     uint256 res = 0;
@@ -229,7 +229,7 @@ contract Power {
   /**
     Compute the largest integer smaller than or equal to the binary logarithm of the input.
   */
-  function floorLog2(uint256 _n) internal constant returns (uint8) {
+  function floorLog2(uint256 _n) internal view returns (uint8) {
     uint8 res = 0;
     uint256 n = _n;
 
@@ -257,7 +257,7 @@ contract Power {
       - This function finds the position of [the smallest value in "maxExpArray" larger than or equal to "x"]
       - This function finds the highest position of [a value in "maxExpArray" larger than or equal to "x"]
   */
-  function findPositionInMaxExpArray(uint256 _x) internal constant returns (uint8) {
+  function findPositionInMaxExpArray(uint256 _x) internal view returns (uint8) {
     uint8 lo = MIN_PRECISION;
     uint8 hi = MAX_PRECISION;
 
@@ -285,7 +285,7 @@ contract Power {
       The global "maxExpArray" maps each "precision" to "((maximumExponent + 1) << (MAX_PRECISION - precision)) - 1".
       The maximum permitted value for "x" is therefore given by "maxExpArray[precision] >> (MAX_PRECISION - precision)".
   */
-  function fixedExp(uint256 _x, uint8 _precision) internal constant returns (uint256) {
+  function fixedExp(uint256 _x, uint8 _precision) internal view returns (uint256) {
     uint256 xi = _x;
     uint256 res = 0;
 

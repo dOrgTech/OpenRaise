@@ -10,8 +10,8 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
   event TokensBought(
     address indexed _avatar,
     address indexed _bondingCurve,
-    uint256 _etherSpent,
-    uint256 _tokensBought
+    uint256 _collateralSend,
+    bytes _tokensBought
   );
 
   event NewBuyProposal(
@@ -23,7 +23,7 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
   event BuyProposalExecuted(
     address indexed _avatar,
     bytes32 indexed _proposalId,
-    int256 _param
+    int256 _decision
   );
 
   event BuyProposalDeleted(
@@ -35,7 +35,7 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
     address indexed _avatar,
     address indexed _bondingCurve,
     uint256 _tokensSold,
-    uint256 _etherReceived
+    bytes _collateralReceived
   );
 
   event NewSellProposal(
@@ -47,7 +47,7 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
   event SellProposalExecuted(
     address indexed _avatar,
     bytes32 indexed _proposalId,
-    int256 _param
+    int256 _decision
   );
 
   event SellProposalDeleted(
@@ -58,11 +58,14 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
   // Buy Sell Storage Data
   struct BuySellProposal {
     BondingCurve curve;
-    bool buy;
-    // if (buy) amount == ether
-    // else amount == tokens
-    uint256 amount;
+    bool isBuy;
+    uint256 numTokens;
+    uint256 priceLimit;
+    address recipient;
   }
+
+  string constant SELL_SIGNATURE = "sell(uint256,uint256,address)";
+  string constant BUY_SIGNATURE = "buy(uint256,uint256,address)";
 
   // A mapping from the organization (Avatar) address to proposalId to proposal data
   mapping(address=>mapping(bytes32=>BuySellProposal)) public proposals;
@@ -80,25 +83,25 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
   /**
   * @dev execution of proposals, can only be called by the voting machine in which the vote is held.
   * @param _proposalId the ID of the voting in the voting machine
-  * @param _param a parameter of the voting result, 1 yes and 2 is no.
+  * @param _decision a parameter of the voting result, 1 yes and 2 is no.
   */
-  function executeProposal(bytes32 _proposalId, int256 _param)
+  function executeProposal(bytes32 _proposalId, int256 _decision)
   external
   onlyVotingMachine(_proposalId)
   returns(bool) {
-    Avatar avatar = proposalInfo[msg.sender][_proposalId].avatar;
+    Avatar avatar = proposalsInfo[msg.sender][_proposalId].avatar;
     BuySellProposal memory proposal = proposals[address(avatar)][_proposalId];
 
     require(address(proposal.curve) != address(0), "tried executing uninitialized proposal");
 
-    delete proposals[address(avatar)][proposalId];
+    delete proposals[address(avatar)][_proposalId];
 
-    if (proposal.buy) {
+    if (proposal.isBuy) {
       emit BuyProposalDeleted(address(avatar), _proposalId);
-      return _executeBuy(avatar, _proposalId, _param);
+      return _executeBuy(avatar, proposal, _proposalId, _decision);
     } else {
       emit SellProposalDeleted(address(avatar), _proposalId);
-      return _executeSell(avatar, _proposalId, _param);
+      return _executeSell(avatar, proposal, _proposalId, _decision);
     }
   }
 
@@ -106,15 +109,35 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
     Avatar _avatar,
     BuySellProposal memory proposal,
     bytes32 _proposalId,
-    int256 _param
+    int256 _decision
   ) internal returns(bool) {
-    if (_param == 1) {
-      // TODO:
-      // uint256 tokens = ethToTokens(proposal.amount);
-      // genericCall(curve.mint(tokens), proposal.amount);
+    if (_decision == 1) {
+      ControllerInterface controller = ControllerInterface(_avatar.owner());
+      bytes memory genericCallReturnValue;
+      bool success;
+
+      (success, genericCallReturnValue) = controller.genericCall(
+        address(proposal.curve),
+        abi.encodeWithSignature(BUY_SIGNATURE,
+          proposal.numTokens,
+          proposal.priceLimit,
+          proposal.recipient
+        ),
+        _avatar,
+        0
+      );
+
+      if (success) {
+        emit TokensSold(
+          address(_avatar),
+          address(proposal.curve),
+          proposal.numTokens,
+          genericCallReturnValue
+        );
+      }
     }
 
-    emit BuyProposalExecuted(address(avatar), _proposalId, _param);
+    emit BuyProposalExecuted(address(_avatar), _proposalId, _decision);
     return true;
   }
 
@@ -122,43 +145,48 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
     Avatar _avatar,
     BuySellProposal memory proposal,
     bytes32 _proposalId,
-    int256 _param
+    int256 _decision
   ) internal returns(bool) {
-    if (_param == 1) {
-      uint256 etherReceived = proposal.curve.rewardFormBurn(proposal.amount);
-      ControllerInterface controller = ControllerInterface(avatar.owner());
+    if (_decision == 1) {
+      ControllerInterface controller = ControllerInterface(_avatar.owner());
       bytes memory genericCallReturnValue;
       bool success;
 
       (success, genericCallReturnValue) = controller.genericCall(
         address(proposal.curve),
-        abi.encodeWithSignature("burn(uint256)", proposal.amount),
-        avatar,
+        abi.encodeWithSignature(SELL_SIGNATURE,
+          proposal.numTokens,
+          proposal.priceLimit,
+          proposal.recipient
+        ),
+        _avatar,
         0
       );
 
       if (success) {
         emit TokensSold(
-          address(avatar),
+          address(_avatar),
           address(proposal.curve),
-          proposal.amount,
-          etherReceived
+          proposal.numTokens,
+          genericCallReturnValue
         );
       }
     }
 
-    emit SellProposalExecuted(address(avatar), _proposalId, _param);
+    emit SellProposalExecuted(address(_avatar), _proposalId, _decision);
     return true;
   }
 
   function proposeBuy(
     Avatar _avatar,
     BondingCurve _curve,
-    uint256 _etherToSpend
+    uint256 _numTokens,
+    uint256 _maxPrice,
+    address _recipient
   ) public returns(bytes32) {
     require(address(_avatar) != address(0), "avatar is zero");
     require(address(_curve) != address(0), "curve is zero");
-    require(_etherToSpend != 0, "ether is zero");
+    require(_numTokens != 0, "tokens to buy is zero");
 
     Parameters memory controllerParams = parameters[getParametersFromController(_avatar)];
 
@@ -170,15 +198,17 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
     );
 
     BuySellProposal memory proposal = BuySellProposal({
-      avatar: _avatar,
       curve: _curve,
-      buy: true,
-      amount: _etherToSpend
+      isBuy: true,
+      numTokens: _numTokens,
+      priceLimit: _maxPrice,
+      recipient: _recipient
     });
 
     emit NewBuyProposal(
+      address(_avatar),
       address(_curve),
-      _etherToSpend
+      _numTokens
     );
 
     proposals[address(_avatar)][proposalId] = proposal;
@@ -193,11 +223,13 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
   function proposeSell(
     Avatar _avatar,
     BondingCurve _curve,
-    uint256 _tokensToSell
+    uint256 _numTokens,
+    uint256 _minPrice,
+    address _recipient
   ) public returns(bytes32) {
     require(address(_avatar) != address(0), "avatar is zero");
     require(address(_curve) != address(0), "curve is zero");
-    require(_tokensToSell != 0, "tokens is zero");
+    require(_numTokens != 0, "tokens is zero");
 
     Parameters memory controllerParams = parameters[getParametersFromController(_avatar)];
 
@@ -209,15 +241,17 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
     );
 
     BuySellProposal memory proposal = BuySellProposal({
-      avatar: _avatar,
       curve: _curve,
-      buy: false,
-      amount: _tokensToSell
+      isBuy: false,
+      numTokens: _numTokens,
+      priceLimit: _minPrice,
+      recipient: _recipient
     });
 
     emit NewSellProposal(
+      address(_avatar),
       address(_curve),
-      _tokensToSell
+      _numTokens
     );
 
     proposals[address(_avatar)][proposalId] = proposal;
@@ -243,7 +277,7 @@ contract BondingCurveInvestScheme is UniversalScheme, VotingMachineCallbacks, Pr
   ) public returns(bytes32) {
     require(_voteBuyParams != bytes32(0), "voteBuyParams is zero");
     require(_voteSellParams != bytes32(0), "voteSellParams is zero");
-    require(_intVote != address(0), "vote interface is zero");
+    require(address(_intVote) != address(0), "vote interface is zero");
 
     bytes32 paramsHash = getParametersHash(
       _voteBuyParams,

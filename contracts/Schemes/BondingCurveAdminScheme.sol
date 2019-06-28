@@ -3,7 +3,7 @@ pragma solidity ^0.5.4;
 import "@daostack/arc/contracts/universalSchemes/UniversalScheme.sol";
 import "@daostack/arc/contracts/votingMachines/VotingMachineCallbacks.sol";
 import "@daostack/infra/contracts/votingMachines/ProposalExecuteInterface.sol";
-import "../BondingCurve/factory/BondingCurveFactory.sol";
+import "../BondingCurve/factory/BancorCurveFactory.sol";
 
 contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, ProposalExecuteInterface {
 
@@ -99,12 +99,10 @@ contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, Pro
 
   // Curve configuration parameters
   struct CurveParameters {
-    uint256 buySlope;
-    uint256 sellSlope;
-    uint256 buyIntercept;
-    uint256 sellIntercept;
+    uint32 buyReserveRatio;
+    uint32 sellReserveRatio;
     ERC20 reserveToken;
-    uint dividendRatio;
+    uint256 splitOnPay;
   }
 
   // A mapping from hashes to curve configuration parameters
@@ -166,16 +164,16 @@ contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, Pro
       ICurveLogic buyCurve;
       ICurveLogic sellCurve;
 
-      (bondingCurve, dividendToken, buyCurve, sellCurve)=
-      BondingCurveFactory.deploy(
+      (bondingCurve, dividendToken, buyCurve, sellCurve) = 
+      BancorCurveFactory.deploy(
         proposal.name,
         proposal.symbol,
         address(avatar),
         proposal.beneficiary,
-        [curveParams.buySlope, curveParams.buyIntercept],
-        [curveParams.sellSlope, curveParams.sellIntercept],
+        curveParams.buyReserveRatio,
+        curveParams.sellReserveRatio,
         curveParams.reserveToken,
-        curveParams.dividendRatio
+        curveParams.splitOnPay
       );
 
       emit CurveDeployed(
@@ -257,7 +255,8 @@ contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, Pro
     require(address(_avatar) != address(0), "avatar is zero");
     require(_beneficiary != address(0), "beneficiary is zero");
     require(_curveParams != bytes32(0), "curveParams is zero");
-    require(curveParameters[_curveParams].dividendRatio > 0, "curve parameters haven't been set");
+
+    require(curveParameters[_curveParams].splitOnPay > 0, "curve parameters haven't been set");
 
     Parameters memory controllerParams = parameters[getParametersFromController(_avatar)];
 
@@ -338,58 +337,44 @@ contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, Pro
   }
 
   function setCurveParameters(
-    uint256 _buySlope,
-    uint256 _sellSlope,
-    uint256 _buyIntercept,
-    uint256 _sellIntercept,
+    uint32 _buyReserveRatio,
+    uint32 _sellReserveRatio,
     ERC20 _reserveToken,
-    uint _dividendRatio
+    uint256 _splitOnPay
   ) public returns(bytes32) {
 
     // TODO: add error messages
-    require(_buySlope <= 255);
-    require(_sellSlope <= 255);
-    require(_buyIntercept <= 1000);
-    require(_sellIntercept <= 1000);
     require(address(_reserveToken) != address(0));
-    require(_dividendRatio > 0);
+    require(_splitOnPay > 0);
 
     bytes32 paramsHash = getCurveParametersHash(
-      _buySlope,
-      _sellSlope,
-      _buyIntercept,
-      _sellIntercept,
+      _buyReserveRatio,
+      _sellReserveRatio,
       _reserveToken,
-      _dividendRatio
+      _splitOnPay
     );
 
-    require(curveParameters[paramsHash].dividendRatio == 0, "params already set");
+    require(curveParameters[paramsHash].splitOnPay == 0, "params already set");
 
-    curveParameters[paramsHash].buySlope = _buySlope;
-    curveParameters[paramsHash].sellSlope = _sellSlope;
-    curveParameters[paramsHash].buyIntercept = _buyIntercept;
-    curveParameters[paramsHash].sellIntercept = _sellIntercept;
+    curveParameters[paramsHash].buyReserveRatio = _buyReserveRatio;
+    curveParameters[paramsHash].sellReserveRatio = _sellReserveRatio;
     curveParameters[paramsHash].reserveToken = _reserveToken;
-    curveParameters[paramsHash].dividendRatio = _dividendRatio;
+    curveParameters[paramsHash].splitOnPay = _splitOnPay;
 
     return paramsHash;
   }
 
   function getCurveParametersHash(
-    uint256 _buySlope,
-    uint256 _sellSlope,
-    uint256 _buyIntercept,
-    uint256 _sellIntercept,
+    uint32 _buyReserveRatio,
+    uint32 _sellReserveRatio,
     ERC20 _reserveToken,
-    uint _dividendRatio
+    uint256 _splitOnPay
   ) public pure returns(bytes32) {
     return keccak256(abi.encodePacked(
-      _buySlope,
-      _sellSlope,
-      _buyIntercept,
-      _sellIntercept,
+      _buyReserveRatio,
+      _sellReserveRatio,
       _reserveToken,
-      _dividendRatio
+      _splitOnPay
     ));
   }
 

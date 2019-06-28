@@ -3,9 +3,9 @@ pragma solidity ^0.5.4;
 import "../dividend/DividendToken.sol";
 import "../BondingCurve.sol";
 import "../interface/ICurveLogic.sol";
-import "../logic/BancorCurve.sol";
+import "../curve/BancorCurve.sol";
 
-contract BancorCurveFactory {
+library BancorCurveFactory {
 
   event BondingCurveCreated(
     address _bondingCurve,
@@ -15,21 +15,21 @@ contract BancorCurveFactory {
   );
 
   /// @notice Deploy a bonding curve with all new components.
-  /// @param name Bonded token name.
-  /// @param symbol Bonded token symbol.
-  /// @param owner Owner of bonding curve.
-  /// @param beneficiary Beneficiary of bonding curve.
-  /// @param buyParams Bancor reserveRatio.
-  /// @param sellParams Bancor reserveRatio.
-  /// @param reserveToken Reserve token to buy Bonded tokens.
-  /// @param splitOnPay Percentage allocated to beneficiary on revenue. The remainder is allocated to Bonded token holders.
+  /// @param _name Bonded token name.
+  /// @param _symbol Bonded token symbol.
+  /// @param _owner Owner of bonding curve.
+  /// @param _beneficiary Beneficiary of bonding curve.
+  /// @param _buyParams Bancor reserveRatio.
+  /// @param _sellParams Bancor reserveRatio.
+  /// @param _reserveToken Reserve token to buy Bonded tokens.
+  /// @param _splitOnPay Percentage allocated to beneficiary on revenue. The remainder is allocated to Bonded token holders.
   function deploy(
     string memory _name,
     string memory _symbol,
     address _owner,
     address payable _beneficiary,
-    uint256 memory _buyParams,
-    uint256 memory _sellParams,
+    uint32 _buyParams,
+    uint32 _sellParams,
     ERC20 _reserveToken,
     uint _splitOnPay
   ) public returns(
@@ -39,8 +39,8 @@ contract BancorCurveFactory {
     ICurveLogic sellCurveAddr
   )
   {
-    LinearCurve buyCurve = new BancorCurve(_buyParams);
-    LinearCurve sellCurve = new BancorCurve(_sellParams);
+    BancorCurve buyCurve = new BancorCurve(_buyParams);
+    BancorCurve sellCurve = new BancorCurve(_sellParams);
 
     DividendToken dividendToken = new DividendToken(
       _name,

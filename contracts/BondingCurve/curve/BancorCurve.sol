@@ -2,8 +2,9 @@ pragma solidity >= 0.4.22 <6.0.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../interface/ICurveLogic.sol";
+import "./bancor-formula/BancorFormula.sol";
 
-contract LinearCurve is BancorForumla, ICurveLogic {
+contract BancorCurve is BancorFormula, ICurveLogic {
     using SafeMath for uint256;
 
     /*
@@ -16,9 +17,9 @@ contract LinearCurve is BancorForumla, ICurveLogic {
     * we might want to add an 'initialize' function that will allow
     * the owner to send ether to the contract and mint a given amount of tokens
     */
-    uint256 reserveRatio;
+    uint32 reserveRatio;
 
-    constructor(uint256 _reserveRatio) public {
+    constructor(uint32 _reserveRatio) public {
         reserveRatio = _reserveRatio;
     }
 

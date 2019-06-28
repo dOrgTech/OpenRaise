@@ -2,11 +2,10 @@ pragma solidity ^0.5.4;
 
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../Initializable.sol";
-import "../Beneficiary.sol";
-import "../interface/ICurveLogic.sol";
-import "../dividend-token/DividendToken.sol";
-import "../dividend-token/DividendPaymentTracker.sol";
+import "./utils/Beneficiary.sol";
+import "./interface/ICurveLogic.sol";
+import "./dividend/DividendToken.sol";
+import "./dividend/DividendPaymentTracker.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens. 
 /// @author dOrg
@@ -60,13 +59,13 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
     /// @notice             Get the price in ether to mint tokens
     /// @param numTokens    The number of tokens to calculate price for
     function priceToBuy(uint256 numTokens) public view returns(uint256) {
-        return buyCurve.calcMintPrice(bondedToken.totalSupply(), numTokens);
+        return buyCurve.calcMintPrice(bondedToken.totalSupply(), reserveBalance, numTokens);
     }
 
     /// @notice             Get the reward in ether to burn tokens
     /// @param numTokens    The number of tokens to calculate reward for
     function rewardForSell(uint256 numTokens) public view returns(uint256) {
-        return sellCurve.calcBurnReward(bondedToken.totalSupply(), numTokens);
+        return sellCurve.calcBurnReward(bondedToken.totalSupply(), reserveBalance, numTokens);
     }
 
     /// @notice                 Get the dividend tokens that would currently be recieved for a specified amonut of reserve currency
