@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../interface/IPaymentTracker.sol";
 import "./DividendToken.sol";
@@ -14,7 +14,7 @@ contract DividendPaymentTracker is IPaymentTracker {
     }
 
     DividendToken dividendToken;
-    ERC20 paymentToken;
+    IERC20 paymentToken;
     Checkpoint[] public payments;
 
     mapping (address => mapping (uint => bool)) public withdrawals;
@@ -23,11 +23,11 @@ contract DividendPaymentTracker is IPaymentTracker {
     event PaymentRegistered(address indexed payee, address indexed tokenAddr, uint256 amount);
 
     constructor(
-        DividendToken _dividendTokenAddr,
-        ERC20 _paymentTokenAddr
+        address _dividendTokenAddr,
+        address _paymentTokenAddr
     ) public {
-        dividendToken = _dividendTokenAddr;
-        paymentToken = _paymentTokenAddr;
+        dividendToken = DividendToken(_dividendTokenAddr);
+        paymentToken = IERC20(_paymentTokenAddr);
     }
 
     /// @notice Withdraw the available withdrawal allowance for the payments beginning and ending at the given indicies, inclusive.

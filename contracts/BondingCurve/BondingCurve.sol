@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./utils/Beneficiary.sol";
 import "./interface/ICurveLogic.sol";
@@ -13,7 +13,7 @@ import "./dividend/DividendPaymentTracker.sol";
 contract BondingCurve is Beneficiary, DividendPaymentTracker {
     using SafeMath for uint256;
 
-    ERC20 public reserveToken;
+    IERC20 public reserveToken;
     DividendToken public bondedToken;
 
     struct PaymentTokens {
@@ -34,21 +34,21 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
     string constant internal PRICE_BELOW_MIN = "PRICE_BELOW_MIN";
 
     constructor(
-        ERC20 _reserveToken,
+        address _reserveToken,
         address payable _beneficiary,
-        ICurveLogic _buyCurve,
-        ICurveLogic _sellCurve,
-        DividendToken _bondedToken,
+        address _buyCurve,
+        address _sellCurve,
+        address _bondedToken,
         uint256 _splitOnPay
     ) public DividendPaymentTracker(_bondedToken, _reserveToken) {
-        reserveToken = _reserveToken;
+        reserveToken = IERC20(_reserveToken);
         beneficiary = _beneficiary;
 
-        buyCurve = _buyCurve;
-        sellCurve = _sellCurve;
+        buyCurve = ICurveLogic(_buyCurve);
+        sellCurve = ICurveLogic(_sellCurve);
 
         // TODO: validate dividend ratio
-        bondedToken = _bondedToken;
+        bondedToken = DividendToken(_bondedToken);
         splitOnPay = _splitOnPay;
     }
     
@@ -131,7 +131,7 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
     /// @dev                Does not currently support arbitrary token payments
     /// @param amount       The number of tokens to pay the DAO
     function pay(uint256 amount) public {
-        ERC20 paymentToken = ERC20(getPaymentToken());
+        IERC20 paymentToken = IERC20(bondedToken.getPaymentToken());
         
         uint256 tokensToBeneficiary = 0;
         uint256 tokensToDividendHolders = 0;

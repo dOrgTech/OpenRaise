@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 /// Much structure taken from Giveth's MiniMeToken: https://github.com/Giveth/minime
-interface IDividendBondedToken {
+contract IDividendBondedToken {
 
 ////////////////
 // Query balance and totalSupply in History
@@ -11,12 +11,12 @@ interface IDividendBondedToken {
     /// @param _owner The address from which the balance will be retrieved
     /// @param _blockNumber The block number when the balance is queried
     /// @return The balance at `_blockNumber`
-    function balanceOfAt(address _owner, uint _blockNumber) external view;
+    function balanceOfAt(address _owner, uint _blockNumber) public view;
 
     /// @notice Total amount of tokens at a specific `_blockNumber`.
     /// @param _blockNumber The block number when the totalSupply is queried
     /// @return The total amount of tokens at `_blockNumber`
-    function totalSupplyAt(uint _blockNumber) external view returns(uint);
+    function totalSupplyAt(uint _blockNumber) public view returns(uint);
 
 ////////////////
 // Generate and destroy tokens
@@ -26,10 +26,10 @@ interface IDividendBondedToken {
     /// @param _owner The address that will be assigned the new tokens
     /// @param _amount The quantity of tokens generated
     /// @return True if the tokens are generated correctly
-    function mint(address _owner, uint _amount) external returns (bool);
+    function mint(address _owner, uint _amount) public returns (bool);
 
     //TODO: Implement Burn
-    function burn(address _owner, uint _amount) external returns (bool);
+    function burn(address _owner, uint _amount) public returns (bool);
 
 ////////////////
 // Enable tokens transfers
@@ -37,7 +37,7 @@ interface IDividendBondedToken {
 
     /// @notice Enables token holders to transfer their tokens freely if true
     /// @param _transfersEnabled True if transfers are allowed in the clone
-    function enableTransfers(bool _transfersEnabled) external;
+    function enableTransfers(bool _transfersEnabled) public;
 
 //////////
 // Safety Methods
@@ -45,10 +45,10 @@ interface IDividendBondedToken {
     
     /// @notice This method can be used by the controller to extract mistakenly
     ///  sent ether to this contract.
-    function claimEther() external;
+    function claimEther() public;
 
     /// @notice This method can be used by the controller to extract mistakenly
     ///  sent tokens to this contract.
     /// @param _token The address of the token contract that you want to recover
-    function claimTokens(address _token) external;
+    function claimTokens(address _token) public;
 }

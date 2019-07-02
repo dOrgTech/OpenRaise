@@ -3,7 +3,8 @@ pragma solidity ^0.5.4;
 import "@daostack/arc/contracts/universalSchemes/UniversalScheme.sol";
 import "@daostack/arc/contracts/votingMachines/VotingMachineCallbacks.sol";
 import "@daostack/infra/contracts/votingMachines/ProposalExecuteInterface.sol";
-import "../BondingCurve/factory/BancorCurveFactory.sol";
+import "../BondingCurve/factory/CombinedFactoryLibrary.sol";
+import "../BondingCurve/interface/factory/ICombinedFactory.sol";
 
 contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, ProposalExecuteInterface {
 
@@ -118,6 +119,8 @@ contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, Pro
   // A mapping from hashes to parameters (use to store a particular configuration on the controller)
   mapping(bytes32=>Parameters) public parameters;
 
+  ICombinedFactory combinedFactory;
+
   /**
   * @dev execution of proposals, can only be called by the voting machine in which the vote is held.
   * @param _proposalId the ID of the voting in the voting machine
@@ -164,17 +167,17 @@ contract BondingCurveAdminScheme is UniversalScheme, VotingMachineCallbacks, Pro
       ICurveLogic buyCurve;
       ICurveLogic sellCurve;
 
-      (bondingCurve, dividendToken, buyCurve, sellCurve) = 
-      BancorCurveFactory.deploy(
-        proposal.name,
-        proposal.symbol,
-        address(avatar),
-        proposal.beneficiary,
-        curveParams.buyReserveRatio,
-        curveParams.sellReserveRatio,
-        curveParams.reserveToken,
-        curveParams.splitOnPay
-      );
+      // (bondingCurve, dividendToken, buyCurve, sellCurve) = 
+      // CombinedFactoryLibrary.deploy(
+      //   proposal.name,
+      //   proposal.symbol,
+      //   address(avatar),
+      //   proposal.beneficiary,
+      //   curveParams.buyReserveRatio,
+      //   curveParams.sellReserveRatio,
+      //   curveParams.reserveToken,
+      //   curveParams.splitOnPay
+      // );
 
       emit CurveDeployed(
         address(avatar),

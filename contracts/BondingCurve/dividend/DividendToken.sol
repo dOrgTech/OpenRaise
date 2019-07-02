@@ -1,7 +1,6 @@
 pragma solidity ^0.5.0;
 
 // External dependencies.
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./Controlled.sol";
@@ -32,7 +31,7 @@ contract DividendToken is Controlled, IERC20 {
 
     Checkpoint[] public payments;
 
-    ERC20 paymentToken;
+    IERC20 paymentToken;
 
     // keeps track of how much has been withdrawn from each address;
     // the inner mapping is of payment index to whether or not the payment index has been withdrawn against
@@ -70,7 +69,7 @@ contract DividendToken is Controlled, IERC20 {
         string memory _symbol,
         uint8 _decimals,
         address payable _controller,
-        ERC20 _paymentToken,
+        address _paymentToken,
         bool _transfersEnabled
     )
         public
@@ -79,7 +78,7 @@ contract DividendToken is Controlled, IERC20 {
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
-        paymentToken = _paymentToken;
+        paymentToken = IERC20(_paymentToken);
         transfersEnabled = _transfersEnabled;
     }
 
@@ -489,7 +488,7 @@ contract DividendToken is Controlled, IERC20 {
     ///  sent tokens to this contract.
     /// @param _token The address of the token contract that you want to recover
     function claimTokens(address _token) public onlyController {
-        ERC20 token = ERC20(_token);
+        IERC20 token = IERC20(_token);
         uint balance = token.balanceOf(address(this));
         token.transfer(controller, balance);
         emit ClaimedTokens(_token, controller, balance);

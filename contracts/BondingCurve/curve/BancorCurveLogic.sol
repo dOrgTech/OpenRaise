@@ -4,7 +4,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../interface/ICurveLogic.sol";
 import "./bancor-formula/BancorFormula.sol";
 
-contract BancorCurve is BancorFormula, ICurveLogic {
+contract BancorCurveLogic is BancorFormula, ICurveLogic {
     using SafeMath for uint256;
 
     /*

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.4;
 
 /// @title  Curve - A specific curve implementation used by a BondingCurvedToken.
-interface ICurveLogic {
+contract ICurveLogic {
     
     /// @dev                    Get the price to mint tokens
     /// @param totalSupply      The existing number of curve tokens
@@ -10,7 +10,7 @@ interface ICurveLogic {
         uint256 totalSupply,
         uint256 reserveBalance,
         uint256 amount
-    ) external view returns (uint256);
+    ) public view returns (uint256);
 
     /// @dev                    Get the reward to burn tokens
     /// @param totalSupply      The existing number of curve tokens
@@ -19,5 +19,5 @@ interface ICurveLogic {
         uint256 totalSupply,
         uint256 reserveBalance,
         uint256 amount
-    ) external view returns (uint256);
+    ) public view returns (uint256);
 }
