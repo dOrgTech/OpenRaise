@@ -16,6 +16,10 @@ contract Controlled is Initializable{
         controller = _controller;
     }
 
+    function getController() public view returns(address) {
+        return address(controller);
+    }
+
     /// @notice Changes the controller of the contract
     /// @param _newController The new controller of the contract
     function changeController(address payable _newController) public onlyController {

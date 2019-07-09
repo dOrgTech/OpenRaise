@@ -18,13 +18,13 @@ contract("DividendToken", ([sender, receiver]) => {
     paymentToken: {
       name: "PaymentToken",
       symbol: "PAY",
-      decimals: 18
+      decimals: new BN(18)
     },
     dividendToken: {
       name: "BondedToken",
       symbol: "BND",
-      decimals: 18,
-      beneficiary: sender,
+      decimals: new BN(18),
+      controller: sender,
       paymentToken: null,
       transfersEnabled: true
     }
@@ -45,7 +45,7 @@ contract("DividendToken", ([sender, receiver]) => {
       values.dividendToken.name,
       values.dividendToken.symbol,
       values.dividendToken.decimals,
-      values.dividendToken.beneficiary,
+      values.dividendToken.controller,
       values.dividendToken.paymentToken,
       values.dividendToken.transfersEnabled
     );
@@ -54,22 +54,27 @@ contract("DividendToken", ([sender, receiver]) => {
   });
 
   it("should have properly initialized values", async function() {
-    (await this.dividendToken.name()).should.equal(values.dividendToken.name);
-    (await this.dividendToken.symbol()).should.equal(
+    expect(await this.dividendToken.name()).to.be.equal(
+      values.dividendToken.name
+    );
+
+    expect(await this.dividendToken.symbol()).to.be.equal(
       values.dividendToken.symbol
     );
-    const result = await this.dividendToken.decimals();
-    console.log(result);
-    (await this.dividendToken.decimals()).should.equal(
+
+    expect(await this.dividendToken.decimals()).to.be.bignumber.equal(
       values.dividendToken.decimals
-    ); //Change to BigNumber Equal
-    (await this.dividendToken.beneficiary()).should.equal(
-      values.dividendToken.beneficiary
     );
-    (await this.dividendToken.paymentToken()).should.equal(
+
+    expect(await this.dividendToken.getController()).to.be.equal(
+      values.dividendToken.controller
+    );
+
+    expect(await this.dividendToken.paymentToken()).to.be.equal(
       values.dividendToken.paymentToken
     );
-    (await this.dividendToken.transfersEnabled()).should.equal(
+
+    expect(await this.dividendToken.transfersEnabled()).to.be.equal(
       values.dividendToken.transfersEnabled
     );
   });

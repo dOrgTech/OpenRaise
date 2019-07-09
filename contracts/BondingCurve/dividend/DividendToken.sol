@@ -32,7 +32,7 @@ contract DividendToken is Controlled, IERC20 {
 
     Checkpoint[] public payments;
 
-    IERC20 paymentToken;
+    IERC20 public paymentToken;
 
     // keeps track of how much has been withdrawn from each address;
     // the inner mapping is of payment index to whether or not the payment index has been withdrawn against
