@@ -1,8 +1,10 @@
 pragma solidity ^0.5.4;
 
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "./utils/Beneficiary.sol";
+import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-eth/contracts/token/ERC20/StandaloneERC20.sol";
+import "openzeppelin-eth/contracts/math/SafeMath.sol";
+import "openzeppelin-eth/contracts/ownership/Ownable.sol";
+import "zos-lib/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
 import "./dividend/DividendToken.sol";
 import "./dividend/DividendPaymentTracker.sol";
@@ -10,7 +12,7 @@ import "./dividend/DividendPaymentTracker.sol";
 /// @title A bonding curve implementation for buying a selling bonding curve tokens. 
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurve is Beneficiary, DividendPaymentTracker {
+contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     using SafeMath for uint256;
 
     IERC20 public reserveToken;
@@ -33,16 +35,19 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
     string constant internal MAX_PRICE_EXCEEDED = "MAX_PRICE_EXCEEDED";
     string constant internal PRICE_BELOW_MIN = "PRICE_BELOW_MIN";
 
-    constructor(
+    event BeneficiarySet(address _newBeneficiary);
+
+    function initialize(
         address _reserveToken,
         address payable _beneficiary,
         address _buyCurve,
         address _sellCurve,
         address _bondedToken,
         uint256 _splitOnPay
-    ) public DividendPaymentTracker(_bondedToken, _reserveToken) {
+    ) public initializer {
+        DividendPaymentTracker.initialize(_bondedToken, _reserveToken);
         reserveToken = IERC20(_reserveToken);
-        beneficiary = _beneficiary;
+        setBeneficiary(_beneficiary);
 
         buyCurve = ICurveLogic(_buyCurve);
         sellCurve = ICurveLogic(_sellCurve);
@@ -51,7 +56,7 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         bondedToken = DividendToken(_bondedToken);
         splitOnPay = _splitOnPay;
     }
-    
+
     /// @notice             Get the price in ether to mint tokens
     /// @param numTokens    The number of tokens to calculate price for
     function priceToBuy(uint256 numTokens) public view returns(uint256) {
@@ -140,5 +145,14 @@ contract BondingCurve is Beneficiary, DividendPaymentTracker {
         
         paymentToken.transfer(beneficiary, tokensToBeneficiary);
         _registerPayment(tokensToDividendHolders);
+    }
+
+    function getBeneficiary() public returns (address payable) {
+        return beneficiary;
+    }
+
+    function setBeneficiary(address payable _beneficiary) public onlyOwner {
+        beneficiary = _beneficiary;
+        emit BeneficiarySet(beneficiary);
     }
 }

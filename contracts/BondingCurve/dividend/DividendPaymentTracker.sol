@@ -1,11 +1,12 @@
 pragma solidity ^0.5.4;
 
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "../interface/IPaymentTracker.sol";
 import "./DividendToken.sol";
+import "zos-lib/contracts/Initializable.sol";
 
-contract DividendPaymentTracker is IPaymentTracker {
+contract DividendPaymentTracker is Initializable, IPaymentTracker {
     using SafeMath for uint256;
 
     struct  Checkpoint {
@@ -22,10 +23,10 @@ contract DividendPaymentTracker is IPaymentTracker {
     event Withdrawal(address indexed recipient, address indexed tokenAddr, uint256 amount);
     event PaymentRegistered(address indexed payee, address indexed tokenAddr, uint256 amount);
 
-    constructor(
+    function initialize(
         address _dividendTokenAddr,
         address _paymentTokenAddr
-    ) public {
+    ) public initializer {
         dividendToken = DividendToken(_dividendTokenAddr);
         paymentToken = IERC20(_paymentTokenAddr);
     }

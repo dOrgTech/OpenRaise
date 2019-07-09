@@ -13,11 +13,24 @@
     "test": "npx truffle test",
     "build": "npx truffle compile"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dOrgTech/BC-DAO"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dOrgTech/BC-DAO/issues"
+  },
+  "homepage": "https://github.com/dOrgTech/BC-DAO#readme",
+  "dependencies": {
+    "dotenv": "^6.2.0",
+    "openzeppelin-eth": "^2.2.0",
+    "truffle-hdwallet-provider": "^1.0.3",
+    "zos-lib": "^2.2.3"
+  },
   "devDependencies": {
-    "@daostack/arc": "0.0.1-rc.16",
     "chai": "^4.2.0",
-    "ganache-cli": "^6.4.1",
-    "openzeppelin-solidity": "2.2.0",
-    "openzeppelin-test-helpers": "^0.4.0"
+    "openzeppelin-test-helpers": "^0.4.0",
+    "zos": "^2.3.0"
   }
 }

@@ -1,0 +1,21 @@
+{
+  "zosversion": "2.2",
+  "contracts": {
+    "BancorCurveLogic": "BancorCurveLogic",
+    "DividendToken": "DividendToken",
+    "BondingCurve": "BondingCurve",
+    "CombinedFactory": "CombinedFactory"
+  },
+  "dependencies": {
+    "openzeppelin-eth": "^2.2.0"
+  },
+  "name": "bc-dao",
+  "version": "0.0.1",
+  "compiler": {
+    "manager": "zos",
+    "compilerSettings": {
+      "optimizer": {}
+    },
+    "solcVersion": "0.5.10"
+  }
+}

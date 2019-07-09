@@ -1,38 +1,33 @@
 pragma solidity ^0.5.4;
 
-import "./DividendTokenFactory.sol";
-import "./BondingCurveFactory.sol";
-import "./BancorCurveLogicFactory.sol";
-import "../dividend/DividendToken.sol";
-import "../interface/ICurveLogic.sol";
-import "../interface/factory/ICombinedFactory.sol";
+import "zos-lib/contracts/Initializable.sol";
+import "zos-lib/contracts/application/App.sol";
 
-contract CombinedFactory is ICombinedFactory {
+contract CombinedFactory is Initializable {
 
-  event FundraisingDeployed(
-    address indexed bondingCurve,
-    address indexed dividendToken,
-    address buyCurve,
-    address sellCurve,
-    address indexed sender
+    string constant BC_DAO_PACKAGE_NAME = "daostack-fundraising";
+    string constant BANCOR_CURVE_LOGIC_NAME = "BancorCurveLogic";
+    string constant DIVIDEND_TOKEN_NAME = "DividendToken";
+    string constant BONDING_CURVE_NAME = "BondingCurve";
+
+    App public app;
+
+    event FundraisingDeployed(
+        address indexed bondingCurve,
+        address indexed dividendToken,
+        address buyCurve,
+        address sellCurve,
+        address indexed sender
     );
 
-    DividendTokenFactory dividendTokenFactory;
-    BondingCurveFactory bondingCurveFactory;
-    BancorCurveLogicFactory bancorCurveLogicFactory;
-
-    constructor(
-        address _bancorCurveLogicFactory,
-        address _bondingCurveFactory,
-        address _dividendTokenFactory
-    ) public {
-        bancorCurveLogicFactory = BancorCurveLogicFactory(_bancorCurveLogicFactory);
-        bondingCurveFactory = BondingCurveFactory(_bondingCurveFactory);
-        dividendTokenFactory = DividendTokenFactory(_dividendTokenFactory);
+    function initialize (address _appContractAddress) public initializer {
+      app = App(_appContractAddress);
     }
 
-    function isFunc() public {
-        uint a = 1;
+    /// @param _data uint32 reserveRatio
+    function createBancorCurveLogicInstance(bytes memory _data) public returns (address proxy) {
+      address admin = msg.sender;
+      return address(app.create(BC_DAO_PACKAGE_NAME, BANCOR_CURVE_LOGIC_NAME, admin, _data));
     }
 
   /// @notice Deploy a bonding curve with all new components.
@@ -60,42 +55,65 @@ contract CombinedFactory is ICombinedFactory {
     address sellCurve
   )
   {
-    buyCurve = bancorCurveLogicFactory.deploy(_buyParams);
-    sellCurve = bancorCurveLogicFactory.deploy(_sellParams);
+    // bondingCurve = address(0);
+    // dividendToken = address(0);
+    // buyCurve = address(0);
+    // sellCurve = address(0);
 
-    dividendToken = dividendTokenFactory.deploy(
-      _name,
-      _symbol,
-      _decimals,
-      address(uint160(address(this))), //Cast to address payable
-      _reserveToken,
-      true
-    );
+    // We can do one-line deploys by encoding the data and sending, as we do in the scheme. This is def the way to go.
 
-    bondingCurve = bondingCurveFactory.deploy(
-      _reserveToken,
-      _beneficiary,
-      buyCurve,
-      sellCurve,
-      dividendToken,
-      _splitOnPay
-    );
-
-    DividendToken(dividendToken).changeController(address(uint160(address(bondingCurve))));
+    // UpgradeabilityProxy buyCurveProxy = new UpgradeabilityProxy(
+    //     implRegistry.bondingCurveImpl(),
+    //     abi.encodeWithSignature(
+    //       BANCOR_CURVE_LOGIC_INIT_SELECTOR,
+    //       _buyParams
+    //     )
+    // );
+    // UpgradeabilityProxy sellCurveProxy = new UpgradeabilityProxy(
+    //     implRegistry.bancorCurveLogicImpl(),
+    //     abi.encodeWithSignature(
+    //       BANCOR_CURVE_LOGIC_INIT_SELECTOR,
+    //       _sellParams
+    //     )
+    // );
+    // UpgradeabilityProxy dividendTokenProxy = new UpgradeabilityProxy(
+    //     implRegistry.dividendTokenImpl(),
+    //     abi.encodeWithSignature(
+    //         DIVIDEND_TOKEN_INIT_SELECTOR,
+    //         _name,
+    //         _symbol,
+    //         _decimals,
+    //         address(uint160(address(this))), //Cast to address payable
+    //         _reserveToken,
+    //         true
+    //     )
+    // );
+    // UpgradeabilityProxy bondingCurveProxy = new UpgradeabilityProxy(
+    //     implRegistry.bondingCurveImpl(),
+    //     abi.encodeWithSignature(
+    //         BANCOR_CURVE_LOGIC_INIT_SELECTOR,
+    //         _reserveToken,
+    //         _beneficiary,
+    //         address(buyCurveProxy),
+    //         address(sellCurveProxy),
+    //         address(dividendTokenProxy),
+    //         _splitOnPay
+    //     )
+    // );
 
     emit FundraisingDeployed(
-      address(bondingCurve),
-      address(dividendToken),
-      address(buyCurve),
-      address(sellCurve),
-      msg.sender
+        address(0),
+        address(0),
+        address(0),
+        address(0),
+        msg.sender
     );
 
     return (
-      bondingCurve,
-      dividendToken,
-      buyCurve,
-      sellCurve
+        address(0),
+        address(0),
+        address(0),
+        address(0)
     );
   }
 }

@@ -1,10 +1,11 @@
 pragma solidity >= 0.4.22 <6.0.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-eth/contracts/math/SafeMath.sol";
+import "zos-lib/contracts/Initializable.sol";
 import "../interface/ICurveLogic.sol";
 import "./bancor-formula/BancorFormula.sol";
 
-contract BancorCurveLogic is BancorFormula, ICurveLogic {
+contract BancorCurveLogic is Initializable, BancorFormula, ICurveLogic {
     using SafeMath for uint256;
 
     /*
@@ -19,7 +20,7 @@ contract BancorCurveLogic is BancorFormula, ICurveLogic {
     */
     uint32 reserveRatio;
 
-    constructor(uint32 _reserveRatio) public {
+    function initialize(uint32 _reserveRatio) public initializer {
         reserveRatio = _reserveRatio;
     }
 

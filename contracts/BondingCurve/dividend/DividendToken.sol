@@ -1,8 +1,9 @@
 pragma solidity ^0.5.0;
 
 // External dependencies.
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-eth/contracts/math/SafeMath.sol";
+import "zos-lib/contracts/Initializable.sol";
 import "./Controlled.sol";
 
 contract ApproveAndCallFallBack {
@@ -64,7 +65,7 @@ contract DividendToken is Controlled, IERC20 {
 
     /// @notice Constructor to create a DividendToken
     /// @param _transfersEnabled If true, tokens will be able to be transferred
-    constructor(
+    function initialize(
         string memory _name,
         string memory _symbol,
         uint8 _decimals,
@@ -73,8 +74,9 @@ contract DividendToken is Controlled, IERC20 {
         bool _transfersEnabled
     )
         public
-        Controlled(_controller)
+        initializer
     {
+        Controlled.initialize(_controller);
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
