@@ -10,7 +10,7 @@
     "truffle-config.js"
   ],
   "scripts": {
-    "test": "npx truffle test",
+    "test": "zos push && truffle test",
     "build": "npx truffle compile"
   },
   "repository": {

@@ -9,11 +9,23 @@ const {
 // Import preferred chai flavor: both expect and should are supported
 const expect = require("chai").expect;
 const should = require("chai").should();
+const lib = require("zos-lib");
+
+const {
+  appCreate,
+  getAppAddress,
+  encodeCall,
+  getZosConfig,
+  getCurrentZosNetworkConfig
+} = require("../testHelpers");
 
 const PaymentToken = artifacts.require("StandaloneERC20");
 const DividendToken = artifacts.require("DividendToken");
+const App = artifacts.require("App");
 
 contract("DividendToken", ([sender, receiver]) => {
+  let tx;
+
   let values = {
     paymentToken: {
       name: "PaymentToken",
@@ -30,7 +42,11 @@ contract("DividendToken", ([sender, receiver]) => {
     }
   };
 
+  const appAddress = getAppAddress();
+
   beforeEach(async function() {
+    this.app = await App.at(appAddress);
+
     this.paymentToken = await PaymentToken.new();
     this.paymentToken.initialize(
       values.paymentToken.name,
@@ -41,14 +57,34 @@ contract("DividendToken", ([sender, receiver]) => {
     values.dividendToken.paymentToken = this.paymentToken.address;
 
     this.dividendToken = await DividendToken.new();
-    this.dividendToken.initialize(
+    await this.dividendToken.initialize(
       values.dividendToken.name,
       values.dividendToken.symbol,
-      values.dividendToken.decimals,
+      values.dividendToken.decimals.toString(),
       values.dividendToken.controller,
       values.dividendToken.paymentToken,
       values.dividendToken.transfersEnabled
     );
+
+    // const data = encodeCall(
+    //   "initialize",
+    //   ["string", "string", "uint256", "address", "address", "bool"],
+    //   [
+    //     values.dividendToken.name,
+    //     values.dividendToken.symbol,
+    //     values.dividendToken.decimals.toNumber(),
+    //     values.dividendToken.controller,
+    //     values.dividendToken.paymentToken,
+    //     values.dividendToken.transfersEnabled
+    //   ]
+    // );
+
+    console.log(
+      "DividendToken",
+      await this.app.getImplementation("bc-dao", "DividendToken")
+    );
+
+    // tx = await appCreate("bc-dao", "DividendToken", receiver, data);
 
     this.value = new BN(1); // The bundled BN library is the same one truffle and web3 use under the hood
   });
