@@ -56,35 +56,26 @@ contract("DividendToken", ([sender, receiver]) => {
 
     values.dividendToken.paymentToken = this.paymentToken.address;
 
-    this.dividendToken = await DividendToken.new();
-    await this.dividendToken.initialize(
-      values.dividendToken.name,
-      values.dividendToken.symbol,
-      values.dividendToken.decimals.toString(),
-      values.dividendToken.controller,
-      values.dividendToken.paymentToken,
-      values.dividendToken.transfersEnabled
+    const data = encodeCall(
+      "initialize",
+      ["string", "string", "uint8", "address", "address", "bool"],
+      [
+        values.dividendToken.name,
+        values.dividendToken.symbol,
+        values.dividendToken.decimals.toNumber(),
+        values.dividendToken.controller,
+        values.dividendToken.paymentToken,
+        values.dividendToken.transfersEnabled
+      ]
     );
 
-    // const data = encodeCall(
-    //   "initialize",
-    //   ["string", "string", "uint256", "address", "address", "bool"],
-    //   [
-    //     values.dividendToken.name,
-    //     values.dividendToken.symbol,
-    //     values.dividendToken.decimals.toNumber(),
-    //     values.dividendToken.controller,
-    //     values.dividendToken.paymentToken,
-    //     values.dividendToken.transfersEnabled
-    //   ]
-    // );
-
-    console.log(
+    const proxyAddress = await appCreate(
+      "bc-dao",
       "DividendToken",
-      await this.app.getImplementation("bc-dao", "DividendToken")
+      receiver,
+      data
     );
-
-    // tx = await appCreate("bc-dao", "DividendToken", receiver, data);
+    this.dividendToken = await DividendToken.at(proxyAddress);
 
     this.value = new BN(1); // The bundled BN library is the same one truffle and web3 use under the hood
   });
