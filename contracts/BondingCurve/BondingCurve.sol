@@ -6,7 +6,7 @@ import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "openzeppelin-eth/contracts/ownership/Ownable.sol";
 import "zos-lib/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
-import "./dividend/DividendToken.sol";
+import "./dividend/ClaimsToken.sol";
 import "./dividend/DividendPaymentTracker.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens. 
@@ -16,16 +16,11 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     using SafeMath for uint256;
 
     IERC20 public reserveToken;
-    DividendToken public bondedToken;
-
-    struct PaymentTokens {
-        mapping (address => bool) isPaymentToken;
-        address[] tokenList;
-    }
+    ClaimsToken public bondedToken;
 
     ICurveLogic public buyCurve;
     ICurveLogic public sellCurve;
-    address payable beneficiary;
+    address public beneficiary;
 
     uint256 public reserveBalance;
     uint256 public splitOnPay;
@@ -35,25 +30,30 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     string constant internal MAX_PRICE_EXCEEDED = "MAX_PRICE_EXCEEDED";
     string constant internal PRICE_BELOW_MIN = "PRICE_BELOW_MIN";
 
-    event BeneficiarySet(address _newBeneficiary);
+    event BeneficiarySet(address beneficiary);
 
     function initialize(
         address _reserveToken,
-        address payable _beneficiary,
+        address _beneficiary,
+        address _owner,
         address _buyCurve,
         address _sellCurve,
         address _bondedToken,
         uint256 _splitOnPay
     ) public initializer {
+        require(_splitOnPay > 0 && _splitOnPay < 100, "splitOnPay must be a valid percentage");
+        Ownable.initialize(_owner);
         DividendPaymentTracker.initialize(_bondedToken, _reserveToken);
         reserveToken = IERC20(_reserveToken);
-        setBeneficiary(_beneficiary);
+
+        beneficiary = _beneficiary;
+        emit BeneficiarySet(beneficiary);
 
         buyCurve = ICurveLogic(_buyCurve);
         sellCurve = ICurveLogic(_sellCurve);
 
-        // TODO: validate dividend ratio
-        bondedToken = DividendToken(_bondedToken);
+        // // TODO: validate dividend ratio
+        bondedToken = ClaimsToken(_bondedToken);
         splitOnPay = _splitOnPay;
     }
 
@@ -74,14 +74,6 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     // function tokensForValue(uint256 reserveTokens) public view returns(uint256) {
     //     //TODO: This requires the integral calculations
     // }
-    
-    /// @notice                 Get the addresses of tokens accepted by the DAO as payment
-    function getAcceptedPaymentTokens() public view returns (address[] memory) {
-        address[] memory paymentTokens = new address[](1);
-        paymentTokens[0] = bondedToken.getPaymentToken();
-        
-        return paymentTokens;
-    }
 
     /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
     /// @param numTokens    The number of bondedTokens to buy
@@ -136,7 +128,7 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     /// @dev                Does not currently support arbitrary token payments
     /// @param amount       The number of tokens to pay the DAO
     function pay(uint256 amount) public {
-        IERC20 paymentToken = IERC20(bondedToken.getPaymentToken());
+        IERC20 paymentToken = IERC20(getPaymentToken());
         
         uint256 tokensToBeneficiary = 0;
         uint256 tokensToDividendHolders = 0;
@@ -147,11 +139,7 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
         _registerPayment(tokensToDividendHolders);
     }
 
-    function getBeneficiary() public returns (address payable) {
-        return beneficiary;
-    }
-
-    function setBeneficiary(address payable _beneficiary) public onlyOwner {
+    function setBeneficiary(address _beneficiary) public onlyOwner {
         beneficiary = _beneficiary;
         emit BeneficiarySet(beneficiary);
     }

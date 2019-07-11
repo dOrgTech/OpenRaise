@@ -4,7 +4,8 @@
     "BancorCurveLogic": "BancorCurveLogic",
     "DividendToken": "DividendToken",
     "BondingCurve": "BondingCurve",
-    "CombinedFactory": "CombinedFactory"
+    "CombinedFactory": "CombinedFactory",
+    "ClaimsToken": "ClaimsToken"
   },
   "dependencies": {
     "openzeppelin-eth": "^2.2.0"

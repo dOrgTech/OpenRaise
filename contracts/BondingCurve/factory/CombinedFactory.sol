@@ -2,22 +2,22 @@ pragma solidity ^0.5.4;
 
 import "zos-lib/contracts/Initializable.sol";
 import "zos-lib/contracts/application/App.sol";
-import "../curve/BancorCurveLogic.sol";
-import "../dividend/DividendToken.sol";
 import "../BondingCurve.sol";
+import "../curve/BancorCurveLogic.sol";
+import "../dividend/ClaimsToken.sol";
 
 contract CombinedFactory is Initializable {
 
     string constant BC_DAO_PACKAGE = "bc-dao";
     string constant BANCOR_CURVE_LOGIC = "BancorCurveLogic";
-    string constant DIVIDEND_TOKEN = "DividendToken";
+    string constant CLAIMS_TOKEN = "ClaimsToken";
     string constant BONDING_CURVE = "BondingCurve";
 
     App public app;
 
     event FundraisingDeployed(
         address indexed bondingCurve,
-        address indexed dividendToken,
+        address indexed claimsToken,
         address buyCurve,
         address sellCurve,
         address indexed sender
@@ -32,9 +32,9 @@ contract CombinedFactory is Initializable {
         return address(app.create(BC_DAO_PACKAGE, BANCOR_CURVE_LOGIC, admin, _data));
     }
 
-    function _createDividendToken(bytes memory _data) public returns (address proxy) {
+    function _createClaimsToken(bytes memory _data) public returns (address proxy) {
         address admin = address(0);
-        return address(app.create(BC_DAO_PACKAGE, DIVIDEND_TOKEN, admin, _data));
+        return address(app.create(BC_DAO_PACKAGE, CLAIMS_TOKEN, admin, _data));
     }
 
     function _createBondingCurve(bytes memory _data) public returns (address proxy) {
@@ -64,74 +64,43 @@ contract CombinedFactory is Initializable {
   {
     address buyCurve = _createBancorCurveLogic("");
     address sellCurve = _createBancorCurveLogic("");
-    address dividendToken = _createDividendToken("");
+    address claimsToken = _createClaimsToken("");
     address bondingCurve = _createBancorCurveLogic("");
 
     BancorCurveLogic(buyCurve).initialize(_buyParams);
+
     BancorCurveLogic(sellCurve).initialize(_sellParams);
-    // DividendToken(dividendToken).initialize(
-    //   _name,
-    //   _symbol,
-    //   _decimals,
-    //   _beneficiary,
-    //   _reserveToken,
-    //   true
-    // );
+
+    ClaimsToken(claimsToken).initialize(
+      _name,
+      _symbol,
+      _decimals,
+      _beneficiary,
+      true
+    );
+
     // BondingCurve(bondingCurve).initialize(
     //   _reserveToken,
     //   _beneficiary,
     //   buyCurve,
     //   sellCurve,
-    //   dividendToken,
+    //   claimsToken,
     //   _splitOnPay
     // );
 
-
     // We could do one-line deploys by encoding the data and sending, as we do in the scheme.
-
-    // UpgradeabilityProxy buyCurveProxy = new UpgradeabilityProxy(
-    //     implRegistry.bondingCurveImpl(),
-    //     abi.encodeWithSignature(
-    //       BANCOR_CURVE_LOGIC_INIT_SELECTOR,
-    //       _buyParams
-    //     )
-    // );
-
-    // UpgradeabilityProxy sellCurveProxy = new UpgradeabilityProxy(
-    //     implRegistry.bancorCurveLogicImpl(),
-    //     abi.encodeWithSignature(
-    //       BANCOR_CURVE_LOGIC_INIT_SELECTOR,
-    //       _sellParams
-    //     )
-    // );
-    // UpgradeabilityProxy dividendTokenProxy = new UpgradeabilityProxy(
-    //     implRegistry.dividendTokenImpl(),
-    //     abi.encodeWithSignature(
-    //         DIVIDEND_TOKEN_INIT_SELECTOR,
-    //         _name,
-    //         _symbol,
-    //         _decimals,
-    //         address(uint160(address(this))), //Cast to address payable
-    //         _reserveToken,
-    //         true
-    //     )
-    // );
-    // UpgradeabilityProxy bondingCurveProxy = new UpgradeabilityProxy(
-    //     implRegistry.bondingCurveImpl(),
     //     abi.encodeWithSignature(
     //         BANCOR_CURVE_LOGIC_INIT_SELECTOR,
     //         _reserveToken,
     //         _beneficiary,
     //         address(buyCurveProxy),
     //         address(sellCurveProxy),
-    //         address(dividendTokenProxy),
+    //         address(claimsTokenProxy),
     //         _splitOnPay
-    //     )
-    // );
 
     emit FundraisingDeployed(
         bondingCurve,
-        dividendToken,
+        claimsToken,
         buyCurve,
         sellCurve,
         msg.sender

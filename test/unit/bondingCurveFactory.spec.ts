@@ -18,7 +18,7 @@ const {
 } = require("../testHelpers");
 
 const PaymentToken = artifacts.require("StandaloneERC20");
-const DividendToken = artifacts.require("DividendToken");
+const ClaimsToken = artifacts.require("ClaimsToken");
 const BondingCurve = artifacts.require("BondingCurve");
 const BancorCurveLogic = artifacts.require("BancorCurveLogic");
 
@@ -33,13 +33,14 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
       symbol: "PAY",
       decimals: new BN(18)
     },
-    dividendToken: {
+    claimsToken: {
       name: "BondedToken",
       symbol: "BND",
       decimals: new BN(18),
-      controller: sender,
-      paymentToken: null,
-      transfersEnabled: true
+      controller: sender
+    },
+    bondingCurve: {
+      beneficiary: sender
     }
   };
 
@@ -70,6 +71,26 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
       { from: sender }
     );
     console.log(tx.logs);
+
+    const createdEvent = expectEvent.inLogs(tx.logs, "FundraisingDeployed");
+
+    const bondingCurve = await BondingCurve.at(createdEvent.args.bondingCurve);
+    const claimsToken = await ClaimsToken.at(createdEvent.args.claimsToken);
+    const buyCurve = await BancorCurveLogic.at(createdEvent.args.buyCurve);
+    const sellCurve = await BancorCurveLogic.at(createdEvent.args.sellCurve);
+
+    // Call methods on all contracts to verify deployment
+
+    // expect(await bondingCurve.getBeneficiary()).to.be.equal(
+    //   values.bondingCurve.beneficiary
+    // );
+    expect(await claimsToken.totalSupply()).to.be.bignumber.equal(new BN(0));
+    // expect(
+    //   await buyCurve.calcMintPrice(100000, 100000, 1000)
+    // ).to.be.bignumber.equal(new BN(0));
+    // expect(
+    //   await sellCurve.calcMintPrice(10000, 10000, 10000)
+    // ).to.be.bignumber.equal(new BN(0));
   });
 
   it("deploys contracts on combined deploy", async function() {
