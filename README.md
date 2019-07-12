@@ -10,13 +10,13 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 ## How it works
 
-- Anyone can deposit a specified reserve token (such as DAI) to purchase bonded tokens.
+- Anyone can deposit a specified collateral token (such as DAI) to purchase bonded tokens.
 - The **bonding curve** is an automated market maker contract that mints tokens to buyers at an algorithmically determined price. The automated market maker allows users to buy or sell tokens at any time for known prices with minimal slippage.
-- When a user **buys** bonded tokens: Reserve tokens are split between the DAO treasury (to fund the organization) and the reserve (to facilitate liquidity for sells). The buyer receives bonded tokens based on the current price.
+- When a user **buys** bonded tokens: Collateral tokens are split between the DAO treasury (to fund the organization) and the reserve (to facilitate liquidity for sells). The buyer receives bonded tokens based on the current price.
 
 ![](./diagrams/out/bonding_curve_buy_flow.png)
 
-- When a user **sells** bonded tokens: The bonded tokens are burned and the seller receives reserve tokens based on the current price.
+- When a user **sells** bonded tokens: The bonded tokens are burned and the seller receives collateral tokens based on the current price.
 
 ![](./diagrams/out/bonding_curve_sell_flow.png)
 
