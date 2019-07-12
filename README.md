@@ -65,8 +65,9 @@ Our initial bonding curve implementation supports linear and Bancor-based curves
 ### Key Actions
 
 The following chart describes the actions users can take to interact with the Bonding Curve:
-| Action           | Actor                        | Analogy      | Actor sends..    | bondedToken are..                | collateralTokens are..                                                  | bondedToken price.. |
-| ---------------- | ---------------------------- | ------------ | ---------------- | -------------------------------- | ----------------------------------------------------------------------- | ------------------- |
+
+| Action | Actor | Analogy | Actor sends.. | bondedToken are.. | collateralTokens are..| bondedToken price.. |
+|-|-|-|-|-|-|-|
 | Buy()            | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender                 | split between reserve and beneficiary based on splitOnBuy %             | increases           |
 | BeneficiaryBuy() | _beneficiary_                | "Investment" | collateral token | minted to sender (_beneficiary_) | fully deposited in reserve (none sent to _beneficiary_)                 | increases           |
 | Sell()           | Anyone                       | "Divestment" | bonded token     | burned                           | transferred to specified recipient                                      | decreases           |
