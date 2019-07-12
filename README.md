@@ -20,7 +20,7 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 ![](./diagrams/out/bonding_curve_sell_flow.png)
 
-- When the DAO earns **revenue:** the income is split between direct income to the DAO treasury and **dividends** for the bonded token holders ~~according to the parameters set~~.
+- When the DAO earns **revenue:** the income is split between direct income to the DAO treasury and **dividends** for the bonded token holders.
 
 ![](./diagrams/out/bonding_curve_pay_flow.png)
 
