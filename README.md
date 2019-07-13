@@ -2,7 +2,7 @@
 
 # Fundraising Module For DAOs
 
-BC-DAO is a fundraising module for projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon dela Rouviere](<[https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5)>) and [Billy Rennekamp](<[https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5)>) to enable continuous funding(cOrg link) for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
+BC-DAO is a fundraising module for projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon dela Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
 
 Tokens issued via BC-DAO can offer rights in the DAO, such as **dividends** on future revenue or **governance rights** through token locking.
 
@@ -26,7 +26,7 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 ## Curve Economics
 
-- The specifics of curve design are an area of active innovation. A common general principle is to reward early adopters significantly without inflating the buy price so high that it disincentives later participation.
+- The specifics of curve design are an area of active research. A common general principle is to reward earlier contributors without inflating the buy price so high that it disincentives later participation.
 
 - Our current curve implementation is based on **bancor formula**, which allows for a wide variety of potential curves with simple parameters.
   ![](./diagrams/out/bancor_curve_examples.png)
@@ -49,8 +49,6 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 # Implementation
 
-# Bonding Curve
-
 Our initial bonding curve implementation supports linear and Bancor-based curves, dividend distributions for bonded token holders, and a front-running guard via user-specified min and max prices.
 
 ### Key Terms
@@ -72,7 +70,7 @@ The following chart describes the actions users can take to interact with the Bo
 | Buy()            | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender                 | split between reserve and beneficiary based on splitOnBuy %             | increases           |
 | BeneficiaryBuy() | _beneficiary_                | "Investment" | collateral token | minted to sender (_beneficiary_) | fully deposited in reserve (none sent to _beneficiary_)                 | increases           |
 | Sell()           | Anyone                       | "Divestment" | bonded token     | burned                           | transferred to specified recipient                                      | decreases           |
-| Pay()            | Anyone                       | "Dividend"   | collateral token | not changed                      | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same    |
+| Pay()            | Anyone                       | "Revenue"   | collateral token | not changed                      | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same    |
 
 #### Buy Flow
 
@@ -84,7 +82,7 @@ The following chart describes the actions users can take to interact with the Bo
 
 ## Setup
 
-**Deployment** Bonding Curves can be deployed by a DAO via a BondingCurveFactory. We will provide a factory for this "one-click deployment", though users can of course choose to deploy how they see fit.
+Bonding Curves can be deployed by a DAO via a BondingCurveFactory. We will provide a factory for this "one-click deployment", though users can of course choose to deploy how they see fit.
 
 Bonding Curves are composed of several contracts, though the factory abstracts the need to know about them individually:
 
