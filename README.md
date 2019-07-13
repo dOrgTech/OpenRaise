@@ -37,7 +37,7 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 - Scalable dividends purely on-chain is a challenge due to computation and storage costs. We've designed a Merkle-tree based payment pool based on the [Cardstack implementation](https://github.com/cardstack/merkle-tree-payment-pool) that uses Merkle proofs to enable highly scalable dividend distributions with minimal on-chain cost.
 
-- From a users perspective, the mechanism functions in a conceptually similar way to stock dividends. For each **claim period** (the duration of which can be specified by the DAO), a snapshot of bonded token balances is taken and users can withdraw dividends proportional to their holdings at that time.
+- From a user's perspective, the mechanism functions in a conceptually similar way to stock dividends. For each **claim period** (the duration of which can be specified by the DAO), a snapshot of bonded token balances is taken and users can withdraw dividends proportional to their holdings at that time.
 
 - For each claim period, a new merkle root is calculated by a DAO member via [our library](https://github.com/statesauce/merkle-tree-payment-pool) and uploaded as a proposal to the DAO. The full information is stored on IPFS. Once the DAO ratifies this proposal, the member who generated the merkle root is compensated for their efforts and token holders are able to withdraw for the period.
 
