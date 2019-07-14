@@ -64,6 +64,7 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
       "BND",
       18,
       sender,
+      sender,
       1000,
       500,
       this.paymentToken.address,
@@ -81,9 +82,9 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
 
     // Call methods on all contracts to verify deployment
 
-    // expect(await bondingCurve.getBeneficiary()).to.be.equal(
-    //   values.bondingCurve.beneficiary
-    // );
+    expect(await bondingCurve.getBeneficiary()).to.be.equal(
+      values.bondingCurve.beneficiary
+    );
     expect(await claimsToken.totalSupply()).to.be.bignumber.equal(new BN(0));
     // expect(
     //   await buyCurve.calcMintPrice(100000, 100000, 1000)
