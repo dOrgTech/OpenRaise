@@ -6,7 +6,7 @@ import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "openzeppelin-eth/contracts/ownership/Ownable.sol";
 import "zos-lib/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
-import "./dividend/ClaimsToken.sol";
+import "./interface/IClaimsToken.sol";
 import "./dividend/DividendPaymentTracker.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens. 
@@ -16,7 +16,7 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     using SafeMath for uint256;
 
     IERC20 public reserveToken;
-    ClaimsToken public bondedToken;
+    IClaimsToken public bondedToken;
 
     ICurveLogic public buyCurve;
     ICurveLogic public sellCurve;
@@ -33,12 +33,12 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     event BeneficiarySet(address beneficiary);
 
     function initialize(
-        address _reserveToken,
+        IERC20 _reserveToken,
         address _beneficiary,
         address _owner,
-        address _buyCurve,
-        address _sellCurve,
-        address _bondedToken,
+        ICurveLogic _buyCurve,
+        ICurveLogic _sellCurve,
+        IClaimsToken _bondedToken,
         uint256 _splitOnPay
     ) public initializer {
         require(_splitOnPay > 0 && _splitOnPay < 100, "splitOnPay must be a valid percentage");
@@ -49,11 +49,11 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
         beneficiary = _beneficiary;
         emit BeneficiarySet(beneficiary);
 
-        buyCurve = ICurveLogic(_buyCurve);
-        sellCurve = ICurveLogic(_sellCurve);
+        buyCurve = _buyCurve;
+        sellCurve = _sellCurve;
+        bondedToken = _bondedToken;
 
-        // // TODO: validate dividend ratio
-        bondedToken = ClaimsToken(_bondedToken);
+        // TODO: validate dividend ratio
         splitOnPay = _splitOnPay;
     }
 

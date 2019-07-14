@@ -336,12 +336,11 @@ contract ClaimsToken is Initializable, Ownable, ERC20Detailed {
 
     /// @notice This method can be used by the owner to extract mistakenly
     ///  sent tokens to this contract.
-    /// @param _token The address of the token contract that you want to recover
-    function claimTokens(address _token) public onlyOwner {
+    /// @param token The token contract that you want to recover
+    function claimTokens(IERC20 token) public onlyOwner {
         address payable ownerAddress = address(uint160(owner()));
-        IERC20 token = IERC20(_token);
         uint balance = token.balanceOf(address(this));
         token.transfer(ownerAddress, balance);
-        emit ClaimedTokens(_token, ownerAddress, balance);
+        emit ClaimedTokens(address(token), ownerAddress, balance);
     }
 }

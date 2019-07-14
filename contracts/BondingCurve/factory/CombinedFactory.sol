@@ -5,6 +5,8 @@ import "zos-lib/contracts/application/App.sol";
 import "../BondingCurve.sol";
 import "../curve/BancorCurveLogic.sol";
 import "../dividend/ClaimsToken.sol";
+import "../interface/ICurveLogic.sol";
+import "../interface/IClaimsToken.sol";
 
 contract CombinedFactory is Initializable {
 
@@ -55,10 +57,11 @@ contract CombinedFactory is Initializable {
     string memory _name,
     string memory _symbol,
     uint8 _decimals,
-    address payable _beneficiary,
+    address _beneficiary,
+    address _owner,
     uint32 _buyParams,
     uint32 _sellParams,
-    address _reserveToken,
+    IERC20 _reserveToken,
     uint _splitOnPay
   ) public
   {
@@ -79,14 +82,15 @@ contract CombinedFactory is Initializable {
       true
     );
 
-    // BondingCurve(bondingCurve).initialize(
-    //   _reserveToken,
-    //   _beneficiary,
-    //   buyCurve,
-    //   sellCurve,
-    //   claimsToken,
-    //   _splitOnPay
-    // );
+    BondingCurve(bondingCurve).initialize(
+      _reserveToken,
+      _beneficiary,
+      _owner,
+      ICurveLogic(buyCurve),
+      ICurveLogic(sellCurve),
+      IClaimsToken(claimsToken),
+      _splitOnPay
+    );
 
     // We could do one-line deploys by encoding the data and sending, as we do in the scheme.
     //     abi.encodeWithSignature(
