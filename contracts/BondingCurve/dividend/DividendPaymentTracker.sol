@@ -4,6 +4,7 @@ import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "../interface/IPaymentTracker.sol";
 import "../interface/IClaimsToken.sol";
+import "./ClaimsToken.sol";
 import "zos-lib/contracts/Initializable.sol";
 
 contract DividendPaymentTracker is Initializable, IPaymentTracker {
@@ -14,21 +15,26 @@ contract DividendPaymentTracker is Initializable, IPaymentTracker {
         uint value; // `value` is the amount of tokens at a specific block number
     }
 
-    IClaimsToken claimsToken;
+    ClaimsToken claimsToken;
     IERC20 paymentToken;
     Checkpoint[] public payments;
 
     mapping (address => mapping (uint => bool)) public withdrawals;
 
     event Withdrawal(address indexed recipient, address indexed tokenAddr, uint256 amount);
-    event PaymentRegistered(address indexed payee, address indexed tokenAddr, uint256 amount);
+    event PaymentRegistered(address indexed from, address indexed token, uint256 amount);
 
     function initialize(
         IClaimsToken _claimsToken,
         IERC20 _paymentToken
     ) public initializer {
-        claimsToken = _claimsToken;
+        claimsToken = ClaimsToken(address(_claimsToken));
         paymentToken = _paymentToken;
+    }
+
+    function pay(uint amount) public {
+        // require(paymentToken.transferFrom(msg.sender, address(claimsToken), amount), "Transfer from sender failed");
+        _registerPayment(amount);
     }
 
     /// @notice Withdraw the available withdrawal allowance for the payments beginning and ending at the given indicies, inclusive.
@@ -109,6 +115,7 @@ contract DividendPaymentTracker is Initializable, IPaymentTracker {
         require(claimsToken.totalSupply() > 0, "Dividend token supply is 0");
 
         _updateValueAtNow(payments, _paymentAmount);
+        emit PaymentRegistered(msg.sender, address(paymentToken), _paymentAmount);
     }
 
     /// @dev `updateValueAtNow` used to update an array of Checkpoints

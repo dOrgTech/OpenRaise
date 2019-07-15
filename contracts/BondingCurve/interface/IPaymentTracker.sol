@@ -2,6 +2,9 @@ pragma solidity ^0.5.0;
 
 /// @title  PaymentTracker - tracks payments and withdrawals for holders of an associated dividend token
 contract IPaymentTracker {
+    /// @notice Recieve Payment Tokens and register payment.
+    function pay(uint amount) public;
+
     /// @notice Withdraw the available withdrawal allowance for the payments beginning and ending at the given indicies, inclusive.
     function withdraw(uint start, uint end) public;
 

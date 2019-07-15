@@ -123,7 +123,7 @@ contract("ClaimsToken", ([sender, receiver, testAccount]) => {
     this.bondingCurve = await BondingCurve.at(bondingCurveAddress);
   });
 
-  it("should have properly initialized values", async function() {
+  it("should have properly initialized parameters", async function() {
     expect(await this.bondingCurve.reserveToken()).to.be.equal(
       this.paymentToken.address
     );
@@ -161,4 +161,7 @@ contract("ClaimsToken", ([sender, receiver, testAccount]) => {
       })
     );
   });
+
+  it("should allow new owner to set new beneficiary after transfer", async function() {});
+  it("should not allow old owner to set new beneficiary after transfer", async function() {});
 });
