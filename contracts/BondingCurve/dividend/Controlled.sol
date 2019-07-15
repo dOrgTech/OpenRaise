@@ -1,7 +1,9 @@
 pragma solidity ^0.5.4;
 
+import "zos-lib/contracts/Initializable.sol";
+
 /// Taken from Giveth's MiniMeToken: https://github.com/Giveth/minime
-contract Controlled {
+contract Controlled is Initializable{
     /// @notice The address of the controller is the only address that can call
     ///  a function with this modifier
     modifier onlyController { 
@@ -10,8 +12,12 @@ contract Controlled {
 
     address payable controller;
 
-    constructor(address payable _controller) public {
+    function initialize(address payable _controller) public initializer {
         controller = _controller;
+    }
+
+    function getController() public view returns(address) {
+        return address(controller);
     }
 
     /// @notice Changes the controller of the contract

@@ -1,17 +1,14 @@
 pragma solidity ^0.5.0;
 
 // External dependencies.
-import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "zos-lib/contracts/Initializable.sol";
-import "./Controlled.sol";
-
-contract ApproveAndCallFallBack {
-    function receiveApproval(address from, uint256 _amount, address _token, bytes memory _data) public;
-}
+import "openzeppelin-eth/contracts/ownership/Ownable.sol";
+import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-eth/contracts/token/ERC20/ERC20Detailed.sol";
+import "openzeppelin-eth/contracts/math/SafeMath.sol";
 
 /// Much structure taken from Giveth's MiniMeToken: https://github.com/Giveth/minime
-contract DividendToken is Controlled, IERC20 {
+contract ClaimsToken is Initializable, Ownable, ERC20Detailed {
     using SafeMath for uint;
 
     /// @dev `Checkpoint` is the structure that attaches a block number to a
@@ -25,18 +22,6 @@ contract DividendToken is Controlled, IERC20 {
         // `value` is the amount of tokens at a specific block number
         uint value;
     }
-
-    string public name;                //The Token's name: e.g. DigixDAO Tokens
-    uint8 public decimals;             //Number of decimals of the smallest unit
-    string public symbol;              //An identifier: e.g. REP
-
-    Checkpoint[] public payments;
-
-    IERC20 public paymentToken;
-
-    // keeps track of how much has been withdrawn from each address;
-    // the inner mapping is of payment index to whether or not the payment index has been withdrawn against
-    mapping (address => mapping (uint => bool)) public withdrawals;
 
     // `balances` is the map that tracks the balance of each address, in this
     //  contract when the balance changes the block number that the change
@@ -57,144 +42,27 @@ contract DividendToken is Controlled, IERC20 {
 ////////////////
 // Events
 ////////////////
-    event ClaimedTokens(address indexed token, address indexed controller, uint value);
-    event ClaimedEther(address indexed controller, uint value);
+    event ClaimedTokens(address indexed token, address indexed recipient, uint value);
+    event ClaimedEther(address indexed recipient, uint value);
 ////////////////
 // Constructor
 ////////////////
 
-    /// @notice Constructor to create a DividendToken
+    /// @notice Constructor to create a ClaimsToken
     /// @param _transfersEnabled If true, tokens will be able to be transferred
     function initialize(
         string memory _name,
         string memory _symbol,
         uint8 _decimals,
-        address payable _controller,
-        address _paymentToken,
+        address _owner,
         bool _transfersEnabled
     )
         public
         initializer
     {
-        Controlled.initialize(_controller);
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-        paymentToken = IERC20(_paymentToken);
+        Ownable.initialize(_owner);
+        ERC20Detailed.initialize(_name, _symbol, _decimals);
         transfersEnabled = _transfersEnabled;
-    }
-
-///////////////////
-// DividendToken Methods
-///////////////////
-
-    /**
-     * Registers a payment amount and block
-     */
-    function registerPayment(
-        uint _paymentAmount
-    )
-        external
-        onlyController
-    {
-        // if tokens have not yet been minted, we reject the payment because we would not
-        // be able to divide the payment into withdrawal allowances
-        require(totalSupply() > 0, SUPPLY_IS_ZERO);
-
-        updateValueAtNow(payments, _paymentAmount);
-    }
-
-    /**
-     * Withdraw the available withdrawal allowance for the payments beginning and ending at the
-     * given indicies, inclusive.
-     */
-    function withdraw(
-        uint start,
-        uint end
-    )
-        external
-    {
-        // require that the message sender holds at least one token
-        require(balanceOf(msg.sender) > 0);
-
-        // calculate the total amount available for withdrawal for the message sender, beginning and ending
-        // at the given payment indicies
-        uint withdrawalAmount = getWithdrawalAllowance(msg.sender, start, end);
-
-        // require that the message sender has a positive withdrawal allowance
-        require(withdrawalAmount > 0);
-
-        // ensure contract has enough balance to make payment transfer
-        require(paymentToken.balanceOf(address(this)) >= withdrawalAmount);
-
-        // transfer the total available amount to the message sender
-        if (
-            paymentToken.transfer(
-                msg.sender,
-                withdrawalAmount
-            )
-        ) {
-            // mark the payment indices as withdrawn against
-            for (uint i = start; i <= end; i++) {
-                withdrawals[msg.sender][i] = true;
-            }
-        }
-    }
-    
-    function getPaymentToken() public view returns (address) {
-        return address(paymentToken);
-    }
-
-    /**
-     * Returns the number of payments made so far
-     */
-    function getNumberOfPaymentsMade(
-    )
-        public
-        view
-        returns (uint numberOfPaymentsMade)
-    {
-        return payments.length;
-    }
-
-    /**
-     * Returns the total withdrawal allowance of the given account, as accrued between the start and end payment
-     * indicies, inclusive.
-     */
-    function getWithdrawalAllowance(
-        address account,
-        uint start,
-        uint end
-    )
-        public
-        view
-        returns (uint totalWithdrawalAllowance)
-    {
-        require(start >= 0);
-
-        require(end < payments.length);
-
-        mapping (uint => bool) storage accountWithdrawals = withdrawals[account];
-
-        for (uint i = start; i <= end; i++) {
-            // if the account has already withdrawn against this payment index, continue
-            if (accountWithdrawals[i]) {
-                continue;
-            }
-
-            Checkpoint storage paymentCheckpoint = payments[i];
-
-            uint paymentAmount = paymentCheckpoint.value;
-            uint blockNumber = paymentCheckpoint.fromBlock;
-
-            uint balanceAtBlockNumber = balanceOfAt(account, blockNumber);
-            uint totalSupplyAtBlockNumber = totalSupplyAt(blockNumber);
-
-            totalWithdrawalAllowance = totalWithdrawalAllowance
-                .add(paymentAmount.mul(balanceAtBlockNumber).div(totalSupplyAtBlockNumber));
-        }
-
-        return totalWithdrawalAllowance;
     }
 
 ///////////////////
@@ -219,11 +87,11 @@ contract DividendToken is Controlled, IERC20 {
     function transferFrom(address _from, address _to, uint256 _amount
     ) public returns (bool success) {
 
-        // The controller of this contract can move tokens around at will,
+        // The owner of this contract can move tokens around at will,
         //  this is important to recognize! Confirm that you trust the
-        //  controller of this contract, which in most situations should be
+        //  owner of this contract, which in most situations should be
         //  another open source smart contract or 0x0
-        if (msg.sender != controller) {
+        if (!isOwner()) {
             require(transfersEnabled);
 
             // The standard ERC 20 transferFrom functionality
@@ -308,27 +176,6 @@ contract DividendToken is Controlled, IERC20 {
         return allowed[_owner][_spender];
     }
 
-    /// @notice `msg.sender` approves `_spender` to send `_amount` tokens on
-    ///  its behalf, and then a function is triggered in the contract that is
-    ///  being approved, `_spender`. This allows users to use their tokens to
-    ///  interact with contracts in one function call instead of two
-    /// @param _spender The address of the contract able to transfer the tokens
-    /// @param _amount The amount of tokens to be approved for transfer
-    /// @return True if the function call was successful
-    function approveAndCall(address _spender, uint256 _amount, bytes memory _extraData
-    ) public returns (bool success) {
-        require(approve(_spender, _amount));
-
-        ApproveAndCallFallBack(_spender).receiveApproval(
-            msg.sender,
-            _amount,
-            address(this),
-            _extraData
-        );
-
-        return true;
-    }
-
     /// @dev This function makes it easy to get the total number of tokens
     /// @return The total number of tokens
     function totalSupply() public view returns (uint) {
@@ -378,7 +225,7 @@ contract DividendToken is Controlled, IERC20 {
     /// @param _amount The quantity of tokens generated
     /// @return True if the tokens are generated correctly
     function mint(address _owner, uint _amount
-    ) public onlyController returns (bool) {
+    ) public onlyOwner returns (bool) {
         uint curTotalSupply = totalSupply();
         uint previousBalanceTo = balanceOf(_owner);
 
@@ -390,7 +237,7 @@ contract DividendToken is Controlled, IERC20 {
     }
 
     //TODO: Implement Burn
-    function burn(address _owner, uint _amount) public onlyController returns (bool) {
+    function burn(address _owner, uint _amount) public onlyOwner returns (bool) {
         uint curTotalSupply = totalSupply();
         uint previousBalanceTo = balanceOf(_owner);
 
@@ -407,7 +254,7 @@ contract DividendToken is Controlled, IERC20 {
 
     /// @notice Enables token holders to transfer their tokens freely if true
     /// @param _transfersEnabled True if transfers are allowed in the clone
-    function enableTransfers(bool _transfersEnabled) public onlyController {
+    function enableTransfers(bool _transfersEnabled) public onlyOwner {
         transfersEnabled = _transfersEnabled;
     }
 
@@ -479,20 +326,21 @@ contract DividendToken is Controlled, IERC20 {
 // Safety Methods
 //////////
     
-    /// @notice This method can be used by the controller to extract mistakenly
+    /// @notice This method can be used by the owner to extract mistakenly
     ///  sent ether to this contract.
-    function claimEther() public onlyController {
-            controller.transfer(address(this).balance);
-            emit ClaimedEther(controller, address(this).balance);
+    function claimEther() public onlyOwner {
+            address payable ownerAddress = address(uint160(owner()));
+            ownerAddress.transfer(address(this).balance);
+            emit ClaimedEther(ownerAddress, address(this).balance);
     }
 
-    /// @notice This method can be used by the controller to extract mistakenly
+    /// @notice This method can be used by the owner to extract mistakenly
     ///  sent tokens to this contract.
-    /// @param _token The address of the token contract that you want to recover
-    function claimTokens(address _token) public onlyController {
-        IERC20 token = IERC20(_token);
+    /// @param token The token contract that you want to recover
+    function claimTokens(IERC20 token) public onlyOwner {
+        address payable ownerAddress = address(uint160(owner()));
         uint balance = token.balanceOf(address(this));
-        token.transfer(controller, balance);
-        emit ClaimedTokens(_token, controller, balance);
+        token.transfer(ownerAddress, balance);
+        emit ClaimedTokens(address(token), ownerAddress, balance);
     }
 }

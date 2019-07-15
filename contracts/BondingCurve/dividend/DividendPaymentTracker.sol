@@ -1,11 +1,12 @@
 pragma solidity ^0.5.4;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "../interface/IPaymentTracker.sol";
-import "./DividendToken.sol";
+import "../interface/IClaimsToken.sol";
+import "zos-lib/contracts/Initializable.sol";
 
-contract DividendPaymentTracker is IPaymentTracker {
+contract DividendPaymentTracker is Initializable, IPaymentTracker {
     using SafeMath for uint256;
 
     struct  Checkpoint {
@@ -13,8 +14,8 @@ contract DividendPaymentTracker is IPaymentTracker {
         uint value; // `value` is the amount of tokens at a specific block number
     }
 
-    DividendToken dividendToken;
-    ERC20 paymentToken;
+    IClaimsToken claimsToken;
+    IERC20 paymentToken;
     Checkpoint[] public payments;
 
     mapping (address => mapping (uint => bool)) public withdrawals;
@@ -22,18 +23,18 @@ contract DividendPaymentTracker is IPaymentTracker {
     event Withdrawal(address indexed recipient, address indexed tokenAddr, uint256 amount);
     event PaymentRegistered(address indexed payee, address indexed tokenAddr, uint256 amount);
 
-    constructor(
-        DividendToken _dividendTokenAddr,
-        ERC20 _paymentTokenAddr
-    ) public {
-        dividendToken = _dividendTokenAddr;
-        paymentToken = _paymentTokenAddr;
+    function initialize(
+        IClaimsToken _claimsToken,
+        IERC20 _paymentToken
+    ) public initializer {
+        claimsToken = _claimsToken;
+        paymentToken = _paymentToken;
     }
 
     /// @notice Withdraw the available withdrawal allowance for the payments beginning and ending at the given indicies, inclusive.
     function withdraw(uint start, uint end) public {
         // require that the message sender holds at least one token
-        require(dividendToken.balanceOf(msg.sender) > 0);
+        require(claimsToken.balanceOf(msg.sender) > 0);
 
         // calculate the total amount available for withdrawal for the message sender, beginning and ending
         // at the given payment indicies
@@ -91,8 +92,8 @@ contract DividendPaymentTracker is IPaymentTracker {
             uint paymentAmount = paymentCheckpoint.value;
             uint blockNumber = paymentCheckpoint.fromBlock;
 
-            uint balanceAtBlockNumber = dividendToken.balanceOfAt(account, blockNumber);
-            uint totalSupplyAtBlockNumber = dividendToken.totalSupplyAt(blockNumber);
+            uint balanceAtBlockNumber = claimsToken.balanceOfAt(account, blockNumber);
+            uint totalSupplyAtBlockNumber = claimsToken.totalSupplyAt(blockNumber);
 
             totalWithdrawalAllowance = totalWithdrawalAllowance
                 .add(paymentAmount.mul(balanceAtBlockNumber).div(totalSupplyAtBlockNumber));
@@ -105,7 +106,7 @@ contract DividendPaymentTracker is IPaymentTracker {
     function _registerPayment(uint _paymentAmount) internal {
         // if tokens have not yet been minted, we reject the payment because we would not
         // be able to divide the payment into withdrawal allowances
-        require(dividendToken.totalSupply() > 0, "Dividend token supply is 0");
+        require(claimsToken.totalSupply() > 0, "Dividend token supply is 0");
 
         _updateValueAtNow(payments, _paymentAmount);
     }
