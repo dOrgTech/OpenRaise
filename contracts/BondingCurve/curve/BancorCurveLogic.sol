@@ -4,8 +4,9 @@ import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "zos-lib/contracts/Initializable.sol";
 import "../interface/ICurveLogic.sol";
 import "./bancor-formula/BancorFormula.sol";
+import "./bancor-formula/Power.sol";
 
-contract BancorCurveLogic is Initializable, BancorFormula, ICurveLogic {
+contract BancorCurveLogic is Initializable, BancorFormula {
     using SafeMath for uint256;
 
     /*
@@ -18,10 +19,12 @@ contract BancorCurveLogic is Initializable, BancorFormula, ICurveLogic {
     * we might want to add an 'initialize' function that will allow
     * the owner to send ether to the contract and mint a given amount of tokens
     */
+    
     uint32 reserveRatio;
 
     function initialize(uint32 _reserveRatio) public initializer {
         reserveRatio = _reserveRatio;
+        Power.initialize();
     }
 
     function calcMintPrice(
