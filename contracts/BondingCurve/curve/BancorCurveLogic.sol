@@ -4,7 +4,6 @@ import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "zos-lib/contracts/Initializable.sol";
 import "../interface/ICurveLogic.sol";
 import "./bancor-formula/BancorFormula.sol";
-import "./bancor-formula/Power.sol";
 
 contract BancorCurveLogic is Initializable, BancorFormula {
     using SafeMath for uint256;
@@ -24,7 +23,7 @@ contract BancorCurveLogic is Initializable, BancorFormula {
 
     function initialize(uint32 _reserveRatio) public initializer {
         reserveRatio = _reserveRatio;
-        Power.initialize();
+        BancorFormula.initialize();
     }
 
     function calcMintPrice(
