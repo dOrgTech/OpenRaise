@@ -1,12 +1,8 @@
-const fs = require("fs");
-const {
-  BN,
-  constants,
-  expectEvent,
-  expectRevert
-} = require("openzeppelin-test-helpers");
-const App = artifacts.require("App");
-const { encodeCall } = require("zos-lib");
+const fs = require('fs');
+const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
+const {encodeCall} = require('zos-lib');
+
+const App = artifacts.require('App');
 
 /*
  *  Find zos config file name for specified network
@@ -15,13 +11,13 @@ const { encodeCall } = require("zos-lib");
 function resolveNetworkFilename(networkId) {
   switch (networkId) {
     case 1:
-      return "mainnet";
+      return 'mainnet';
     case 3:
-      return "ropsten";
+      return 'ropsten';
     case 4:
-      return "rinkeby";
+      return 'rinkeby';
     case 42:
-      return "kovan";
+      return 'kovan';
     default:
       return `dev-${networkId}`;
   }
@@ -38,7 +34,7 @@ function getZosNetworkConfig(networkId) {
 }
 
 function getZosConfig() {
-  return JSON.parse(fs.readFileSync("./zos.json"));
+  return JSON.parse(fs.readFileSync('./zos.json'));
 }
 
 function getAppAddress() {
@@ -60,7 +56,7 @@ async function appCreate(packageName, contractName, admin, data) {
 
   const app = await App.at(appAddress);
   const tx = await app.create(packageName, contractName, admin, data);
-  const createdEvent = expectEvent.inLogs(tx.logs, "ProxyCreated");
+  const createdEvent = expectEvent.inLogs(tx.logs, 'ProxyCreated');
   return createdEvent.args.proxy;
 }
 
