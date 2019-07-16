@@ -71,6 +71,23 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
       40,
       { from: sender }
     );
+
+    expectEvent.inLogs(tx.logs, "FundraisingDeployed");
+  });
+
+  it("deploys contracts on combined deploy", async function() {
+    tx = await this.combinedFactory.deploy(
+      "BondedToken",
+      "BND",
+      18,
+      sender,
+      sender,
+      1000,
+      500,
+      this.paymentToken.address,
+      40,
+      { from: sender }
+    );
     console.log(tx.logs);
 
     const createdEvent = expectEvent.inLogs(tx.logs, "FundraisingDeployed");
@@ -86,15 +103,11 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
       values.bondingCurve.beneficiary
     );
     expect(await claimsToken.totalSupply()).to.be.bignumber.equal(new BN(0));
-    // expect(
-    //   await buyCurve.calcMintPrice(100000, 100000, 1000)
-    // ).to.be.bignumber.equal(new BN(0));
-    // expect(
-    //   await sellCurve.calcMintPrice(10000, 10000, 10000)
-    // ).to.be.bignumber.equal(new BN(0));
-  });
-
-  it("deploys contracts on combined deploy", async function() {
-    //Get the address of each contract and try to interact with it
+    expect(
+      await buyCurve.calcMintPrice(100000, 100000, 1000)
+    ).to.be.bignumber.equal(new BN(0));
+    expect(
+      await sellCurve.calcMintPrice(10000, 10000, 10000)
+    ).to.be.bignumber.equal(new BN(0));
   });
 });

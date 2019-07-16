@@ -25,23 +25,20 @@ contract CombinedFactory is Initializable {
         address indexed sender
     );
 
-    function initialize (address _appContractAddress) public initializer {
+    function initialize (address _appContractAddress) internal initializer {
       app = App(_appContractAddress);
     }
 
-    function _createBancorCurveLogic(bytes memory _data) public returns (address proxy) {
-        address admin = address(0);
-        return address(app.create(BC_DAO_PACKAGE, BANCOR_CURVE_LOGIC, admin, _data));
+    function _createBancorCurveLogic(address _admin, bytes memory _data) internal returns (address proxy) {
+        return address(app.create(BC_DAO_PACKAGE, BANCOR_CURVE_LOGIC, _admin, _data));
     }
 
-    function _createClaimsToken(bytes memory _data) public returns (address proxy) {
-        address admin = address(0);
-        return address(app.create(BC_DAO_PACKAGE, CLAIMS_TOKEN, admin, _data));
+    function _createClaimsToken(address _admin, bytes memory _data) internal returns (address proxy) {
+        return address(app.create(BC_DAO_PACKAGE, CLAIMS_TOKEN, _admin, _data));
     }
 
-    function _createBondingCurve(bytes memory _data) public returns (address proxy) {
-        address admin = address(0);
-        return address(app.create(BC_DAO_PACKAGE, BONDING_CURVE, admin, _data));
+    function _createBondingCurve(address _admin, bytes memory _data) internal returns (address proxy) {
+        return address(app.create(BC_DAO_PACKAGE, BONDING_CURVE, _admin, _data));
     }
 
   /// @notice Deploy a bonding curve with all new components.
