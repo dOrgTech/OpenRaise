@@ -50,8 +50,8 @@ This type of fundraising might allow for more flexibility, accountability, and a
 # Implementation
 
 Our initial bonding curve implementation supports:
-- Bancor-based curves
-- Dividend distributions for bonded token holders
+- Bancor-based curves.
+- Dividend distributions for bonded token holders.
 - A front-running guard via user-specified min and max prices.
 
 ### Key Terms
