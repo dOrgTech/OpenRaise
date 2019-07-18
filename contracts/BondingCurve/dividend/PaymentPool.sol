@@ -41,7 +41,8 @@ contract PaymentPool is Initializable, Ownable {
         _currentPaymentCycleStartBlock = block.number;
     }
 
-    function startNewPaymentCycle() internal onlyOwner returns (bool) {
+    /// @dev Start new payment cycle, updating the index to the latest submitted root and block time
+    function _startNewPaymentCycle() internal onlyOwner returns (bool) {
         // disabled for hevm debugging
         require(block.number > _currentPaymentCycleStartBlock);
 
@@ -57,6 +58,8 @@ contract PaymentPool is Initializable, Ownable {
         return true;
     }
 
+    /// @dev Submit Merkle root for current payment cycle, specifying payees and corresponding token amounts.
+    /// @param payeeRoot Merkle root
     function submitPayeeMerkleRoot(bytes32 payeeRoot)
         public
         onlyOwner
@@ -64,54 +67,71 @@ contract PaymentPool is Initializable, Ownable {
     {
         _payeeRoots[_numPaymentCycles] = payeeRoot;
 
-        startNewPaymentCycle();
+        _startNewPaymentCycle();
 
         return true;
     }
+
+    /// @dev Check balance for address
+    /// @param account Address to check balance of
+    /// @param cumAmount Amount to check potential withdrawal for
+    /// @param paymentCycle Payment cycle to check root of
+    /// @param proof Corresponding merkle proof
     function balanceForProofWithAddress(
-        address _address,
+        address account,
         uint256 cumAmount,
-        uint256 _paymentCycle,
+        uint256 paymentCycle,
         bytes32[] memory proof
     ) public view returns (uint256) {
-        if (_payeeRoots[_paymentCycle] == 0x0) {
+        if (_payeeRoots[paymentCycle] == 0x0) {
             return 0;
         }
 
-        bytes32 leaf = keccak256(abi.encodePacked(_address, cumAmount));
+        bytes32 leaf = keccak256(abi.encodePacked(account, cumAmount));
 
         if (
-            _withdrawals[_address] < cumAmount &&
-            proof.verify(_payeeRoots[_paymentCycle], leaf)
+            _withdrawals[account] < cumAmount &&
+            proof.verify(_payeeRoots[paymentCycle], leaf)
         ) {
-            return cumAmount.sub(_withdrawals[_address]);
+            return cumAmount.sub(_withdrawals[account]);
         } else {
             return 0;
         }
     }
+
+    /// @dev Check balance for sender
+    /// @param cumAmount Amount to check potential withdrawal for
+    /// @param paymentCycle Payment cycle to check root of
+    /// @param proof Corresponding merkle proof
     function balanceForProof(
         uint256 cumAmount,
-        uint256 _paymentCycle,
+        uint256 paymentCycle,
         bytes32[] memory proof
     ) public view returns (uint256) {
         return
             balanceForProofWithAddress(
                 msg.sender,
                 cumAmount,
-                _paymentCycle,
+                paymentCycle,
                 proof
             );
     }
+
+    /// @dev Withdraw funds for sender
+    /// @param amount Amount to withdraw
+    /// @param cumAmount Amount to check potential withdrawal for
+    /// @param paymentCycle Payment cycle to check root of
+    /// @param proof Corresponding merkle proof
     function withdraw(
         uint256 amount,
         uint256 cumAmount,
-        uint256 _paymentCycle,
+        uint256 paymentCycle,
         bytes32[] memory proof
     ) public returns (bool) {
         require(amount > 0);
         require(_token.balanceOf(address(this)) >= amount);
 
-        uint256 balance = balanceForProof(cumAmount, _paymentCycle, proof);
+        uint256 balance = balanceForProof(cumAmount, paymentCycle, proof);
         require(balance >= amount);
 
         _withdrawals[msg.sender] = _withdrawals[msg.sender].add(amount);

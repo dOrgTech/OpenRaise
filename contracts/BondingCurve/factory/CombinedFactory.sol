@@ -11,6 +11,11 @@ import "../dividend/DividendPool.sol";
 import "../token/BondedToken.sol";
 import "../interface/ICurveLogic.sol";
 
+/**
+ * @title Combined Factory
+ * @dev Allows for the deploy of a Bonding Curve and supporting components in a single transaction
+ * This was developed to simplify the deployment process for DAOs
+ */
 contract CombinedFactory is Initializable {
 
     string constant BC_DAO_PACKAGE = "bc-dao";
@@ -31,7 +36,8 @@ contract CombinedFactory is Initializable {
         address dividendPool,
         address indexed sender
     );
-
+    /// @dev Initialize contract
+    /// @param appContractAddress OpenZeppelin App contract used to instantiate new contract instances
     function initialize (address appContractAddress) internal initializer {
       _app = App(appContractAddress);
 

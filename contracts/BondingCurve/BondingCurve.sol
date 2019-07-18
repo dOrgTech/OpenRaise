@@ -43,6 +43,15 @@ contract BondingCurve is Initializable, Ownable {
     event Buy(address indexed buyer, address indexed recipient, uint256 amount, uint256 price);
     event Sell(address indexed seller, address indexed recipient, uint256 amount, uint256 reward);
 
+    /// @dev Initialize contract
+    /// @param owner Contract owner, can conduct administrative functions.
+    /// @param beneficiary Recieves a proportion of incoming tokens on buy() and pay() operations.
+    /// @param reserveToken Token accepted as collateral by the curve. (e.g. WETH or DAI)
+    /// @param bondedToken Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
+    /// @param buyCurve Curve logic for buy curve.
+    /// @param sellCurve Curve logic for sell curve.
+    /// @param dividendPool Pool to recieve and allocate tokens for bonded token holders.
+    /// @param splitOnPay Percentage of incoming collateralTokens distributed to beneficiary on pay(). The remainder being distributed among current bondedToken holders. Divided by precision value.
     function initialize(
         address owner,
         address beneficiary,
@@ -57,7 +66,6 @@ contract BondingCurve is Initializable, Ownable {
 
         Ownable.initialize(owner);
 
-        //TODO: Use setBeneficiary - owner should have been already set now
         _beneficiary = beneficiary;
         emit BeneficiarySet(_beneficiary);
 
@@ -181,43 +189,62 @@ contract BondingCurve is Initializable, Ownable {
         paymentToken.transfer(address(_dividendPool), tokensToDividendHolders);
     }
 
+    /*
+        Admin Functions
+    */
+
+    /// @notice Set beneficiary to a new address
+    /// @param beneficiary       New beneficiary
     function setBeneficiary(address beneficiary) public onlyOwner {
         _beneficiary = beneficiary;
         emit BeneficiarySet(_beneficiary);
     }
 
-    function getSplitOnPayPrecision() public view returns (uint256) {
+    /*
+        Getter Functions
+    */
+
+    /// @notice Get precision value used for split on pay to faciliate off-chain calculations
+    function splitOnPayPrecision() public view returns (uint256) {
         return PRECISION;
     }
 
+    /// @notice Get reserve token contract
     function reserveToken() public view returns (IERC20) {
         return _reserveToken;
     }
 
+    /// @notice Get bonded token contract
     function bondedToken() public view returns (BondedToken) {
         return _bondedToken;
     }
 
+    /// @notice Get buy curve contract
     function buyCurve() public view returns (ICurveLogic) {
         return _buyCurve;
     }
 
+    /// @notice Get sell curve contract
     function sellCurve() public view returns (ICurveLogic) {
         return _sellCurve;
     }
 
+    /// @notice Get beneficiary
     function beneficiary() public view returns (address) {
         return _beneficiary;
     }
 
+    /// @notice Get reserve balance
     function reserveBalance() public view returns (uint256) {
         return _reserveBalance;
     }
 
+    /// @notice Get split on pay parameter
     function splitOnPay() public view returns (uint256) {
         return _splitOnPay;
     }
 
+    /// @notice Get dividend pool contract
     function dividendPool() public view returns (DividendPool) {
         return _dividendPool;
     }
