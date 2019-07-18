@@ -29,7 +29,6 @@
   },
   "homepage": "https://github.com/dOrgTech/BC-DAO#readme",
   "dependencies": {
-    "@statesauce/merkle-payments": "^0.1.1",
     "dotenv": "^6.2.0",
     "openzeppelin-eth": "^2.2.0",
     "openzeppelin-solidity": "^2.3.0",
