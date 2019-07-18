@@ -6,8 +6,7 @@
     "BondedToken": "BondedToken",
     "CombinedFactory": "CombinedFactory",
     "DividendPool": "DividendPool",
-    "BondingCurve": "BondingCurve",
-    "TestFactory": "TestFactory"
+    "BondingCurve": "BondingCurve"
   },
   "dependencies": {
     "openzeppelin-eth": "^2.2.0"
