@@ -6,7 +6,8 @@
     "BondingCurve": "BondingCurve",
     "CombinedFactory": "CombinedFactory",
     "ClaimsToken": "ClaimsToken",
-    "DividendPaymentTracker": "DividendPaymentTracker"
+    "DividendPaymentTracker": "DividendPaymentTracker",
+    "StaticCurveLogic": "StaticCurveLogic"
   },
   "dependencies": {
     "openzeppelin-eth": "^2.2.0"
