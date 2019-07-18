@@ -25,12 +25,22 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     uint256 public reserveBalance;
     uint256 public splitOnPay;
 
-    string internal constant TRANSFER_FROM_FAILED = "TRANSFER_FROM_FAILED";
-    string internal constant INSUFFICENT_TOKENS = "INSUFFICENT_TOKENS";
-    string internal constant MAX_PRICE_EXCEEDED = "MAX_PRICE_EXCEEDED";
-    string internal constant PRICE_BELOW_MIN = "PRICE_BELOW_MIN";
+    uint256 private constant PRECISION = 10000;
+
+    string internal constant TRANSFER_FROM_FAILED = "Transfer of reserveTokens from sender failed";
+    string internal constant TOKEN_MINTING_FAILED = "bondedToken minting failed";
+    string internal constant TRANSFER_TO_BENEFICIARY_FAILED = "Tranfer of reserveTokens to beneficiary failed";
+    string internal constant INSUFFICENT_TOKENS = "Insufficent tokens";
+    string internal constant MAX_PRICE_EXCEEDED = "Current price exceedes maximum specified";
+    string internal constant PRICE_BELOW_MIN = "Current price is below minimum specified";
+    string internal constant REQUIRE_NON_ZERO_NUM_TOKENS = "Must specify a non-zero amount of bondedTokens";
+    string internal constant SELL_CURVE_LARGER = "Buy curve value must be greater than Sell curve value";
+    string internal constant SPLIT_ON_PAY_INVALID = "splitOnPay must be a valid percentage (when divided by precision";
 
     event BeneficiarySet(address beneficiary);
+
+    event Buy(address indexed buyer, address indexed recipient, uint256 amount, uint256 price);
+    event Sell(address indexed seller, address indexed recipient, uint256 amount, uint256 reward);
 
     function initialize(
         IERC20 _reserveToken,
@@ -41,7 +51,7 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
         IClaimsToken _bondedToken,
         uint256 _splitOnPay
     ) public initializer {
-        require(_splitOnPay > 0 && _splitOnPay < 100, "splitOnPay must be a valid percentage");
+        require(_splitOnPay > PRECISION && _splitOnPay < PRECISION.mul(100), SPLIT_ON_PAY_INVALID);
         Ownable.initialize(_owner);
         DividendPaymentTracker.initialize(_bondedToken, _reserveToken);
         reserveToken = IERC20(_reserveToken);
@@ -77,18 +87,22 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
 
     /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
     /// @param numTokens    The number of bondedTokens to buy
-    /// @param maxPrice     Maximum total price allowable to pay in collateralTokens
+    /// @param maxPrice     Maximum total price allowable to pay in collateralTokens. If zero, any price is allowed.
     /// @param recipient    Address to send the new bondedTokens to
     function buy(uint256 numTokens, uint256 maxPrice, address recipient)
         public
         returns (uint256 collateralSent)
     {
+        require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
+
         uint256 buyPrice = buyCurve.calcMintPrice(
             bondedToken.totalSupply(),
             reserveBalance,
             numTokens
         );
-        require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
+        if (maxPrice != 0) {
+            require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
+        }
 
         uint256 sellPrice = sellCurve.calcMintPrice(
             bondedToken.totalSupply(),
@@ -96,18 +110,28 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
             numTokens
         );
 
-        uint256 tokensToBeneficiary = buyPrice.sub(sellPrice);
-        uint256 tokensToReserve = sellPrice;
+        uint256 tokensToBeneficiary;
+        uint256 tokensToReserve;
 
-        bondedToken.mint(recipient, numTokens); //TODO: Require? How does it fail?
+        require(buyCurve > sellCurve, SELL_CURVE_LARGER);
 
+        tokensToBeneficiary = buyPrice.sub(sellPrice);
+        tokensToReserve = sellPrice;
+
+        require(bondedToken.mint(recipient, numTokens), TOKEN_MINTING_FAILED);
+
+        reserveBalance = reserveBalance.add(tokensToReserve);
         require(
             reserveToken.transferFrom(msg.sender, address(this), buyPrice),
             TRANSFER_FROM_FAILED
         );
 
-        reserveBalance = reserveBalance.add(tokensToReserve);
-        reserveToken.transfer(beneficiary, tokensToBeneficiary); //TODO: Handle failure case? We want it to not care if transfer fails
+        require(
+            reserveToken.transfer(beneficiary, tokensToBeneficiary),
+            TRANSFER_TO_BENEFICIARY_FAILED
+        );
+
+        emit Buy(msg.sender, recipient, numTokens, buyPrice);
 
         return buyPrice;
     }
@@ -120,6 +144,7 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
         public
         returns (uint256 collateralReceived)
     {
+        require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
         require(bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
 
         uint256 burnReward = sellCurve.calcBurnReward(
@@ -134,6 +159,8 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
 
         reserveToken.transfer(recipient, burnReward);
 
+        emit Sell(msg.sender, recipient, numTokens, burnReward);
+
         return burnReward;
     }
 
@@ -143,17 +170,34 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     function pay(uint256 amount) public {
         IERC20 paymentToken = IERC20(getPaymentToken());
 
-        uint256 tokensToBeneficiary = 0;
-        uint256 tokensToDividendHolders = 0;
+        uint256 tokensToBeneficiary;
+        uint256 tokensToDividendHolders;
+
+        if (splitOnPay == 0) {
+            tokensToDividendHolders = amount;
+        } else if (splitOnPay == PRECISION.mul(100)) {
+            tokensToBeneficiary = amount;
+        } else {
+            uint256 beneficiaryPercentage = splitOnPay.div(PRECISION);
+            uint256 dividendPercentage = PRECISION.sub(splitOnPay).div(PRECISION);
+
+            tokensToBeneficiary = amount.mul(beneficiaryPercentage);
+            tokensToDividendHolders = amount.mul(dividendPercentage);
+        }
+
+        assert(tokensToBeneficiary.add(tokensToDividendHolders) <= amount);
 
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
 
         paymentToken.transfer(beneficiary, tokensToBeneficiary);
-        _registerPayment(tokensToDividendHolders);
     }
 
     function setBeneficiary(address _beneficiary) public onlyOwner {
         beneficiary = _beneficiary;
         emit BeneficiarySet(beneficiary);
+    }
+
+    function getSplitOnPayPrecision() public view returns (uint256) {
+        return PRECISION;
     }
 }
