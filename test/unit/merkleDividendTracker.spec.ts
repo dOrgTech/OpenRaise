@@ -14,11 +14,11 @@ const {
 } = require('../testHelpers');
 
 const PaymentToken = artifacts.require('StandaloneERC20');
-const ClaimsToken = artifacts.require('ClaimsToken');
+const BondedToken = artifacts.require('BondedToken');
 const DividendPaymentTracker = artifacts.require('DividendPaymentTracker');
 const App = artifacts.require('App');
 
-contract('ClaimsToken', accounts => {
+contract('BondedToken', accounts => {
   let tx;
   let result;
 
@@ -52,7 +52,7 @@ contract('ClaimsToken', accounts => {
 
     const claimsTokenAddress = await appCreate(
       'bc-dao',
-      'ClaimsToken',
+      'BondedToken',
       constants.ZERO_ADDRESS,
       encodeCall(
         'initialize',
@@ -67,7 +67,7 @@ contract('ClaimsToken', accounts => {
       )
     );
 
-    this.claimsToken = await ClaimsToken.at(claimsTokenAddress);
+    this.claimsToken = await BondedToken.at(claimsTokenAddress);
 
     const dividendTrackerAddress = await appCreate(
       'bc-dao',

@@ -15,7 +15,7 @@ const {
 } = require('../testHelpers');
 
 const PaymentToken = artifacts.require('StandaloneERC20');
-const ClaimsToken = artifacts.require('ClaimsToken');
+const BondedToken = artifacts.require('BondedToken');
 const BondingCurve = artifacts.require('BondingCurve');
 const BancorCurveLogic = artifacts.require('BancorCurveLogic');
 const App = artifacts.require('App');
@@ -29,13 +29,11 @@ contract('e2e Flow', ([sender, receiver, testAccount]) => {
       symbol: 'PAY',
       decimals: new BN(18)
     },
-    claimsToken: {
+    bondedToken: {
       name: 'BondedToken',
       symbol: 'BND',
       decimals: new BN(18),
-      controller: sender,
-      paymentToken: null,
-      transfersEnabled: true
+      controller: sender
     }
   };
 
@@ -51,24 +49,24 @@ contract('e2e Flow', ([sender, receiver, testAccount]) => {
       values.paymentToken.decimals
     );
 
-    const claimsTokenAddress = await appCreate(
+    const bondedTokenAddress = await appCreate(
       'bc-dao',
-      'ClaimsToken',
+      'BondedToken',
       receiver,
       encodeCall(
         'initialize',
         ['string', 'string', 'uint8', 'address', 'bool'],
         [
-          values.claimsToken.name,
-          values.claimsToken.symbol,
-          values.claimsToken.decimals.toNumber(),
-          values.claimsToken.controller,
-          values.claimsToken.transfersEnabled
+          values.bondedToken.name,
+          values.bondedToken.symbol,
+          values.bondedToken.decimals.toNumber(),
+          values.bondedToken.controller,
+          values.bondedToken.transfersEnabled
         ]
       )
     );
 
-    this.claimsToken = await ClaimsToken.at(claimsTokenAddress);
+    this.bondedToken = await BondedToken.at(bondedTokenAddress);
 
     const buyCurveAddress = await appCreate(
       'bc-dao',
@@ -101,7 +99,7 @@ contract('e2e Flow', ([sender, receiver, testAccount]) => {
           sender,
           this.buyCurve.address,
           this.sellCurve.address,
-          this.claimsToken.address,
+          this.bondedToken.address,
           new BN(50).toNumber()
         ]
       )

@@ -1,13 +1,8 @@
 // Import all required modules from openzeppelin-test-helpers
-const {
-  BN,
-  constants,
-  expectEvent,
-  expectRevert
-} = require("openzeppelin-test-helpers");
+const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
 
 // Import preferred chai flavor: both expect and should are supported
-const { expect } = require("chai");
+const {expect} = require('chai');
 
 const {
   appCreate,
@@ -15,27 +10,28 @@ const {
   encodeCall,
   getZosConfig,
   getCurrentZosNetworkConfig
-} = require("../testHelpers");
+} = require('../testHelpers');
 
-const PaymentToken = artifacts.require("StandaloneERC20");
-const ClaimsToken = artifacts.require("ClaimsToken");
-const BondingCurve = artifacts.require("BondingCurve");
-const BancorCurveLogic = artifacts.require("BancorCurveLogic");
+const PaymentToken = artifacts.require('StandaloneERC20');
+const BondedToken = artifacts.require('BondedToken');
+const BondingCurve = artifacts.require('BondingCurve');
+const BancorCurveLogic = artifacts.require('BancorCurveLogic');
 
-const CombinedFactory = artifacts.require("CombinedFactory");
+const CombinedFactory = artifacts.require('CombinedFactory');
 
-contract("BondingCurveFactory", ([sender, receiver]) => {
+contract('BondingCurveFactory', ([sender, receiver]) => {
   let tx;
+  let result;
 
   let values = {
     paymentToken: {
-      name: "PaymentToken",
-      symbol: "PAY",
+      name: 'PaymentToken',
+      symbol: 'PAY',
       decimals: new BN(18)
     },
     claimsToken: {
-      name: "BondedToken",
-      symbol: "BND",
+      name: 'BondedToken',
+      symbol: 'BND',
       decimals: new BN(18),
       controller: sender
     },
@@ -45,8 +41,6 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
   };
 
   beforeEach(async function() {
-    const appAddress = getAppAddress();
-
     this.paymentToken = await PaymentToken.new();
     this.paymentToken.initialize(
       values.paymentToken.name,
@@ -54,31 +48,28 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
       values.paymentToken.decimals
     );
 
-    this.combinedFactory = await CombinedFactory.new();
-    this.combinedFactory.initialize(appAddress);
-  });
+    const appAddress = getAppAddress();
+    console.log(appAddress);
 
-  it("emits Created event on combined deploy", async function() {
-    tx = await this.combinedFactory.deploy(
-      "BondedToken",
-      "BND",
-      18,
-      sender,
-      sender,
-      1000,
-      500,
-      this.paymentToken.address,
-      40,
-      { from: sender }
+    const combinedFactoryAddress = await appCreate(
+      'bc-dao',
+      'CombinedFactory',
+      constants.ZERO_ADDRESS,
+      encodeCall('initialize', ['address'], [appAddress])
     );
 
-    expectEvent.inLogs(tx.logs, "FundraisingDeployed");
+    this.combinedFactory = await CombinedFactory.at(combinedFactoryAddress);
   });
 
-  it("deploys contracts on combined deploy", async function() {
-    tx = await this.combinedFactory.deploy(
-      "BondedToken",
-      "BND",
+  it('should have parameters initialized correctly', async function() {
+    result = await this.combinedFactory.app();
+    console.log(result);
+  });
+
+  it('emits Created event on combined deploy', async function() {
+    tx = await this.combinedFactory.deployBondingCurve(
+      'BondedToken',
+      'BND',
       18,
       sender,
       sender,
@@ -86,28 +77,39 @@ contract("BondingCurveFactory", ([sender, receiver]) => {
       500,
       this.paymentToken.address,
       40,
-      { from: sender }
+      {from: sender}
+    );
+
+    expectEvent.inLogs(tx.logs, 'BondingCurveDeployed');
+  });
+
+  it('deploys contracts on combined deploy', async function() {
+    tx = await this.combinedFactory.deployBondingCurve(
+      'BondedToken',
+      'BND',
+      18,
+      sender,
+      sender,
+      1000,
+      500,
+      this.paymentToken.address,
+      40,
+      {from: sender}
     );
     console.log(tx.logs);
 
-    const createdEvent = expectEvent.inLogs(tx.logs, "FundraisingDeployed");
+    const createdEvent = expectEvent.inLogs(tx.logs, 'BondingCurveDeployed');
 
     const bondingCurve = await BondingCurve.at(createdEvent.args.bondingCurve);
-    const claimsToken = await ClaimsToken.at(createdEvent.args.claimsToken);
+    const claimsToken = await BondedToken.at(createdEvent.args.claimsToken);
     const buyCurve = await BancorCurveLogic.at(createdEvent.args.buyCurve);
     const sellCurve = await BancorCurveLogic.at(createdEvent.args.sellCurve);
 
     // Call methods on all contracts to verify deployment
 
-    expect(await bondingCurve.getBeneficiary()).to.be.equal(
-      values.bondingCurve.beneficiary
-    );
+    expect(await bondingCurve.getBeneficiary()).to.be.equal(values.bondingCurve.beneficiary);
     expect(await claimsToken.totalSupply()).to.be.bignumber.equal(new BN(0));
-    expect(
-      await buyCurve.calcMintPrice(100000, 100000, 1000)
-    ).to.be.bignumber.equal(new BN(0));
-    expect(
-      await sellCurve.calcMintPrice(10000, 10000, 10000)
-    ).to.be.bignumber.equal(new BN(0));
+    expect(await buyCurve.calcMintPrice(100000, 100000, 1000)).to.be.bignumber.equal(new BN(0));
+    expect(await sellCurve.calcMintPrice(10000, 10000, 10000)).to.be.bignumber.equal(new BN(0));
   });
 });

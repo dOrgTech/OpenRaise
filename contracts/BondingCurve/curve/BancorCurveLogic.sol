@@ -5,7 +5,11 @@ import "zos-lib/contracts/Initializable.sol";
 import "../interface/ICurveLogic.sol";
 import "./bancor-formula/BancorFormula.sol";
 
-contract BancorCurveLogic is Initializable, BancorFormula {
+/**
+ * @title Bancor Curve Logic
+ * @dev Curve that returns price according to bancor formula and specified reserve ration
+ */
+contract BancorCurveLogic is Initializable, BancorFormula, ICurveLogic {
     using SafeMath for uint256;
 
     /*
@@ -19,10 +23,10 @@ contract BancorCurveLogic is Initializable, BancorFormula {
     * the owner to send ether to the contract and mint a given amount of tokens
     */
     
-    uint32 reserveRatio;
+    uint32 internal _reserveRatio;
 
-    function initialize(uint32 _reserveRatio) public initializer {
-        reserveRatio = _reserveRatio;
+    function initialize(uint32 reserveRatio) public initializer {
+        _reserveRatio = reserveRatio;
         BancorFormula.initialize();
     }
 
@@ -31,7 +35,7 @@ contract BancorCurveLogic is Initializable, BancorFormula {
         uint256 reserveBalance,
         uint256 amount
     ) public view returns (uint256) {
-        return calculatePurchaseReturn(totalSupply, reserveBalance, reserveRatio, amount);
+        return calculatePurchaseReturn(totalSupply, reserveBalance, _reserveRatio, amount);
     }
     
     function calcBurnReward(
@@ -39,6 +43,10 @@ contract BancorCurveLogic is Initializable, BancorFormula {
         uint256 reserveBalance,
         uint256 amount
     ) public view returns (uint256) {
-        return calculateSaleReturn(totalSupply, reserveBalance, reserveRatio, amount);
+        return calculateSaleReturn(totalSupply, reserveBalance, _reserveRatio, amount);
+    }
+
+    function reserveRatio() public returns (uint32) {
+        return _reserveRatio;
     }
 }

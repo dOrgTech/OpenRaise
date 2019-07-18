@@ -1,13 +1,13 @@
 {
   "zosversion": "2.2",
   "contracts": {
+    "StaticCurveLogic": "StaticCurveLogic",
     "BancorCurveLogic": "BancorCurveLogic",
-    "DividendToken": "DividendToken",
-    "BondingCurve": "BondingCurve",
+    "BondedToken": "BondedToken",
     "CombinedFactory": "CombinedFactory",
-    "ClaimsToken": "ClaimsToken",
-    "DividendPaymentTracker": "DividendPaymentTracker",
-    "StaticCurveLogic": "StaticCurveLogic"
+    "DividendPool": "DividendPool",
+    "BondingCurve": "BondingCurve",
+    "TestFactory": "TestFactory"
   },
   "dependencies": {
     "openzeppelin-eth": "^2.2.0"

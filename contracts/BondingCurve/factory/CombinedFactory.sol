@@ -2,109 +2,129 @@ pragma solidity ^0.5.4;
 
 import "zos-lib/contracts/Initializable.sol";
 import "zos-lib/contracts/application/App.sol";
+import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-eth/contracts/token/ERC20/StandaloneERC20.sol";
 import "../BondingCurve.sol";
 import "../curve/BancorCurveLogic.sol";
-import "../dividend/ClaimsToken.sol";
+import "../curve/StaticCurveLogic.sol";
+import "../dividend/DividendPool.sol";
+import "../token/BondedToken.sol";
 import "../interface/ICurveLogic.sol";
-import "../interface/IClaimsToken.sol";
 
 contract CombinedFactory is Initializable {
 
     string constant BC_DAO_PACKAGE = "bc-dao";
+    string constant STATIC_CURVE_LOGIC = "StaticCurveLogic";
     string constant BANCOR_CURVE_LOGIC = "BancorCurveLogic";
-    string constant CLAIMS_TOKEN = "ClaimsToken";
+    string constant BONDED_TOKEN = "BondedToken";
+    string constant DIVIDEND_POOL = "DividendPool";
     string constant BONDING_CURVE = "BondingCurve";
 
-    App public app;
+    mapping (uint => string) internal _curveTypeStrings;
+    App internal _app;
 
-    event FundraisingDeployed(
+    event BondingCurveDeployed(
         address indexed bondingCurve,
-        address indexed claimsToken,
+        address indexed bondedToken,
         address buyCurve,
         address sellCurve,
+        address dividendPool,
         address indexed sender
     );
 
-    function initialize (address _appContractAddress) internal initializer {
-      app = App(_appContractAddress);
+    function initialize (address appContractAddress) internal initializer {
+      _app = App(appContractAddress);
+
+      // _curveTypeStrings[0] = STATIC_CURVE_LOGIC;
+      // _curveTypeStrings[1] = BANCOR_CURVE_LOGIC;
+    }
+
+    function _createStaticCurveLogic(address _admin, bytes memory _data) internal returns (address proxy) {
+        return address(_app.create(BC_DAO_PACKAGE, STATIC_CURVE_LOGIC, _admin, _data));
     }
 
     function _createBancorCurveLogic(address _admin, bytes memory _data) internal returns (address proxy) {
-        return address(app.create(BC_DAO_PACKAGE, BANCOR_CURVE_LOGIC, _admin, _data));
+        return address(_app.create(BC_DAO_PACKAGE, BANCOR_CURVE_LOGIC, _admin, _data));
     }
 
-    function _createClaimsToken(address _admin, bytes memory _data) internal returns (address proxy) {
-        return address(app.create(BC_DAO_PACKAGE, CLAIMS_TOKEN, _admin, _data));
+    function _createDividendPool(address _admin, bytes memory _data) internal returns (address proxy) {
+        return address(_app.create(BC_DAO_PACKAGE, DIVIDEND_POOL, _admin, _data));
+    }
+
+    function _createBondedToken(address _admin, bytes memory _data) internal returns (address proxy) {
+        return address(_app.create(BC_DAO_PACKAGE, BONDED_TOKEN, _admin, _data));
     }
 
     function _createBondingCurve(address _admin, bytes memory _data) internal returns (address proxy) {
-        return address(app.create(BC_DAO_PACKAGE, BONDING_CURVE, _admin, _data));
+        return address(_app.create(BC_DAO_PACKAGE, BONDING_CURVE, _admin, _data));
     }
 
+  function deploy() public {
+    uint256 a = 1;
+    a + 1;
+  }
+
+  function app() public view returns(address) {
+    return address(_app);
+  }
+
   /// @notice Deploy a bonding curve with all new components.
-  /// @param _name Bonded token name.
-  /// @param _symbol Bonded token symbol.
-  /// @param _decimals As per ERC20.
-  /// @param _beneficiary Beneficiary of bonding curve.
-  /// @param _buyParams Bancor reserveRatio.
-  /// @param _sellParams Bancor reserveRatio.
-  /// @param _reserveToken Reserve token to buy Bonded tokens.
-  /// @param _splitOnPay Percentage allocated to beneficiary on revenue. The remainder is allocated to Bonded token holders.
-  function deploy(
-    string memory _name,
-    string memory _symbol,
-    uint8 _decimals,
-    address _beneficiary,
-    address _owner,
-    uint32 _buyParams,
-    uint32 _sellParams,
-    IERC20 _reserveToken,
-    uint _splitOnPay
+  /// @param bondedTokenName Bonded token name.
+  /// @param bondedTokenSymbol Bonded token symbol.
+  /// @param bondedTokenDecimals As per ERC20.
+  /// @param beneficiary Beneficiary of bonding curve.
+  /// @param owner Owner of bonding curve.
+  /// @param buyCurveParams Parameters for
+  /// @param sellCurveParams Parameters for.
+  /// @param reserveToken Reserve token to buy Bonded tokens.
+  /// @param splitOnPay Percentage allocated to beneficiary on revenue. The remainder is allocated to Bonded token holders.
+  function deployBondingCurve(
+    string memory bondedTokenName,
+    string memory bondedTokenSymbol,
+    uint8 bondedTokenDecimals,
+    address beneficiary,
+    address owner,
+    uint256 buyCurveParams,
+    uint256 sellCurveParams,
+    IERC20 reserveToken,
+    uint splitOnPay
   ) public
   {
-    address buyCurve = _createBancorCurveLogic("");
-    address sellCurve = _createBancorCurveLogic("");
-    address claimsToken = _createClaimsToken("");
-    address bondingCurve = _createBancorCurveLogic("");
+    // address buyCurveAddress = _createStaticCurveLogic(address(0), "");
+    // address sellCurveAddress = _createStaticCurveLogic(address(0), "");
+    // address bondedTokenAddress = _createBondedToken(address(0), "");
+    // address bondingCurveAddress = _createBondingCurve(address(0), "");
+    // address dividendPoolAddress = _createDividendPool(address(0), "");
 
-    BancorCurveLogic(buyCurve).initialize(_buyParams);
+    // StaticCurveLogic(buyCurveAddress).initialize(buyCurveParams);
+    // StaticCurveLogic(sellCurveAddress).initialize(sellCurveParams);
+    // DividendPool(dividendPoolAddress).initialize(reserveToken);
 
-    BancorCurveLogic(sellCurve).initialize(_sellParams);
+    // BondedToken(bondedTokenAddress).initialize(
+    //   bondedTokenName,
+    //   bondedTokenSymbol,
+    //   bondedTokenDecimals,
+    //   bondingCurveAddress
+    // );
 
-    ClaimsToken(claimsToken).initialize(
-      _name,
-      _symbol,
-      _decimals,
-      _beneficiary,
-      true
-    );
+    // BondingCurve(bondingCurveAddress).initialize(
+    //   owner,
+    //   beneficiary,
+    //   reserveToken,
+    //   BondedToken(bondedTokenAddress),
+    //   ICurveLogic(buyCurveAddress),
+    //   ICurveLogic(sellCurveAddress),
+    //   DividendPool(dividendPoolAddress),
+    //   splitOnPay
+    // );
 
-    BondingCurve(bondingCurve).initialize(
-      _reserveToken,
-      _beneficiary,
-      _owner,
-      ICurveLogic(buyCurve),
-      ICurveLogic(sellCurve),
-      IClaimsToken(claimsToken),
-      _splitOnPay
-    );
-
-    // We could do one-line deploys by encoding the data and sending, as we do in the scheme.
-    //     abi.encodeWithSignature(
-    //         BANCOR_CURVE_LOGIC_INIT_SELECTOR,
-    //         _reserveToken,
-    //         _beneficiary,
-    //         address(buyCurveProxy),
-    //         address(sellCurveProxy),
-    //         address(claimsTokenProxy),
-    //         _splitOnPay
-
-    emit FundraisingDeployed(
-        bondingCurve,
-        claimsToken,
-        buyCurve,
-        sellCurve,
-        msg.sender
-    );
+    // emit BondingCurveDeployed(
+    //     bondingCurveAddress,
+    //     bondedTokenAddress,
+    //     buyCurveAddress,
+    //     sellCurveAddress,
+    //     dividendPoolAddress,
+    //     msg.sender
+    // );
   }
 }

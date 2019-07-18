@@ -18,11 +18,11 @@ contract StaticCurveLogic is Initializable, ICurveLogic {
     /**
         Ranges from 0 to 1^18. Divide by Precision to determine ratio.
      */
-    uint256 internal tokenRatio;
+    uint256 internal _tokenRatio;
     uint256 internal constant PRECISION = 1000000;
 
-    function initialize(uint256 _tokenRatio) public initializer {
-        tokenRatio = _tokenRatio;
+    function initialize(uint256 tokenRatio) public initializer {
+        _tokenRatio = tokenRatio;
     }
 
     function calcMintPrice(
@@ -30,7 +30,7 @@ contract StaticCurveLogic is Initializable, ICurveLogic {
         uint256 reserveBalance,
         uint256 amount
     ) public view returns (uint256) {
-        return amount.mul(tokenRatio).div(PRECISION);
+        return amount.mul(_tokenRatio).div(PRECISION);
     }
     
     function calcBurnReward(
@@ -38,12 +38,12 @@ contract StaticCurveLogic is Initializable, ICurveLogic {
         uint256 reserveBalance,
         uint256 amount
     ) public view returns (uint256) {
-        return amount.mul(tokenRatio).div(PRECISION);
+        return amount.mul(_tokenRatio).div(PRECISION);
         
     }
 
-    function getTokenRatio() public view returns (uint256) {
-        return tokenRatio;
+    function tokenRatio() public view returns (uint256) {
+        return _tokenRatio;
     }
 
     function getPricePrecision() public view returns (uint) {

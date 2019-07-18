@@ -1,14 +1,9 @@
-const {
-  BN,
-  constants,
-  expectEvent,
-  expectRevert
-} = require("openzeppelin-test-helpers");
+const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
 
 // Import preferred chai flavor: both expect and should are supported
-const expect = require("chai").expect;
-const should = require("chai").should();
-const lib = require("zos-lib");
+const expect = require('chai').expect;
+const should = require('chai').should();
+const lib = require('zos-lib');
 
 const {
   appCreate,
@@ -16,27 +11,27 @@ const {
   encodeCall,
   getZosConfig,
   getCurrentZosNetworkConfig
-} = require("../testHelpers");
+} = require('../testHelpers');
 
-const PaymentToken = artifacts.require("StandaloneERC20");
-const ClaimsToken = artifacts.require("ClaimsToken");
-const BondingCurve = artifacts.require("BondingCurve");
-const BancorCurveLogic = artifacts.require("BancorCurveLogic");
-const App = artifacts.require("App");
+const PaymentToken = artifacts.require('StandaloneERC20');
+const BondedToken = artifacts.require('BondedToken');
+const BondingCurve = artifacts.require('BondingCurve');
+const BancorCurveLogic = artifacts.require('BancorCurveLogic');
+const App = artifacts.require('App');
 
-contract("MarketMaker", accounts => {
+contract('MarketMaker', accounts => {
   let tx;
   let result;
 
   let values = {
     paymentToken: {
-      name: "PaymentToken",
-      symbol: "PAY",
+      name: 'PaymentToken',
+      symbol: 'PAY',
       decimals: new BN(18)
     },
     claimsToken: {
-      name: "BondedToken",
-      symbol: "BND",
+      name: 'BondedToken',
+      symbol: 'BND',
       decimals: new BN(18),
       controller: accounts[0],
       paymentToken: null,
@@ -55,12 +50,12 @@ contract("MarketMaker", accounts => {
     );
 
     const claimsTokenAddress = await appCreate(
-      "bc-dao",
-      "ClaimsToken",
+      'bc-dao',
+      'BondedToken',
       constants.ZERO_ADDRESS,
       encodeCall(
-        "initialize",
-        ["string", "string", "uint8", "address", "bool"],
+        'initialize',
+        ['string', 'string', 'uint8', 'address', 'bool'],
         [
           values.claimsToken.name,
           values.claimsToken.symbol,
@@ -71,41 +66,33 @@ contract("MarketMaker", accounts => {
       )
     );
 
-    this.claimsToken = await ClaimsToken.at(claimsTokenAddress);
+    this.claimsToken = await BondedToken.at(claimsTokenAddress);
 
     const buyCurveAddress = await appCreate(
-      "bc-dao",
-      "BancorCurveLogic",
+      'bc-dao',
+      'BancorCurveLogic',
       constants.ZERO_ADDRESS,
-      encodeCall("initialize", ["uint32"], [1000])
+      encodeCall('initialize', ['uint32'], [1000])
     );
 
     this.buyCurve = await BancorCurveLogic.at(buyCurveAddress);
 
     const sellCurveAddress = await appCreate(
-      "bc-dao",
-      "BancorCurveLogic",
+      'bc-dao',
+      'BancorCurveLogic',
       constants.ZERO_ADDRESS,
-      encodeCall("initialize", ["uint32"], [500])
+      encodeCall('initialize', ['uint32'], [500])
     );
 
     this.sellCurve = await BancorCurveLogic.at(sellCurveAddress);
 
     const bondingCurveAddress = await appCreate(
-      "bc-dao",
-      "BondingCurve",
+      'bc-dao',
+      'BondingCurve',
       constants.ZERO_ADDRESS,
       encodeCall(
-        "initialize",
-        [
-          "address",
-          "address",
-          "address",
-          "address",
-          "address",
-          "address",
-          "uint256"
-        ],
+        'initialize',
+        ['address', 'address', 'address', 'address', 'address', 'address', 'uint256'],
         [
           this.paymentToken.address,
           accounts[0],
@@ -121,13 +108,13 @@ contract("MarketMaker", accounts => {
     this.bondingCurve = await BondingCurve.at(bondingCurveAddress);
   });
 
-  it("should have properly initialized parameters", async function() {
+  it('should have properly initialized parameters', async function() {
     //Initial payment array is empty
     //PaymentToken address is correct
-    //ClaimsToken address is correct
+    //BondedToken address is correct
   });
 
-  it("should allow New user to buy tokens", async function() {
+  it('should allow New user to buy tokens', async function() {
     tx = await this.bondingCurve.buy(1000, 1000, accounts[1], {
       from: accounts[1]
     });
@@ -136,7 +123,7 @@ contract("MarketMaker", accounts => {
     expect(result).to.be.bignumber.equal(new BN(0));
   });
 
-  it("should allow New user to buy for a different recipient", async function() {
+  it('should allow New user to buy for a different recipient', async function() {
     tx = await this.bondingCurve.buy(1000, 1000, accounts[2], {
       from: accounts[1]
     });
@@ -147,17 +134,17 @@ contract("MarketMaker", accounts => {
     expect(result).to.be.bignumber.equal(new BN(0));
   });
 
-  it("should allow Beneficiary to buy tokens", async function() {});
+  it('should allow Beneficiary to buy tokens', async function() {});
 
-  it("should give Beneficiary correct split on buy", async function() {});
+  it('should give Beneficiary correct split on buy', async function() {});
 
-  it("should allow Existing user to buy tokens", async function() {});
+  it('should allow Existing user to buy tokens', async function() {});
 
-  it("should allow Existing user to buy tokens", async function() {});
+  it('should allow Existing user to buy tokens', async function() {});
 
-  it("should send correct value to reserve on buy", async function() {});
+  it('should send correct value to reserve on buy', async function() {});
 
-  it("should correctly set number of payments made", async function() {});
+  it('should correctly set number of payments made', async function() {});
 
   // TODO: Handle sell logic once sell mechanics are finalized
 });

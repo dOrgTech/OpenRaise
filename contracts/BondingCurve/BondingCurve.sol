@@ -1,22 +1,21 @@
 pragma solidity ^0.5.7;
 
 import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-eth/contracts/token/ERC20/StandaloneERC20.sol";
 import "openzeppelin-eth/contracts/math/SafeMath.sol";
 import "openzeppelin-eth/contracts/ownership/Ownable.sol";
 import "zos-lib/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
-import "./interface/IClaimsToken.sol";
-import "./dividend/DividendPaymentTracker.sol";
+import "./dividend/DividendPool.sol";
+import "./token/BondedToken.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
+contract BondingCurve is Initializable, Ownable {
     using SafeMath for uint256;
 
     IERC20 public reserveToken;
-    IClaimsToken public bondedToken;
+    BondedToken public bondedToken;
 
     ICurveLogic public buyCurve;
     ICurveLogic public sellCurve;
@@ -24,6 +23,8 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
 
     uint256 public reserveBalance;
     uint256 public splitOnPay;
+
+    DividendPool dividendPool;
 
     uint256 private constant PRECISION = 10000;
 
@@ -43,27 +44,29 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     event Sell(address indexed seller, address indexed recipient, uint256 amount, uint256 reward);
 
     function initialize(
-        IERC20 _reserveToken,
-        address _beneficiary,
         address _owner,
+        address _beneficiary,
+        IERC20 _reserveToken,
+        BondedToken _bondedToken,
         ICurveLogic _buyCurve,
         ICurveLogic _sellCurve,
-        IClaimsToken _bondedToken,
+        DividendPool _dividendPool,
         uint256 _splitOnPay
     ) public initializer {
         require(_splitOnPay > PRECISION && _splitOnPay < PRECISION.mul(100), SPLIT_ON_PAY_INVALID);
-        Ownable.initialize(_owner);
-        DividendPaymentTracker.initialize(_bondedToken, _reserveToken);
-        reserveToken = IERC20(_reserveToken);
 
+        Ownable.initialize(_owner);
+        
+        //TODO: Use setBeneficiary - owner should have been already set now
         beneficiary = _beneficiary;
         emit BeneficiarySet(beneficiary);
 
         buyCurve = _buyCurve;
         sellCurve = _sellCurve;
         bondedToken = _bondedToken;
+        reserveToken =  _reserveToken;
+        dividendPool = _dividendPool;
 
-        // TODO: validate dividend ratio
         splitOnPay = _splitOnPay;
     }
 
@@ -79,12 +82,6 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
         return sellCurve.calcBurnReward(bondedToken.totalSupply(), reserveBalance, numTokens);
     }
 
-    /// @notice                 Get the dividend tokens that would currently be recieved for a specified amonut of reserve currency
-    /// @param reserveTokens    The number of reserve tokens to calculate result for
-    // function tokensForValue(uint256 reserveTokens) public view returns(uint256) {
-    //     //TODO: This requires the integral calculations
-    // }
-
     /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
     /// @param numTokens    The number of bondedTokens to buy
     /// @param maxPrice     Maximum total price allowable to pay in collateralTokens. If zero, any price is allowed.
@@ -95,25 +92,18 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
-        uint256 buyPrice = buyCurve.calcMintPrice(
-            bondedToken.totalSupply(),
-            reserveBalance,
-            numTokens
-        );
+        uint256 buyPrice = priceToBuy(numTokens);
+
         if (maxPrice != 0) {
             require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
         }
 
-        uint256 sellPrice = sellCurve.calcMintPrice(
-            bondedToken.totalSupply(),
-            reserveBalance,
-            numTokens
-        );
+        uint256 sellPrice = rewardForSell(numTokens);
 
         uint256 tokensToBeneficiary;
         uint256 tokensToReserve;
 
-        require(buyCurve > sellCurve, SELL_CURVE_LARGER);
+        require(buyPrice > sellPrice, SELL_CURVE_LARGER);
 
         tokensToBeneficiary = buyPrice.sub(sellPrice);
         tokensToReserve = sellPrice;
@@ -147,11 +137,7 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
         require(bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
 
-        uint256 burnReward = sellCurve.calcBurnReward(
-            bondedToken.totalSupply(),
-            reserveBalance,
-            numTokens
-        );
+        uint256 burnReward = rewardForSell(numTokens);
         require(burnReward >= minPrice, PRICE_BELOW_MIN);
 
         bondedToken.burn(msg.sender, numTokens);
@@ -168,11 +154,13 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
     /// @dev                Does not currently support arbitrary token payments
     /// @param amount       The number of tokens to pay the DAO
     function pay(uint256 amount) public {
-        IERC20 paymentToken = IERC20(getPaymentToken());
+        //TODO: Get payment token from dividendPool
+        IERC20 paymentToken = IERC20(reserveToken);
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
 
+        // Calculate amounts to beneficiary and dividend holders based on splitOnPay
         if (splitOnPay == 0) {
             tokensToDividendHolders = amount;
         } else if (splitOnPay == PRECISION.mul(100)) {
@@ -190,6 +178,7 @@ contract BondingCurve is Initializable, Ownable, DividendPaymentTracker {
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
 
         paymentToken.transfer(beneficiary, tokensToBeneficiary);
+        paymentToken.transfer(address(dividendPool), tokensToDividendHolders);
     }
 
     function setBeneficiary(address _beneficiary) public onlyOwner {

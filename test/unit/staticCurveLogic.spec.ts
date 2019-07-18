@@ -59,7 +59,7 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
   });
 
   it('should set parameter correctly', async function() {
-    result = await this.curve.getTokenRatio();
+    result = await this.curve.tokenRatio();
     expect(result).to.be.bignumber.equal(tokenRatio);
   });
 

@@ -50,14 +50,65 @@ function getCurrentZosNetworkConfig() {
 
 // Helper function for creating instances via current App contract
 async function appCreate(packageName, contractName, admin, data) {
-  const currentNetworkId = App.network_id;
-  const zosNetworkConfig = getZosNetworkConfig(currentNetworkId);
-  const appAddress = zosNetworkConfig.app.address;
+  const appAddress = getAppAddress();
 
   const app = await App.at(appAddress);
   const tx = await app.create(packageName, contractName, admin, data);
   const createdEvent = expectEvent.inLogs(tx.logs, 'ProxyCreated');
   return createdEvent.args.proxy;
+}
+
+async function deployBondingCurve(
+  bondedTokenName,
+  bondedTokenSymbol,
+  bondedTokenDecimals,
+  buyCurveType,
+  sellCurveType
+) {
+  // const buyCurveAddress = await appCreate(
+  //   'bc-dao',
+  //   buyCurveType,
+  //   constants.ZERO_ADDRESS,
+  //   encodeCall('initialize', ['uint256'], [buyTokenRatio.toString()])
+  // );
+  // // this.buyCurve = await StaticCurveLogic.at(buyCurveAddress);
+  // const sellCurveAddress = await appCreate(
+  //   'bc-dao',
+  //   sellCurveType,
+  //   constants.ZERO_ADDRESS,
+  //   encodeCall('initialize', ['uint256'], [sellTokenRatio.toString()])
+  // );
+  // const claimsTokenAddress = await appCreate(
+  //   'bc-dao',
+  //   'BondedToken',
+  //   constants.ZERO_ADDRESS,
+  //   encodeCall(
+  //     'initialize',
+  //     ['string', 'string', 'uint8', 'address'],
+  //     [bondedTokenName, bondedTokenSymbol, bondedTokenDecimals, bonding]
+  //   )
+  // );
+  // // this.claimsToken = await BondedToken.at(claimsTokenAddress);
+  // // this.sellCurve = await StaticCurveLogic.at(sellCurveAddress);
+  // const bondingCurveAddress = await appCreate(
+  //   'bc-dao',
+  //   'BondingCurve',
+  //   constants.ZERO_ADDRESS,
+  //   encodeCall(
+  //     'initialize',
+  //     ['address', 'address', 'address', 'address', 'address', 'address', 'uint256'],
+  //     [
+  //       sender,
+  //       sender,
+  //       this.paymentToken.address,
+  //       this.claimsToken.address,
+  //       this.buyCurve.address,
+  //       this.sellCurve.address,
+  //       splitOnPayRatio.toString()
+  //     ]
+  //   )
+  // );
+  // this.bondingCurve = await BondingCurve.at(bondingCurveAddress);
 }
 
 module.exports.getZosConfig = getZosConfig;
