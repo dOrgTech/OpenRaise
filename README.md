@@ -172,9 +172,11 @@ function withdraw(
 
   - We have an open discussion on this issue [here](https://github.com/dOrgTech/BC-DAO/issues/4).
 
-- **An incorrect dividend merkle root can misallocated dividends away from token holders**
+- **An incorrect Merkle root in the Dividend Pool can result in misallocated dividends**
 
-  - The potential for a DAO user uploading an incorrect root (say, one that entitles them to all the dividends) should be largely mitigated by the consensus layer of the DAO, which should have an incentive to maintain the value of their bonded token rather than steal one payment periods worth of funds from holders. Staking & slashing mechanics could also be formalized.
+  - The potential for a DAO user uploading a malicious root (say, one that entitles them to all the dividends) should be largely mitigated by the consensus layer of the DAO, which should have an incentive to maintain the value of their bonded token rather than steal one payment periods worth of funds from holders. Staking & slashing mechanics could also be formalized for root proposers.
+
+   - Our interface will allow easy verification of the validity of a proposed merkle root by bonded token holders and DAO members.
 
   - However, this mechanic is still theoretically vulnerable to exploits - say, if the DAO recieves a large windfall payment during a claim period. This is an area of active discussion.
 
