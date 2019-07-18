@@ -23,11 +23,8 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
   const TEN = new BN(10);
 
   // Ratio of send tokens to minted tokens = tokenRatio / PRECISION
-  const pricePrecision = new BN(1000000);
+  const precision = new BN(1000000);
   const tokenRatio = new BN(100000000);
-
-  console.log(pricePrecision);
-  console.log(tokenRatio);
 
   let values = {
     a: {
@@ -71,7 +68,7 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
     );
     console.log('bondedTokens to mint', values.a.amount.toString());
     console.log('reserveTokens requir', result.toString());
-    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.a.amount).div(pricePrecision));
+    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.a.amount).div(precision));
   });
 
   it('calculate correct buy result for value set B', async function() {
@@ -82,7 +79,7 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
     );
     console.log('bondedTokens to mint', values.b.amount.toString());
     console.log('reserveTokens requir', result.toString());
-    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.b.amount).div(pricePrecision));
+    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.b.amount).div(precision));
   });
 
   it('calculate correct buy result for value set C', async function() {
@@ -93,6 +90,39 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
     );
     console.log('bondedTokens to mint', values.c.amount.toString());
     console.log('reserveTokens requir', result.toString());
-    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.c.amount).div(pricePrecision));
+    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.c.amount).div(precision));
+  });
+
+  it('calculate correct sell result for value set A', async function() {
+    result = await this.curve.calcBurnReward(
+      values.a.totalSupply,
+      values.a.reserveBalance,
+      values.a.amount
+    );
+    console.log('bondedTokens to burn', values.a.amount.toString());
+    console.log('reserveTokens reciev', result.toString());
+    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.a.amount).div(precision));
+  });
+
+  it('calculate correct sell result for value set B', async function() {
+    result = await this.curve.calcBurnReward(
+      values.b.totalSupply,
+      values.b.reserveBalance,
+      values.b.amount
+    );
+    console.log('bondedTokens to burn', values.b.amount.toString());
+    console.log('reserveTokens reciev', result.toString());
+    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.b.amount).div(precision));
+  });
+
+  it('calculate correct sell result for value set C', async function() {
+    result = await this.curve.calcBurnReward(
+      values.c.totalSupply,
+      values.c.reserveBalance,
+      values.c.amount
+    );
+    console.log('bondedTokens to burn', values.c.amount.toString());
+    console.log('reserveTokens reciev', result.toString());
+    expect(result).to.be.bignumber.equal(tokenRatio.mul(values.c.amount).div(precision));
   });
 });

@@ -177,7 +177,7 @@ contract('BondingToken', accounts => {
 
   it('should correctly return splitOnPay precision (for external calculations)', async function() {
     const expected = splitOnPayPrecision;
-    result = await this.bondingCurve.getSplitOnPayPrecision();
+    result = await this.bondingCurve.splitOnPayPrecision();
     expect(result).to.be.bignumber.equal(expected);
   });
 
