@@ -14,17 +14,17 @@ import "./token/BondedToken.sol";
 contract BondingCurve is Initializable, Ownable {
     using SafeMath for uint256;
 
-    IERC20 public reserveToken;
-    BondedToken public bondedToken;
+    IERC20 internal _reserveToken;
+    BondedToken internal _bondedToken;
 
-    ICurveLogic public buyCurve;
-    ICurveLogic public sellCurve;
-    address public beneficiary;
+    ICurveLogic internal _buyCurve;
+    ICurveLogic internal _sellCurve;
+    address internal _beneficiary;
 
-    uint256 public reserveBalance;
-    uint256 public splitOnPay;
+    uint256 internal _reserveBalance;
+    uint256 internal _splitOnPay;
 
-    DividendPool dividendPool;
+    DividendPool internal _dividendPool;
 
     uint256 private constant PRECISION = 10000;
 
@@ -44,42 +44,42 @@ contract BondingCurve is Initializable, Ownable {
     event Sell(address indexed seller, address indexed recipient, uint256 amount, uint256 reward);
 
     function initialize(
-        address _owner,
-        address _beneficiary,
-        IERC20 _reserveToken,
-        BondedToken _bondedToken,
-        ICurveLogic _buyCurve,
-        ICurveLogic _sellCurve,
-        DividendPool _dividendPool,
-        uint256 _splitOnPay
+        address owner,
+        address beneficiary,
+        IERC20 reserveToken,
+        BondedToken bondedToken,
+        ICurveLogic buyCurve,
+        ICurveLogic sellCurve,
+        DividendPool dividendPool,
+        uint256 splitOnPay
     ) public initializer {
-        require(_splitOnPay > PRECISION && _splitOnPay < PRECISION.mul(100), SPLIT_ON_PAY_INVALID);
+        require(splitOnPay > PRECISION && splitOnPay < PRECISION.mul(100), SPLIT_ON_PAY_INVALID);
 
-        Ownable.initialize(_owner);
-        
+        Ownable.initialize(owner);
+
         //TODO: Use setBeneficiary - owner should have been already set now
-        beneficiary = _beneficiary;
-        emit BeneficiarySet(beneficiary);
+        _beneficiary = beneficiary;
+        emit BeneficiarySet(_beneficiary);
 
-        buyCurve = _buyCurve;
-        sellCurve = _sellCurve;
-        bondedToken = _bondedToken;
-        reserveToken =  _reserveToken;
-        dividendPool = _dividendPool;
+        _buyCurve = buyCurve;
+        _sellCurve = sellCurve;
+        _bondedToken = bondedToken;
+        _reserveToken = reserveToken;
+        _dividendPool = dividendPool;
 
-        splitOnPay = _splitOnPay;
+        _splitOnPay = splitOnPay;
     }
 
     /// @notice             Get the price in ether to mint tokens
     /// @param numTokens    The number of tokens to calculate price for
     function priceToBuy(uint256 numTokens) public view returns (uint256) {
-        return buyCurve.calcMintPrice(bondedToken.totalSupply(), reserveBalance, numTokens);
+        return _buyCurve.calcMintPrice(_bondedToken.totalSupply(), _reserveBalance, numTokens);
     }
 
     /// @notice             Get the reward in ether to burn tokens
     /// @param numTokens    The number of tokens to calculate reward for
     function rewardForSell(uint256 numTokens) public view returns (uint256) {
-        return sellCurve.calcBurnReward(bondedToken.totalSupply(), reserveBalance, numTokens);
+        return _sellCurve.calcBurnReward(_bondedToken.totalSupply(), _reserveBalance, numTokens);
     }
 
     /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
@@ -108,16 +108,16 @@ contract BondingCurve is Initializable, Ownable {
         tokensToBeneficiary = buyPrice.sub(sellPrice);
         tokensToReserve = sellPrice;
 
-        require(bondedToken.mint(recipient, numTokens), TOKEN_MINTING_FAILED);
+        require(_bondedToken.mint(recipient, numTokens), TOKEN_MINTING_FAILED);
 
-        reserveBalance = reserveBalance.add(tokensToReserve);
+        _reserveBalance = _reserveBalance.add(tokensToReserve);
         require(
-            reserveToken.transferFrom(msg.sender, address(this), buyPrice),
+            _reserveToken.transferFrom(msg.sender, address(this), buyPrice),
             TRANSFER_FROM_FAILED
         );
 
         require(
-            reserveToken.transfer(beneficiary, tokensToBeneficiary),
+            _reserveToken.transfer(_beneficiary, tokensToBeneficiary),
             TRANSFER_TO_BENEFICIARY_FAILED
         );
 
@@ -135,15 +135,15 @@ contract BondingCurve is Initializable, Ownable {
         returns (uint256 collateralReceived)
     {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
-        require(bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
+        require(_bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
 
         uint256 burnReward = rewardForSell(numTokens);
         require(burnReward >= minPrice, PRICE_BELOW_MIN);
 
-        bondedToken.burn(msg.sender, numTokens);
-        reserveBalance = reserveBalance.sub(burnReward);
+        _bondedToken.burn(msg.sender, numTokens);
+        _reserveBalance = _reserveBalance.sub(burnReward);
 
-        reserveToken.transfer(recipient, burnReward);
+        _reserveToken.transfer(recipient, burnReward);
 
         emit Sell(msg.sender, recipient, numTokens, burnReward);
 
@@ -155,19 +155,19 @@ contract BondingCurve is Initializable, Ownable {
     /// @param amount       The number of tokens to pay the DAO
     function pay(uint256 amount) public {
         //TODO: Get payment token from dividendPool
-        IERC20 paymentToken = IERC20(reserveToken);
+        IERC20 paymentToken = IERC20(_reserveToken);
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
 
         // Calculate amounts to beneficiary and dividend holders based on splitOnPay
-        if (splitOnPay == 0) {
+        if (_splitOnPay == 0) {
             tokensToDividendHolders = amount;
-        } else if (splitOnPay == PRECISION.mul(100)) {
+        } else if (_splitOnPay == PRECISION.mul(100)) {
             tokensToBeneficiary = amount;
         } else {
-            uint256 beneficiaryPercentage = splitOnPay.div(PRECISION);
-            uint256 dividendPercentage = PRECISION.sub(splitOnPay).div(PRECISION);
+            uint256 beneficiaryPercentage = _splitOnPay.div(PRECISION);
+            uint256 dividendPercentage = PRECISION.sub(_splitOnPay).div(PRECISION);
 
             tokensToBeneficiary = amount.mul(beneficiaryPercentage);
             tokensToDividendHolders = amount.mul(dividendPercentage);
@@ -177,16 +177,48 @@ contract BondingCurve is Initializable, Ownable {
 
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
 
-        paymentToken.transfer(beneficiary, tokensToBeneficiary);
-        paymentToken.transfer(address(dividendPool), tokensToDividendHolders);
+        paymentToken.transfer(_beneficiary, tokensToBeneficiary);
+        paymentToken.transfer(address(_dividendPool), tokensToDividendHolders);
     }
 
-    function setBeneficiary(address _beneficiary) public onlyOwner {
-        beneficiary = _beneficiary;
-        emit BeneficiarySet(beneficiary);
+    function setBeneficiary(address beneficiary) public onlyOwner {
+        _beneficiary = beneficiary;
+        emit BeneficiarySet(_beneficiary);
     }
 
     function getSplitOnPayPrecision() public view returns (uint256) {
         return PRECISION;
+    }
+
+    function reserveToken() public view returns (IERC20) {
+        return _reserveToken;
+    }
+
+    function bondedToken() public view returns (BondedToken) {
+        return _bondedToken;
+    }
+
+    function buyCurve() public view returns (ICurveLogic) {
+        return _buyCurve;
+    }
+
+    function sellCurve() public view returns (ICurveLogic) {
+        return _sellCurve;
+    }
+
+    function beneficiary() public view returns (address) {
+        return _beneficiary;
+    }
+
+    function reserveBalance() public view returns (uint256) {
+        return _reserveBalance;
+    }
+
+    function splitOnPay() public view returns (uint256) {
+        return _splitOnPay;
+    }
+
+    function dividendPool() public view returns (DividendPool) {
+        return _dividendPool;
     }
 }
