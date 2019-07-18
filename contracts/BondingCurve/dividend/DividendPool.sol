@@ -17,5 +17,4 @@ contract DividendPool is Initializable, PaymentPool {
     function initialize(IERC20 paymentToken, address owner) public initializer {
         PaymentPool.initialize(paymentToken, owner);
     }
-
 }

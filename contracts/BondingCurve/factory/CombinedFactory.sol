@@ -82,7 +82,7 @@ contract CombinedFactory is Initializable {
   /// @param owner Owner of bonding curve.
   /// @param buyCurveParams Parameters for
   /// @param sellCurveParams Parameters for.
-  /// @param reserveToken Reserve token to buy Bonded tokens.
+  /// @param collateralToken Reserve token to buy Bonded tokens.
   /// @param splitOnPay Percentage allocated to beneficiary on revenue. The remainder is allocated to Bonded token holders.
   function deployBondingCurve(
     string memory bondedTokenName,
@@ -92,7 +92,7 @@ contract CombinedFactory is Initializable {
     address owner,
     uint256 buyCurveParams,
     uint256 sellCurveParams,
-    IERC20 reserveToken,
+    IERC20 collateralToken,
     uint splitOnPay
   ) public
   {
@@ -104,7 +104,7 @@ contract CombinedFactory is Initializable {
 
     // StaticCurveLogic(buyCurveAddress).initialize(buyCurveParams);
     // StaticCurveLogic(sellCurveAddress).initialize(sellCurveParams);
-    // DividendPool(dividendPoolAddress).initialize(reserveToken);
+    // DividendPool(dividendPoolAddress).initialize(collateralToken);
 
     // BondedToken(bondedTokenAddress).initialize(
     //   bondedTokenName,
@@ -116,7 +116,7 @@ contract CombinedFactory is Initializable {
     // BondingCurve(bondingCurveAddress).initialize(
     //   owner,
     //   beneficiary,
-    //   reserveToken,
+    //   collateralToken,
     //   BondedToken(bondedTokenAddress),
     //   ICurveLogic(buyCurveAddress),
     //   ICurveLogic(sellCurveAddress),

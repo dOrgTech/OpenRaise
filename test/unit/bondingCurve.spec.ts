@@ -31,8 +31,8 @@ contract('BondingToken', accounts => {
 
   const sender = accounts[0];
 
-  const buyTokenRatio = new BN(100000000); //1 bondedToken minted for every 100 reserveTokens sent
-  const sellTokenRatio = new BN(10000000); //10 reserveTokens returned for every bondedToken burned
+  const buyTokenRatio = new BN(100000000); //1 bondedToken minted for every 100 collateralTokens sent
+  const sellTokenRatio = new BN(10000000); //10 collateralTokens returned for every bondedToken burned
   const tokenRatioPrecision = new BN(1000000);
 
   const splitOnPayPrecision = new BN(10000);
@@ -128,7 +128,7 @@ contract('BondingToken', accounts => {
   });
 
   it('should have properly initialized parameters', async function() {
-    expect(await this.bondingCurve.reserveToken()).to.be.equal(this.paymentToken.address);
+    expect(await this.bondingCurve.collateralToken()).to.be.equal(this.paymentToken.address);
 
     expect(await this.bondingCurve.bondedToken()).to.be.equal(this.bondedToken.address);
 
@@ -226,7 +226,7 @@ contract('BondingToken', accounts => {
     await expectRevert.unspecified(this.bondingCurve.sell(0, 100, buyer, {from: buyer}));
   });
 
-  it('should allow user with reserveTokens approved to buy bondedTokens', async function() {
+  it('should allow user with collateralTokens approved to buy bondedTokens', async function() {
     const buyer = accounts[2];
     const approvalAmount = new BN(web3.utils.toWei('1', 'ether'));
     console.log('approvalAmount', approvalAmount.toString());
@@ -254,7 +254,7 @@ contract('BondingToken', accounts => {
     result = await this.bondedToken.balanceOf(buyer);
     expect(result).to.be.bignumber.equal(numTokens);
   });
-  it('should not allow user without reserveTokens approved to buy bondedTokens', async function() {
+  it('should not allow user without collateralTokens approved to buy bondedTokens', async function() {
     const buyer = accounts[2];
     const numTokens = new BN(100);
 

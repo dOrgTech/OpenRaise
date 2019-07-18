@@ -14,7 +14,7 @@ import "./token/BondedToken.sol";
 contract BondingCurve is Initializable, Ownable {
     using SafeMath for uint256;
 
-    IERC20 internal _reserveToken;
+    IERC20 internal _collateralToken;
     BondedToken internal _bondedToken;
 
     ICurveLogic internal _buyCurve;
@@ -28,9 +28,9 @@ contract BondingCurve is Initializable, Ownable {
 
     uint256 private constant PRECISION = 10000;
 
-    string internal constant TRANSFER_FROM_FAILED = "Transfer of reserveTokens from sender failed";
+    string internal constant TRANSFER_FROM_FAILED = "Transfer of collateralTokens from sender failed";
     string internal constant TOKEN_MINTING_FAILED = "bondedToken minting failed";
-    string internal constant TRANSFER_TO_BENEFICIARY_FAILED = "Tranfer of reserveTokens to beneficiary failed";
+    string internal constant TRANSFER_TO_BENEFICIARY_FAILED = "Tranfer of collateralTokens to beneficiary failed";
     string internal constant INSUFFICENT_TOKENS = "Insufficent tokens";
     string internal constant MAX_PRICE_EXCEEDED = "Current price exceedes maximum specified";
     string internal constant PRICE_BELOW_MIN = "Current price is below minimum specified";
@@ -46,7 +46,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @dev Initialize contract
     /// @param owner Contract owner, can conduct administrative functions.
     /// @param beneficiary Recieves a proportion of incoming tokens on buy() and pay() operations.
-    /// @param reserveToken Token accepted as collateral by the curve. (e.g. WETH or DAI)
+    /// @param collateralToken Token accepted as collateral by the curve. (e.g. WETH or DAI)
     /// @param bondedToken Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
     /// @param buyCurve Curve logic for buy curve.
     /// @param sellCurve Curve logic for sell curve.
@@ -55,7 +55,7 @@ contract BondingCurve is Initializable, Ownable {
     function initialize(
         address owner,
         address beneficiary,
-        IERC20 reserveToken,
+        IERC20 collateralToken,
         BondedToken bondedToken,
         ICurveLogic buyCurve,
         ICurveLogic sellCurve,
@@ -72,7 +72,7 @@ contract BondingCurve is Initializable, Ownable {
         _buyCurve = buyCurve;
         _sellCurve = sellCurve;
         _bondedToken = bondedToken;
-        _reserveToken = reserveToken;
+        _collateralToken = collateralToken;
         _dividendPool = dividendPool;
 
         _splitOnPay = splitOnPay;
@@ -120,12 +120,12 @@ contract BondingCurve is Initializable, Ownable {
 
         _reserveBalance = _reserveBalance.add(tokensToReserve);
         require(
-            _reserveToken.transferFrom(msg.sender, address(this), buyPrice),
+            _collateralToken.transferFrom(msg.sender, address(this), buyPrice),
             TRANSFER_FROM_FAILED
         );
 
         require(
-            _reserveToken.transfer(_beneficiary, tokensToBeneficiary),
+            _collateralToken.transfer(_beneficiary, tokensToBeneficiary),
             TRANSFER_TO_BENEFICIARY_FAILED
         );
 
@@ -151,7 +151,7 @@ contract BondingCurve is Initializable, Ownable {
         _bondedToken.burn(msg.sender, numTokens);
         _reserveBalance = _reserveBalance.sub(burnReward);
 
-        _reserveToken.transfer(recipient, burnReward);
+        _collateralToken.transfer(recipient, burnReward);
 
         emit Sell(msg.sender, recipient, numTokens, burnReward);
 
@@ -163,7 +163,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @param amount       The number of tokens to pay the DAO
     function pay(uint256 amount) public {
         //TODO: Get payment token from dividendPool
-        IERC20 paymentToken = IERC20(_reserveToken);
+        IERC20 paymentToken = IERC20(_collateralToken);
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
@@ -210,8 +210,8 @@ contract BondingCurve is Initializable, Ownable {
     }
 
     /// @notice Get reserve token contract
-    function reserveToken() public view returns (IERC20) {
-        return _reserveToken;
+    function collateralToken() public view returns (IERC20) {
+        return _collateralToken;
     }
 
     /// @notice Get bonded token contract

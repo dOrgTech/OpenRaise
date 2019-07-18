@@ -66,8 +66,8 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
       values.a.reserveBalance,
       values.a.amount
     );
-    console.log('bondedTokens to mint', values.a.amount.toString());
-    console.log('reserveTokens requir', result.toString());
+    console.log('bondedTokens    :', values.a.amount.toString());
+    console.log('collateralTokens:', result.toString());
     expect(result).to.be.bignumber.equal(tokenRatio.mul(values.a.amount).div(precision));
   });
 
@@ -77,8 +77,8 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
       values.b.reserveBalance,
       values.b.amount
     );
-    console.log('bondedTokens to mint', values.b.amount.toString());
-    console.log('reserveTokens requir', result.toString());
+    console.log('bondedTokens    :', values.b.amount.toString());
+    console.log('collateralTokens:', result.toString());
     expect(result).to.be.bignumber.equal(tokenRatio.mul(values.b.amount).div(precision));
   });
 
@@ -88,8 +88,8 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
       values.c.reserveBalance,
       values.c.amount
     );
-    console.log('bondedTokens to mint', values.c.amount.toString());
-    console.log('reserveTokens requir', result.toString());
+    console.log('bondedTokens    :', values.c.amount.toString());
+    console.log('collateralTokens:', result.toString());
     expect(result).to.be.bignumber.equal(tokenRatio.mul(values.c.amount).div(precision));
   });
 
@@ -99,8 +99,8 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
       values.a.reserveBalance,
       values.a.amount
     );
-    console.log('bondedTokens to burn', values.a.amount.toString());
-    console.log('reserveTokens reciev', result.toString());
+    console.log('bondedTokens    :', values.a.amount.toString());
+    console.log('collateralTokens:', result.toString());
     expect(result).to.be.bignumber.equal(tokenRatio.mul(values.a.amount).div(precision));
   });
 
@@ -110,8 +110,8 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
       values.b.reserveBalance,
       values.b.amount
     );
-    console.log('bondedTokens to burn', values.b.amount.toString());
-    console.log('reserveTokens reciev', result.toString());
+    console.log('bondedTokens    :', values.b.amount.toString());
+    console.log('collateralTokens:', result.toString());
     expect(result).to.be.bignumber.equal(tokenRatio.mul(values.b.amount).div(precision));
   });
 
@@ -121,8 +121,8 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
       values.c.reserveBalance,
       values.c.amount
     );
-    console.log('bondedTokens to burn', values.c.amount.toString());
-    console.log('reserveTokens reciev', result.toString());
+    console.log('bondedTokens    :', values.c.amount.toString());
+    console.log('collateralTokens:', result.toString());
     expect(result).to.be.bignumber.equal(tokenRatio.mul(values.c.amount).div(precision));
   });
 });
