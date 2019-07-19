@@ -54,7 +54,7 @@ contract BancorCurveLogic is Initializable, BancorFormula, ICurveLogic {
     }
 
     /// @notice Get reserve ratio
-    function reserveRatio() public returns (uint32) {
+    function reserveRatio() public view returns (uint32) {
         return _reserveRatio;
     }
 }
