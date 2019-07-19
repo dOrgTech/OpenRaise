@@ -4,7 +4,6 @@
     "StaticCurveLogic": "StaticCurveLogic",
     "BancorCurveLogic": "BancorCurveLogic",
     "BondedToken": "BondedToken",
-    "CombinedFactory": "CombinedFactory",
     "DividendPool": "DividendPool",
     "BondingCurve": "BondingCurve",
     "BondingCurveFactory": "BondingCurveFactory"
