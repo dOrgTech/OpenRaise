@@ -203,7 +203,3 @@ We envision the following features may be useful to DAOs implementing bonding cu
 ### Technical Features
 
 - **Modularity** - We envision an "OpenZeppelin for bonding curves" - an open source repo to compose your own bonding curve from a suite of well-established components.
-
-## Contract Docs
-
-TODO: link to auto generated contract docs (still WIP, Milestone 2)
