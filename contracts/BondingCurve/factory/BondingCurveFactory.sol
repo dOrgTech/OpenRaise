@@ -1,4 +1,5 @@
 pragma solidity ^0.5.4;
+pragma experimental ABIEncoderV2;
 
 import "zos-lib/contracts/Initializable.sol";
 import "zos-lib/contracts/upgradeability/AdminUpgradeabilityProxy.sol";
@@ -16,7 +17,18 @@ import "../interface/ICurveLogic.sol";
  * @dev Allows for the deploy of a Bonding Curve and supporting components in a single transaction
  * This was developed to simplify the deployment process for DAOs
  */
-contract TestFactory is Initializable {
+contract BondingCurveFactory is Initializable {
+
+    struct DeployParams {
+      address beneficiary;
+      address owner;
+      uint256 buyCurveParams;
+      uint256 sellCurveParams;
+      address collateralToken;
+      uint splitOnPay;
+      string bondedTokenName;
+      string bondedTokenSymbol;
+    }
 
     address internal _staticCurveLogicImpl;
     address internal _bancorCurveLogicImpl;
@@ -56,39 +68,31 @@ contract TestFactory is Initializable {
     }
 
   function deploy(
-    address beneficiary,
-    address owner,
-    uint256 buyCurveParams,
-    uint256 sellCurveParams,
-    IERC20 collateralToken,
-    uint splitOnPay,
-    string memory bondedTokenName,
-    string memory bondedTokenSymbol
-  ) public 
+    DeployParams memory deployParams
+  ) public
     // returns(address buyCurve, address sellCurve, address bondedToken, address bondingCurve, address dividendPool) 
     {
-
     address buyCurve = _createProxy(_staticCurveLogicImpl, address(0), "");
     address sellCurve = _createProxy(_staticCurveLogicImpl, address(0), "");
     address bondedToken = _createProxy(_bondedTokenImpl, address(0), "");
     address bondingCurve = _createProxy(_bondingCurveImpl, address(0), "");
     address dividendPool = _createProxy(_dividendPoolImpl, address(0), "");
 
-    StaticCurveLogic(buyCurve).initialize(buyCurveParams);
-    StaticCurveLogic(sellCurve).initialize(sellCurveParams);
-    BondedToken(bondedToken).initialize(bondedTokenName, bondedTokenSymbol, 18, bondingCurve);
-    DividendPool(dividendPool).initialize(collateralToken, owner);
+    StaticCurveLogic(buyCurve).initialize(deployParams.buyCurveParams);
+    StaticCurveLogic(sellCurve).initialize(deployParams.sellCurveParams);
+    BondedToken(bondedToken).initialize(deployParams.bondedTokenName, deployParams.bondedTokenSymbol, 18, bondingCurve);
+    DividendPool(dividendPool).initialize(IERC20(deployParams.collateralToken), deployParams.owner);
 
-    // BondingCurve(bondingCurve).initialize(
-    //     owner,
-    //     beneficiary,
-    //     collateralToken,
-    //     BondedToken(bondedToken),
-    //     ICurveLogic(buyCurve),
-    //     ICurveLogic(sellCurve),
-    //     DividendPool(dividendPool),
-    //     splitOnPay
-    // );
+    BondingCurve(bondingCurve).initialize(
+        deployParams.owner,
+        deployParams.beneficiary,
+        IERC20(deployParams.collateralToken),
+        BondedToken(bondedToken),
+        ICurveLogic(buyCurve),
+        ICurveLogic(sellCurve),
+        DividendPool(dividendPool),
+        deployParams.splitOnPay
+    );
 
     emit BondingCurveDeployed(
         bondingCurve,

@@ -7,7 +7,7 @@
     "CombinedFactory": "CombinedFactory",
     "DividendPool": "DividendPool",
     "BondingCurve": "BondingCurve",
-    "TestFactory": "TestFactory"
+    "BondingCurveFactory": "BondingCurveFactory"
   },
   "dependencies": {
     "openzeppelin-eth": "^2.2.0"

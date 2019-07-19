@@ -129,17 +129,11 @@ contract('BondingToken', accounts => {
 
   it('should have properly initialized parameters', async function() {
     expect(await this.bondingCurve.collateralToken()).to.be.equal(this.paymentToken.address);
-
     expect(await this.bondingCurve.bondedToken()).to.be.equal(this.bondedToken.address);
-
     expect(await this.bondingCurve.buyCurve()).to.be.equal(this.buyCurve.address);
-
     expect(await this.bondingCurve.sellCurve()).to.be.equal(this.sellCurve.address);
-
     expect(await this.bondingCurve.owner()).to.be.equal(sender);
-
     expect(await this.bondingCurve.beneficiary()).to.be.equal(sender);
-
     expect(await this.bondingCurve.splitOnPay()).to.be.bignumber.equal(splitOnPayRatio);
   });
 
