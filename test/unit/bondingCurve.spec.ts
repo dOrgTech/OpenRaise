@@ -241,7 +241,7 @@ contract('BondingToken', accounts => {
     await this.paymentToken.approve(this.bondingCurve.address, approvalAmount, {
       from: buyer
     });
-    // tx = await this.bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
+    tx = await this.bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
 
     // //Verify events
     // expectEvent.inLogs(tx.logs, 'Buy', {
