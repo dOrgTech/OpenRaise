@@ -25,6 +25,6 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
      * @param value The amount of token to be burned.
      */
     function burn(address from, uint256 value) public onlyMinter {
-        _burn(msg.sender, value);
+        _burn(from, value);
     }
 }
