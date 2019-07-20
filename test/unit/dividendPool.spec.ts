@@ -75,7 +75,11 @@ contract('DividendPool', accounts => {
     this.paymentToken.initialize(
       values.paymentToken.name,
       values.paymentToken.symbol,
-      values.paymentToken.decimals
+      values.paymentToken.decimals,
+      1000000,
+      accounts[0],
+      [accounts[0]],
+      [accounts[0]]
     );
 
     const dividendPoolAddress = await appCreate(

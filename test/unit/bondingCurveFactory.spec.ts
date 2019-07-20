@@ -52,7 +52,18 @@ contract('BondingCurveFactory', accounts => {
 
   beforeEach(async function() {
     this.paymentToken = await PaymentToken.new();
-    this.paymentToken.initialize(tokenParams.name, tokenParams.symbol, tokenParams.decimals);
+    //Initial supply starts with sender who can also mint
+    this.paymentToken = await PaymentToken.new();
+    this.paymentToken.initialize(
+      tokenParams.name,
+      tokenParams.symbol,
+      tokenParams.decimals,
+      1000000,
+      accounts[0],
+      [accounts[0]],
+      [accounts[0]]
+    );
+    console.log(await this.paymentToken.totalSupply());
 
     deployParams.collateralToken = this.paymentToken.address;
 
@@ -117,6 +128,8 @@ contract('BondingCurveFactory', accounts => {
         const createdEvent = expectEvent.inLogs(deployTx.logs, 'BondingCurveDeployed');
 
         bondingCurve = await BondingCurve.at(createdEvent.args.bondingCurve);
+        console.log('BondingCurve', bondingCurve.address);
+        console.log('paymentToken', this.paymentToken.address);
         bondedToken = await BondedToken.at(createdEvent.args.bondedToken);
         buyCurve = await StaticCurveLogic.at(createdEvent.args.buyCurve);
         sellCurve = await StaticCurveLogic.at(createdEvent.args.sellCurve);
@@ -173,6 +186,7 @@ contract('BondingCurveFactory', accounts => {
         expect(await bondingCurve.bondedToken()).to.be.equal(bondedToken.address);
         expect(await bondingCurve.buyCurve()).to.be.equal(buyCurve.address);
         expect(await bondingCurve.sellCurve()).to.be.equal(sellCurve.address);
+        expect(await bondingCurve.dividendPool()).to.be.equal(dividendPool.address);
         expect(await bondingCurve.splitOnPay()).to.be.bignumber.equal(deployParams.splitOnPay);
       });
     });

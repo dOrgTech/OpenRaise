@@ -25,9 +25,16 @@ const App = artifacts.require('App');
   Uses StaticCurveLogic for simpler tests.
 */
 
-contract('BondingToken', accounts => {
+contract('Bonding Curve', accounts => {
   let tx;
   let result;
+
+  let paymentToken;
+  let dividendPool;
+  let bondedToken;
+  let bondingCurve;
+  let buyCurve;
+  let sellCurve;
 
   const sender = accounts[0];
 
@@ -52,12 +59,26 @@ contract('BondingToken', accounts => {
   };
 
   beforeEach(async function() {
-    this.paymentToken = await PaymentToken.new();
-    this.paymentToken.initialize(
+    //Initial supply starts with sender who can also mint
+    paymentToken = await PaymentToken.new();
+    paymentToken.initialize(
       values.paymentToken.name,
       values.paymentToken.symbol,
-      values.paymentToken.decimals
+      values.paymentToken.decimals,
+      1000000,
+      accounts[0],
+      [accounts[0]],
+      [accounts[0]]
     );
+
+    const dividendPoolAddress = await appCreate(
+      'bc-dao',
+      'DividendPool',
+      constants.ZERO_ADDRESS,
+      encodeCall('initialize', ['address', 'address'], [paymentToken.address, accounts[0]])
+    );
+
+    dividendPool = await DividendPool.at(dividendPoolAddress);
 
     const bondedTokenAddress = await appCreate(
       'bc-dao',
@@ -70,12 +91,12 @@ contract('BondingToken', accounts => {
           values.bondedToken.name,
           values.bondedToken.symbol,
           values.bondedToken.decimals.toNumber(),
-          sender
+          accounts[0]
         ]
       )
     );
 
-    this.bondedToken = await BondedToken.at(bondedTokenAddress);
+    bondedToken = await BondedToken.at(bondedTokenAddress);
 
     const buyCurveAddress = await appCreate(
       'bc-dao',
@@ -84,7 +105,7 @@ contract('BondingToken', accounts => {
       encodeCall('initialize', ['uint256'], [buyTokenRatio.toString()])
     );
 
-    this.buyCurve = await StaticCurveLogic.at(buyCurveAddress);
+    buyCurve = await StaticCurveLogic.at(buyCurveAddress);
 
     const sellCurveAddress = await appCreate(
       'bc-dao',
@@ -93,16 +114,7 @@ contract('BondingToken', accounts => {
       encodeCall('initialize', ['uint256'], [sellTokenRatio.toString()])
     );
 
-    this.sellCurve = await StaticCurveLogic.at(sellCurveAddress);
-
-    // const dividendPoolAddress = await appCreate(
-    //   'bc-dao',
-    //   'DividendPool',
-    //   constants.ZERO_ADDRESS,
-    //   encodeCall('initialize', ['address'], [this.paymentToken.address])
-    // );
-
-    // const dividendPool = DividendPool.at(dividendPoolAddress);
+    sellCurve = await StaticCurveLogic.at(sellCurveAddress);
 
     const bondingCurveAddress = await appCreate(
       'bc-dao',
@@ -112,39 +124,40 @@ contract('BondingToken', accounts => {
         'initialize',
         ['address', 'address', 'address', 'address', 'address', 'address', 'address', 'uint256'],
         [
-          sender,
-          sender,
-          this.paymentToken.address,
-          this.bondedToken.address,
-          this.buyCurve.address,
-          this.sellCurve.address,
-          this.sellCurve.address,
+          accounts[0],
+          accounts[0],
+          paymentToken.address,
+          bondedToken.address,
+          buyCurve.address,
+          sellCurve.address,
+          dividendPool.address,
           splitOnPayRatio.toString()
         ]
       )
     );
 
-    this.bondingCurve = await BondingCurve.at(bondingCurveAddress);
+    bondingCurve = await BondingCurve.at(bondingCurveAddress);
   });
 
   it('should have properly initialized parameters', async function() {
-    expect(await this.bondingCurve.collateralToken()).to.be.equal(this.paymentToken.address);
-    expect(await this.bondingCurve.bondedToken()).to.be.equal(this.bondedToken.address);
-    expect(await this.bondingCurve.buyCurve()).to.be.equal(this.buyCurve.address);
-    expect(await this.bondingCurve.sellCurve()).to.be.equal(this.sellCurve.address);
-    expect(await this.bondingCurve.owner()).to.be.equal(sender);
-    expect(await this.bondingCurve.beneficiary()).to.be.equal(sender);
-    expect(await this.bondingCurve.splitOnPay()).to.be.bignumber.equal(splitOnPayRatio);
+    expect(await bondingCurve.owner()).to.be.equal(sender);
+    expect(await bondingCurve.beneficiary()).to.be.equal(sender);
+    expect(await bondingCurve.collateralToken()).to.be.equal(paymentToken.address);
+    expect(await bondingCurve.bondedToken()).to.be.equal(bondedToken.address);
+    expect(await bondingCurve.buyCurve()).to.be.equal(buyCurve.address);
+    expect(await bondingCurve.sellCurve()).to.be.equal(sellCurve.address);
+    expect(await bondingCurve.dividendPool()).to.be.equal(dividendPool.address);
+    expect(await bondingCurve.splitOnPay()).to.be.bignumber.equal(splitOnPayRatio);
   });
 
   it('should allow owner to set new beneficiary', async function() {
-    tx = await this.bondingCurve.setBeneficiary(accounts[2], {from: sender});
-    expect(await this.bondingCurve.beneficiary()).to.be.equal(accounts[2]);
+    tx = await bondingCurve.setBeneficiary(accounts[2], {from: sender});
+    expect(await bondingCurve.beneficiary()).to.be.equal(accounts[2]);
   });
 
   it('should not allow non-owner to set new beneficiary', async function() {
     await expectRevert.unspecified(
-      this.bondingCurve.setBeneficiary(constants.ZERO_ADDRESS, {
+      bondingCurve.setBeneficiary(constants.ZERO_ADDRESS, {
         from: accounts[2]
       })
     );
@@ -154,8 +167,8 @@ contract('BondingToken', accounts => {
     const oldOwner = sender;
     const newOwner = accounts[2];
 
-    tx = await this.bondingCurve.transferOwnership(newOwner, {from: oldOwner});
-    expect(await this.bondingCurve.owner()).to.be.equal(newOwner);
+    tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
+    expect(await bondingCurve.owner()).to.be.equal(newOwner);
   });
 
   it('should not allow non-owner to set new owner', async function() {
@@ -163,7 +176,7 @@ contract('BondingToken', accounts => {
     const newOwner = accounts[2];
 
     await expectRevert.unspecified(
-      this.bondingCurve.transferOwnership(newOwner, {
+      bondingCurve.transferOwnership(newOwner, {
         from: nonOwner
       })
     );
@@ -171,7 +184,7 @@ contract('BondingToken', accounts => {
 
   it('should correctly return splitOnPay precision (for external calculations)', async function() {
     const expected = splitOnPayPrecision;
-    result = await this.bondingCurve.splitOnPayPrecision();
+    result = await bondingCurve.splitOnPayPrecision();
     expect(result).to.be.bignumber.equal(expected);
   });
 
@@ -181,27 +194,27 @@ contract('BondingToken', accounts => {
     const newOwner = accounts[2];
     const newBeneficiary = accounts[3];
 
-    tx = await this.bondingCurve.transferOwnership(newOwner, {from: oldOwner});
+    tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
 
-    result = await this.bondingCurve.beneficiary();
+    result = await bondingCurve.beneficiary();
     expect(result).to.be.equal(oldBeneficiary);
 
-    await this.bondingCurve.setBeneficiary(newBeneficiary, {from: newOwner});
+    await bondingCurve.setBeneficiary(newBeneficiary, {from: newOwner});
 
-    result = await this.bondingCurve.beneficiary();
+    result = await bondingCurve.beneficiary();
     expect(result).to.be.equal(newBeneficiary);
   });
 
   it('should not allow to buy with 0 tokens specified', async function() {
     const buyer = accounts[2];
-    await expectRevert.unspecified(this.bondingCurve.buy(0, 100, buyer, {from: buyer}));
+    await expectRevert.unspecified(bondingCurve.buy(0, 100, buyer, {from: buyer}));
   });
 
   it('should show buy price correctly', async function() {
     const numTokens = new BN(100);
     const expected = numTokens.mul(buyTokenRatio).div(tokenRatioPrecision);
 
-    result = await this.bondingCurve.priceToBuy(numTokens);
+    result = await bondingCurve.priceToBuy(numTokens);
 
     expect(result).to.be.bignumber.equal(expected);
   });
@@ -210,14 +223,14 @@ contract('BondingToken', accounts => {
     const numTokens = new BN(100);
     const expected = numTokens.mul(sellTokenRatio).div(tokenRatioPrecision);
 
-    result = await this.bondingCurve.rewardForSell(numTokens);
+    result = await bondingCurve.rewardForSell(numTokens);
 
     expect(result).to.be.bignumber.equal(expected);
   });
 
   it('should not allow to sell with 0 tokens specified', async function() {
     const buyer = accounts[2];
-    await expectRevert.unspecified(this.bondingCurve.sell(0, 100, buyer, {from: buyer}));
+    await expectRevert.unspecified(bondingCurve.sell(0, 100, buyer, {from: buyer}));
   });
 
   it('should allow user with collateralTokens approved to buy bondedTokens', async function() {
@@ -226,16 +239,16 @@ contract('BondingToken', accounts => {
     console.log('approvalAmount', approvalAmount.toString());
     const numTokens = new BN(100);
 
-    result = await this.bondingCurve.priceToBuy(numTokens);
+    result = await bondingCurve.priceToBuy(numTokens);
     console.log('buy', result.toString());
-    result = await this.bondingCurve.rewardForSell(numTokens);
+    result = await bondingCurve.rewardForSell(numTokens);
     console.log('sell', result.toString());
 
     // Mint tokens to buyer
-    await this.paymentToken.approve(this.bondingCurve.address, approvalAmount, {
+    await paymentToken.approve(bondingCurve.address, approvalAmount, {
       from: buyer
     });
-    tx = await this.bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
+    tx = await bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
 
     // //Verify events
     // expectEvent.inLogs(tx.logs, 'Buy', {
@@ -245,7 +258,7 @@ contract('BondingToken', accounts => {
     // });
 
     // //Check balance
-    result = await this.bondedToken.balanceOf(buyer);
+    result = await bondedToken.balanceOf(buyer);
     expect(result).to.be.bignumber.equal(numTokens);
   });
   it('should not allow user without collateralTokens approved to buy bondedTokens', async function() {
@@ -253,7 +266,7 @@ contract('BondingToken', accounts => {
     const numTokens = new BN(100);
 
     // Mint tokens to buyer
-    await expectRevert.unspecified(this.bondingCurve.buy(numTokens, 0, buyer, {from: buyer}));
+    await expectRevert.unspecified(bondingCurve.buy(numTokens, 0, buyer, {from: buyer}));
   });
 
   it('should allow user with bondedTokens to sell', async function() {
@@ -262,26 +275,26 @@ contract('BondingToken', accounts => {
     const numTokens = new BN(100);
 
     // Mint tokens to buyer
-    await this.paymentToken.approve(this.bondingCurve.address, approvalAmount, {
+    await paymentToken.approve(bondingCurve.address, approvalAmount, {
       from: buyer
     });
-    await this.bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
+    await bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
 
-    await this.bondingCurve.sell(numTokens, 0, buyer, {from: buyer});
+    await bondingCurve.sell(numTokens, 0, buyer, {from: buyer});
   });
 
   it('should not allow user without bondedTokens to sell', async function() {
     const seller = accounts[2];
     const numTokens = new BN(100);
 
-    await expectRevert.unspecified(this.bondingCurve.sell(numTokens, 0, seller, {from: seller}));
+    await expectRevert.unspecified(bondingCurve.sell(numTokens, 0, seller, {from: seller}));
   });
 
   it('should not allow bondingCurve owner to mint bondedTokens', async function() {
-    await expectRevert.unspecified(this.bondedToken.mint(accounts[0], 100, {from: accounts[0]}));
+    await expectRevert.unspecified(bondedToken.mint(accounts[0], 100, {from: accounts[0]}));
   });
   it('should not allow other addresses to mint bondedTokens', async function() {
-    await expectRevert.unspecified(this.bondedToken.mint(accounts[0], 100, {from: accounts[2]}));
+    await expectRevert.unspecified(bondedToken.mint(accounts[0], 100, {from: accounts[2]}));
   });
 
   it('should not allow to buy if sell curve value is higher than buy curve value', async function() {});
@@ -290,16 +303,23 @@ contract('BondingToken', accounts => {
   it('should not allow buy if current price exceeds specified max price', async function() {});
   it('should not allow sell if current price is lower than specified min price', async function() {});
 
-  it('should not allow payments of amount 0', async function() {});
-  it('should successfully transfer tokens to beneficiary and dividend pool according to splitOnPay', async function() {
-    const splits = [50, 25, 40, 1, 90];
+  describe('Payments', async () => {
+    const owner = accounts[0];
+    const paymentAmount = new BN(10000);
 
-    for (let split of splits) {
-      await this.bondingCurve.pay(10000);
-      expect(this);
-    }
+    beforeEach(async () => {
+      console.log(paymentToken.address);
+      await paymentToken.approve(bondingCurve.address, 10000, {from: owner});
+    });
+    it('should not allow payments of amount 0', async function() {
+      await expectRevert.unspecified(bondingCurve.pay(0, {from: owner}));
+    });
+    it('should register payments', async function() {
+      await bondingCurve.pay(1000, {from: owner});
+    });
+    it('should transfer tokens to beneficiary and dividend pool according to splitOnPay', async function() {});
+    it('should transfer all tokens to beneficiary when splitOnPay is 0%', async function() {});
+    it('should transfer all tokens to dividend pool when splitOnPay is 100%', async function() {});
+    it('should not allow pay without successful token transfer from sender', async function() {});
   });
-  it('should successfully transfer all tokens to beneficiary when splitOnPay is 0%', async function() {});
-  it('should successfully transfer all tokens to dividend pool when splitOnPay is 100%', async function() {});
-  it('should not allow pay without successful token transfer from sender', async function() {});
 });
