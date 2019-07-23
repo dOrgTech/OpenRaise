@@ -45,7 +45,7 @@ contract('BondingCurveFactory', accounts => {
     buyCurveParams: new BN(100000000),
     sellCurveParams: new BN(10000000),
     collateralToken: null,
-    splitOnPay: new BN(500000),
+    splitOnPay: new BN(50),
     bondedTokenName: 'BondedToken',
     bondedTokenSymbol: 'BND'
   };
