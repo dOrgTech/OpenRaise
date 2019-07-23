@@ -125,164 +125,204 @@ contract('Bonding Curve', accounts => {
     );
   });
 
-  it('should have properly initialized parameters', async function() {
-    expect(await bondingCurve.owner()).to.be.equal(curveOwner);
-    expect(await bondingCurve.beneficiary()).to.be.equal(curveOwner);
-    expect(await bondingCurve.collateralToken()).to.be.equal(paymentToken.address);
-    expect(await bondingCurve.bondedToken()).to.be.equal(bondedToken.address);
-    expect(await bondingCurve.buyCurve()).to.be.equal(buyCurve.address);
-    expect(await bondingCurve.sellCurve()).to.be.equal(sellCurve.address);
-    expect(await bondingCurve.dividendPool()).to.be.equal(dividendPool.address);
-    expect(await bondingCurve.splitOnPay()).to.be.bignumber.equal(deployParams.splitOnPay);
-  });
-
-  it('should allow owner to set new beneficiary', async function() {
-    tx = await bondingCurve.setBeneficiary(userAccounts[0], {from: curveOwner});
-    expect(await bondingCurve.beneficiary()).to.be.equal(userAccounts[0]);
-  });
-
-  it('should not allow non-owner to set new beneficiary', async function() {
-    await expectRevert.unspecified(
-      bondingCurve.setBeneficiary(constants.ZERO_ADDRESS, {
-        from: userAccounts[0]
-      })
-    );
-  });
-
-  it('should allow owner to set new owner', async function() {
-    const oldOwner = curveOwner;
-    const newOwner = userAccounts[0];
-
-    tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
-    expect(await bondingCurve.owner()).to.be.equal(newOwner);
-  });
-
-  it('should not allow non-owner to set new owner', async function() {
-    const nonOwner = userAccounts[0];
-    const newOwner = userAccounts[1];
-
-    await expectRevert.unspecified(
-      bondingCurve.transferOwnership(newOwner, {
-        from: nonOwner
-      })
-    );
-  });
-
-  it('should not allow old owner to set new beneficiary after transfer', async function() {
-    const oldOwner = curveOwner;
-    const oldBeneficiary = curveOwner;
-    const newOwner = userAccounts[0];
-    const newBeneficiary = userAccounts[1];
-
-    tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
-
-    result = await bondingCurve.beneficiary();
-    expect(result).to.be.equal(oldBeneficiary);
-
-    await bondingCurve.setBeneficiary(newBeneficiary, {from: newOwner});
-
-    result = await bondingCurve.beneficiary();
-    expect(result).to.be.equal(newBeneficiary);
-  });
-
-  it('should not allow to buy with 0 tokens specified', async function() {
-    const buyer = userAccounts[0];
-
-    await expectRevert.unspecified(bondingCurve.buy(0, 0, buyer, {from: buyer}));
-  });
-
-  it('should show buy price correctly', async function() {
-    const numTokens = new BN(100);
-    const expected = numTokens.mul(deployParams.buyCurveParams).div(tokenRatioPrecision);
-
-    result = await bondingCurve.priceToBuy(numTokens);
-
-    expect(result).to.be.bignumber.equal(expected);
-  });
-
-  it('should show sell reward correctly', async function() {
-    const numTokens = new BN(100);
-    const expected = numTokens.mul(deployParams.sellCurveParams).div(tokenRatioPrecision);
-
-    result = await bondingCurve.rewardForSell(numTokens);
-
-    expect(result).to.be.bignumber.equal(expected);
-  });
-
-  it('should not allow to sell with 0 tokens specified', async function() {
-    const buyer = userAccounts[0];
-    await expectRevert.unspecified(bondingCurve.sell(0, 100, buyer, {from: buyer}));
-  });
-
-  it('should allow user with collateralTokens approved to buy bondedTokens', async function() {
-    const buyer = userAccounts[0];
-    const approvalAmount = new BN(web3.utils.toWei('1', 'ether'));
-    console.log('approvalAmount', approvalAmount.toString());
-    const numTokens = new BN(100);
-
-    result = await bondingCurve.priceToBuy(numTokens);
-    console.log('buy', result.toString());
-    result = await bondingCurve.rewardForSell(numTokens);
-    console.log('sell', result.toString());
-
-    // Mint tokens to buyer
-    await paymentToken.approve(bondingCurve.address, approvalAmount, {
-      from: buyer
+  describe('Initialization', async () => {
+    it('should have properly initialized parameters', async function() {
+      expect(await bondingCurve.owner()).to.be.equal(curveOwner);
+      expect(await bondingCurve.beneficiary()).to.be.equal(curveOwner);
+      expect(await bondingCurve.collateralToken()).to.be.equal(paymentToken.address);
+      expect(await bondingCurve.bondedToken()).to.be.equal(bondedToken.address);
+      expect(await bondingCurve.buyCurve()).to.be.equal(buyCurve.address);
+      expect(await bondingCurve.sellCurve()).to.be.equal(sellCurve.address);
+      expect(await bondingCurve.dividendPool()).to.be.equal(dividendPool.address);
+      expect(await bondingCurve.splitOnPay()).to.be.bignumber.equal(deployParams.splitOnPay);
     });
-    tx = await bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
-
-    // //Verify events
-    // expectEvent.inLogs(tx.logs, 'Buy', {
-    //   buyer: buyer,
-    //   recipient: buyer,
-    //   amount: numTokens
-    // });
-
-    // //Check balance
-    result = await bondedToken.balanceOf(buyer);
-    expect(result).to.be.bignumber.equal(numTokens);
-  });
-  it('should not allow user without collateralTokens approved to buy bondedTokens', async function() {
-    const buyer = userAccounts[0];
-    const numTokens = new BN(100);
-
-    // Mint tokens to buyer
-    await expectRevert.unspecified(bondingCurve.buy(numTokens, 0, buyer, {from: buyer}));
   });
 
-  it('should allow user with bondedTokens to sell', async function() {
-    const buyer = userAccounts[0];
-    const approvalAmount = new BN(web3.utils.toWei('60000', 'ether'));
-    const numTokens = new BN(100);
-
-    // Mint tokens to buyer
-    await paymentToken.approve(bondingCurve.address, approvalAmount, {
-      from: buyer
+  describe('Curve Admin', async () => {
+    it('should allow owner to set new beneficiary', async function() {
+      tx = await bondingCurve.setBeneficiary(userAccounts[0], {from: curveOwner});
+      expect(await bondingCurve.beneficiary()).to.be.equal(userAccounts[0]);
     });
-    await bondingCurve.buy(numTokens, 0, buyer, {from: buyer});
 
-    await bondingCurve.sell(numTokens, 0, buyer, {from: buyer});
+    it('should not allow non-owner to set new beneficiary', async function() {
+      await expectRevert.unspecified(
+        bondingCurve.setBeneficiary(constants.ZERO_ADDRESS, {
+          from: userAccounts[0]
+        })
+      );
+    });
+
+    it('should allow owner to set new owner', async function() {
+      const oldOwner = curveOwner;
+      const newOwner = userAccounts[0];
+
+      tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
+      expect(await bondingCurve.owner()).to.be.equal(newOwner);
+    });
+
+    it('should not allow non-owner to set new owner', async function() {
+      const nonOwner = userAccounts[0];
+      const newOwner = userAccounts[1];
+
+      await expectRevert.unspecified(
+        bondingCurve.transferOwnership(newOwner, {
+          from: nonOwner
+        })
+      );
+    });
+
+    it('should not allow old owner to set new beneficiary after ownership transfer', async function() {
+      const oldOwner = curveOwner;
+      const oldBeneficiary = curveOwner;
+      const newOwner = userAccounts[0];
+      const newBeneficiary = userAccounts[1];
+
+      tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
+
+      result = await bondingCurve.beneficiary();
+      expect(result).to.be.equal(oldBeneficiary);
+
+      await bondingCurve.setBeneficiary(newBeneficiary, {from: newOwner});
+
+      result = await bondingCurve.beneficiary();
+      expect(result).to.be.equal(newBeneficiary);
+    });
   });
 
-  it('should not allow user without bondedTokens to sell', async function() {
-    const seller = userAccounts[0];
-    const numTokens = new BN(100);
+  describe('Buy / Sell', async () => {
+    const buyer = userAccounts[0];
 
-    await expectRevert.unspecified(bondingCurve.sell(numTokens, 0, seller, {from: seller}));
+    const userBalances = new BN(100000000);
+    const approvalAmount = new BN(100000000);
+
+    const numTokens = new BN(100000);
+
+    const expectedBuyPrice = numTokens.mul(deployParams.buyCurveParams).div(tokenRatioPrecision);
+    const expectedSellReward = numTokens.mul(deployParams.sellCurveParams).div(tokenRatioPrecision);
+    const maxBuyPrice = new BN(0); //We don't want a max price unless we're specifically testing that
+    const minSellPrice = new BN(0); //We don't want a min price unless we're specifically testing that
+
+    it('should show buy price correctly', async function() {
+      result = await bondingCurve.priceToBuy(numTokens);
+
+      expect(result).to.be.bignumber.equal(expectedBuyPrice);
+    });
+
+    it('should show sell reward correctly', async function() {
+      result = await bondingCurve.rewardForSell(numTokens);
+
+      expect(result).to.be.bignumber.equal(expectedSellReward);
+    });
+
+    it('should not allow bondingCurve owner to mint bondedTokens', async function() {
+      await expectRevert.unspecified(bondedToken.mint(curveOwner, 100, {from: curveOwner}));
+    });
+
+    it('should not allow other addresses to mint bondedTokens', async function() {
+      await expectRevert.unspecified(bondedToken.mint(curveOwner, 100, {from: curveOwner}));
+    });
+
+    describe('Buy Failure Cases', async () => {
+      it('should not allow to buy with 0 tokens specified', async function() {
+        await expectRevert.unspecified(bondingCurve.buy(0, maxBuyPrice, buyer, {from: buyer}));
+      });
+
+      it('should not allow user without collateralTokens approved to buy bondedTokens', async function() {
+        await expectRevert.unspecified(
+          bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer})
+        );
+      });
+
+      it('should not allow buy if current price exceeds specified max price', async function() {});
+    });
+
+    describe('Buy', async () => {
+      beforeEach(async () => {
+        await paymentToken.mint(curveOwner, userBalances, {from: tokenMinter});
+        await paymentToken.mint(buyer, userBalances, {from: tokenMinter});
+        await paymentToken.approve(bondingCurve.address, approvalAmount, {from: curveOwner});
+        await paymentToken.approve(bondingCurve.address, approvalAmount, {from: buyer});
+      });
+
+      it('should mint bondedTokens correctly on buy', async function() {
+        const beforeBalance = await bondedToken.balanceOf(buyer);
+        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+
+        const afterBalance = await bondedToken.balanceOf(buyer);
+        expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(numTokens));
+      });
+
+      it('should transfer collateral tokens from buyer correctly on buy', async function() {
+        const beforeBalance = await paymentToken.balanceOf(buyer);
+
+        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+
+        const afterBalance = await paymentToken.balanceOf(buyer);
+        expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(expectedBuyPrice));
+      });
+
+      it('should transfer collateral tokens to reserve correctly on buy', async function() {
+        const beforeBalance = await paymentToken.balanceOf(bondingCurve.address);
+        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+
+        const event = expectEvent.inLogs(tx.logs, 'Buy');
+
+        const afterBalance = await paymentToken.balanceOf(bondingCurve.address);
+        expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(event.args.reserveAmount));
+      });
+
+      it('should transfer collateral tokens to beneficiary correctly on buy', async function() {
+        const beforeBalance = await paymentToken.balanceOf(deployParams.beneficiary);
+        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+
+        const event = expectEvent.inLogs(tx.logs, 'Buy');
+
+        const afterBalance = await paymentToken.balanceOf(deployParams.beneficiary);
+        expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(event.args.beneficiaryAmount));
+      });
+
+      it('should register buy event on buy', async function() {
+        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+
+        //Verify events
+        expectEvent.inLogs(tx.logs, 'Buy', {
+          buyer: buyer,
+          recipient: buyer,
+          amount: numTokens
+        });
+      });
+
+      it('should return correct collateralTokens spent on buy', async function() {
+        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+
+        console.log(tx);
+      });
+    });
+
+    describe('Sell Failure Cases', async () => {
+      it('should not allow to sell with 0 tokens specified', async function() {
+        await expectRevert.unspecified(bondingCurve.sell(0, maxBuyPrice, buyer, {from: buyer}));
+      });
+
+      it('should not allow user without bondedTokens to sell', async function() {
+        const seller = userAccounts[0];
+        const numTokens = new BN(100);
+
+        await expectRevert.unspecified(bondingCurve.sell(numTokens, 0, seller, {from: seller}));
+      });
+
+      it('should not allow to buy if sell curve value is higher than buy curve value', async function() {});
+
+      it('should not allow sell if current price is lower than specified min price', async function() {});
+    });
+
+    describe('Sell', async () => {
+      it('should allow user with bondedTokens to sell', async function() {
+        await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+        await bondingCurve.sell(numTokens, minSellPrice, buyer, {from: buyer});
+      });
+    });
   });
-
-  it('should not allow bondingCurve owner to mint bondedTokens', async function() {
-    await expectRevert.unspecified(bondedToken.mint(curveOwner, 100, {from: curveOwner}));
-  });
-  it('should not allow other addresses to mint bondedTokens', async function() {
-    await expectRevert.unspecified(bondedToken.mint(curveOwner, 100, {from: curveOwner}));
-  });
-
-  it('should not allow to buy if sell curve value is higher than buy curve value', async function() {});
-  it('should not fail with div / 0 errors', async function() {});
-
-  it('should not allow buy if current price exceeds specified max price', async function() {});
-  it('should not allow sell if current price is lower than specified min price', async function() {});
 
   describe('Payments', async () => {
     const nonOwner = userAccounts[0];

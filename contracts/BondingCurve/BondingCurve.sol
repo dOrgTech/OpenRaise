@@ -44,7 +44,7 @@ contract BondingCurve is Initializable, Ownable {
 
     event BeneficiarySet(address beneficiary);
 
-    event Buy(address indexed buyer, address indexed recipient, uint256 amount, uint256 price);
+    event Buy(address indexed buyer, address indexed recipient, uint256 amount, uint256 price, uint256 reserveAmount, uint256 beneficiaryAmount);
     event Sell(address indexed seller, address indexed recipient, uint256 amount, uint256 reward);
     event Pay(address indexed from, address indexed token, uint256 amount, uint256 beneficiaryAmount, uint256 dividendAmount);
 
@@ -100,9 +100,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @param maxPrice     Maximum total price allowable to pay in collateralTokens. If zero, any price is allowed.
     /// @param recipient    Address to send the new bondedTokens to
     function buy(uint256 numTokens, uint256 maxPrice, address recipient)
-        public
-        returns (uint256 collateralSent)
-    {
+        public {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
         uint256 buyPrice = priceToBuy(numTokens);
@@ -113,17 +111,15 @@ contract BondingCurve is Initializable, Ownable {
 
         uint256 sellPrice = rewardForSell(numTokens);
 
-        uint256 tokensToBeneficiary;
-        uint256 tokensToReserve;
-
         require(buyPrice > sellPrice, SELL_CURVE_LARGER);
 
-        tokensToBeneficiary = buyPrice.sub(sellPrice);
-        tokensToReserve = sellPrice;
+        uint256 tokensToBeneficiary = buyPrice.sub(sellPrice);
+        uint256 tokensToReserve = sellPrice;
+
+        _reserveBalance = _reserveBalance.add(tokensToReserve);
 
         require(_bondedToken.mint(recipient, numTokens), TOKEN_MINTING_FAILED);
 
-        _reserveBalance = _reserveBalance.add(tokensToReserve);
         require(
             _collateralToken.transferFrom(msg.sender, address(this), buyPrice),
             TRANSFER_FROM_FAILED
@@ -134,9 +130,7 @@ contract BondingCurve is Initializable, Ownable {
             TRANSFER_TO_BENEFICIARY_FAILED
         );
 
-        emit Buy(msg.sender, recipient, numTokens, buyPrice);
-
-        return buyPrice;
+        emit Buy(msg.sender, recipient, numTokens, buyPrice, tokensToReserve, tokensToBeneficiary);
     }
 
     /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
@@ -144,9 +138,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @param minPrice     Minimum total price allowable to receive in collateralTokens
     /// @param recipient    Address to send collateralTokens to
     function sell(uint256 numTokens, uint256 minPrice, address recipient)
-        public
-        returns (uint256 collateralReceived)
-    {
+        public {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
         require(_bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
 
@@ -159,8 +151,6 @@ contract BondingCurve is Initializable, Ownable {
         _collateralToken.transfer(recipient, burnReward);
 
         emit Sell(msg.sender, recipient, numTokens, burnReward);
-
-        return burnReward;
     }
 
     /// @notice             Pay the DAO in the specified payment token. They will be distributed between the DAO beneficiary and bonded token holders
