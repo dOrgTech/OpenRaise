@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "zos-lib/contracts/Initializable.sol";
 import "zos-lib/contracts/upgradeability/AdminUpgradeabilityProxy.sol";
+import "zos-lib/contracts/application/App.sol";
 import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-eth/contracts/token/ERC20/StandaloneERC20.sol";
 import "../BondingCurve.sol";
