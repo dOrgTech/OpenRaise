@@ -1,6 +1,7 @@
 pragma solidity >= 0.4.22 <6.0.0;
 
 import "openzeppelin-eth/contracts/math/SafeMath.sol";
+import "zos-lib/contracts/Initializable.sol";
 import "./Power.sol";
 
 /**
@@ -16,6 +17,10 @@ contract BancorFormula is Power {
 
   string public version = "0.3";
   uint32 private constant MAX_WEIGHT = 1000000;
+
+  function initialize() public initializer {
+    Power.initialize();
+  }
 
   /**
    * @dev given a token supply, connector balance, weight and a deposit amount (in the connector token),

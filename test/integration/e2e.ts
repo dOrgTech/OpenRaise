@@ -1,3 +1,4 @@
+// Import all required modules from openzeppelin-test-helpers
 const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
 
 // Import preferred chai flavor: both expect and should are supported
@@ -19,9 +20,8 @@ const BondingCurve = artifacts.require('BondingCurve');
 const BancorCurveLogic = artifacts.require('BancorCurveLogic');
 const App = artifacts.require('App');
 
-contract('MarketMaker', accounts => {
+contract('e2e Flow', ([sender, receiver, testAccount]) => {
   let tx;
-  let result;
 
   let values = {
     paymentToken: {
@@ -29,19 +29,19 @@ contract('MarketMaker', accounts => {
       symbol: 'PAY',
       decimals: new BN(18)
     },
-    claimsToken: {
+    bondedToken: {
       name: 'BondedToken',
       symbol: 'BND',
       decimals: new BN(18),
-      controller: accounts[0],
-      paymentToken: null,
-      transfersEnabled: true
+      controller: sender
     }
   };
 
   const appAddress = getAppAddress();
 
   beforeEach(async function() {
+    this.app = await App.at(appAddress);
+
     this.paymentToken = await PaymentToken.new();
     this.paymentToken.initialize(
       values.paymentToken.name,
@@ -49,29 +49,29 @@ contract('MarketMaker', accounts => {
       values.paymentToken.decimals
     );
 
-    const claimsTokenAddress = await appCreate(
+    const bondedTokenAddress = await appCreate(
       'bc-dao',
       'BondedToken',
-      constants.ZERO_ADDRESS,
+      receiver,
       encodeCall(
         'initialize',
         ['string', 'string', 'uint8', 'address', 'bool'],
         [
-          values.claimsToken.name,
-          values.claimsToken.symbol,
-          values.claimsToken.decimals.toNumber(),
-          values.claimsToken.controller,
-          values.claimsToken.transfersEnabled
+          values.bondedToken.name,
+          values.bondedToken.symbol,
+          values.bondedToken.decimals.toNumber(),
+          values.bondedToken.controller,
+          values.bondedToken.transfersEnabled
         ]
       )
     );
 
-    this.claimsToken = await BondedToken.at(claimsTokenAddress);
+    this.bondedToken = await BondedToken.at(bondedTokenAddress);
 
     const buyCurveAddress = await appCreate(
       'bc-dao',
       'BancorCurveLogic',
-      constants.ZERO_ADDRESS,
+      receiver,
       encodeCall('initialize', ['uint32'], [1000])
     );
 
@@ -80,7 +80,7 @@ contract('MarketMaker', accounts => {
     const sellCurveAddress = await appCreate(
       'bc-dao',
       'BancorCurveLogic',
-      constants.ZERO_ADDRESS,
+      receiver,
       encodeCall('initialize', ['uint32'], [500])
     );
 
@@ -89,17 +89,17 @@ contract('MarketMaker', accounts => {
     const bondingCurveAddress = await appCreate(
       'bc-dao',
       'BondingCurve',
-      constants.ZERO_ADDRESS,
+      receiver,
       encodeCall(
         'initialize',
         ['address', 'address', 'address', 'address', 'address', 'address', 'uint256'],
         [
           this.paymentToken.address,
-          accounts[0],
-          accounts[0],
+          sender,
+          sender,
           this.buyCurve.address,
           this.sellCurve.address,
-          this.claimsToken.address,
+          this.bondedToken.address,
           new BN(50).toNumber()
         ]
       )
@@ -108,43 +108,15 @@ contract('MarketMaker', accounts => {
     this.bondingCurve = await BondingCurve.at(bondingCurveAddress);
   });
 
-  it('should have properly initialized parameters', async function() {
-    //Initial payment array is empty
-    //PaymentToken address is correct
-    //BondedToken address is correct
+  it('should properly complete e2e flow', async function() {
+    // Deploy a new ecosystem
+    // Users buy tokens
+    // Users sell tokens
+    // Users trade tokens
+    // Payments come in
+    // Merkle root is calculated & published
+    // Users try to withdraw
+    // More users buy / sell / trade tokens
+    // More payments + merkle publish
   });
-
-  it('should allow New user to buy tokens', async function() {
-    tx = await this.bondingCurve.buy(1000, 1000, accounts[1], {
-      from: accounts[1]
-    });
-
-    result = await this.claimsToken.balanceOf(accounts[1]);
-    expect(result).to.be.bignumber.equal(new BN(0));
-  });
-
-  it('should allow New user to buy for a different recipient', async function() {
-    tx = await this.bondingCurve.buy(1000, 1000, accounts[2], {
-      from: accounts[1]
-    });
-
-    result = await this.claimsToken.balanceOf(accounts[1]);
-    expect(result).to.be.bignumber.equal(new BN(0));
-    result = await this.claimsToken.balanceOf(accounts[2]);
-    expect(result).to.be.bignumber.equal(new BN(0));
-  });
-
-  it('should allow Beneficiary to buy tokens', async function() {});
-
-  it('should give Beneficiary correct split on buy', async function() {});
-
-  it('should allow Existing user to buy tokens', async function() {});
-
-  it('should allow Existing user to buy tokens', async function() {});
-
-  it('should send correct value to reserve on buy', async function() {});
-
-  it('should correctly set number of payments made', async function() {});
-
-  // TODO: Handle sell logic once sell mechanics are finalized
 });

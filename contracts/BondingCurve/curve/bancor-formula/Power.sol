@@ -1,5 +1,5 @@
 pragma solidity >= 0.4.22 <6.0.0;
-
+import "zos-lib/contracts/Initializable.sol";
 
 /**
  * bancor formula by bancor
@@ -9,7 +9,7 @@ pragma solidity >= 0.4.22 <6.0.0;
  * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements;
  * and to You under the Apache License, Version 2.0. "
  */
-contract Power {
+contract Power is Initializable {
   string public version = "0.3";
 
   uint256 private constant ONE = 1;
@@ -38,7 +38,7 @@ contract Power {
   */
   uint256[128] private maxExpArray;
 
-  constructor() public {
+  function initialize() public initializer {
 //  maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
 //  maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
 //  maxExpArray[  2] = 0x637fffffffffffffffffffffffffffffff;

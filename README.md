@@ -39,17 +39,20 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 - From a user's perspective, the mechanism functions in a conceptually similar way to stock dividends. For each **claim period** (the duration of which can be specified by the DAO), a snapshot of bonded token balances is taken and users can withdraw dividends proportional to their holdings at that time.
 
-- For each claim period, a new merkle root is calculated by a DAO member via [our library](https://github.com/statesauce/merkle-tree-payment-pool) and uploaded as a proposal to the DAO. The full information is stored on IPFS. Once the DAO ratifies this proposal, the member who generated the merkle root is compensated for their efforts and token holders are able to withdraw for the period.
+- For each claim period, a new merkle root is calculated by a DAO member client side with [our library](https://github.com/statesauce/merkle-tree-payment-pool) [(utilizing merkletreejs)](https://github.com/miguelmota/merkletreejs) and uploaded as a proposal to the DAO. The full information is stored on IPFS. Once the DAO ratifies this proposal, the member who generated the merkle root is compensated for their efforts and token holders are able to withdraw for the period.
 
 ![](./diagrams/out/bonding_curve_merkle_flow.png)
 
 - For a discussion of the potential vulnerabilities of this approach and their mitigation, please see the 'Current Limitations' section.
 
-- We have an alternative dividend implementation based on the [MiniMe Token](https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol) for a simpler approach that requires significantly more on-chain computation.
+- We have an alternative potential dividend implementation based on the [MiniMe Token](https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol) for a simpler approach that requires significantly more on-chain computation.
 
 # Implementation
 
-Our initial bonding curve implementation supports linear and Bancor-based curves, dividend distributions for bonded token holders, and a front-running guard via user-specified min and max prices.
+Our initial bonding curve implementation supports:
+- Bancor-based curves.
+- Dividend distributions for bonded token holders.
+- A front-running guard via user-specified min and max prices.
 
 ### Key Terms
 
@@ -70,7 +73,7 @@ The following chart describes the actions users can take to interact with the Bo
 | Buy()            | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender                 | split between reserve and beneficiary based on splitOnBuy %             | increases           |
 | BeneficiaryBuy() | _beneficiary_                | "Investment" | collateral token | minted to sender (_beneficiary_) | fully deposited in reserve (none sent to _beneficiary_)                 | increases           |
 | Sell()           | Anyone                       | "Divestment" | bonded token     | burned                           | transferred to specified recipient                                      | decreases           |
-| Pay()            | Anyone                       | "Revenue"   | collateral token | not changed                      | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same    |
+| Pay()            | Anyone                       | "Revenue"    | collateral token | not changed                      | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same    |
 
 #### Buy Flow
 
@@ -82,16 +85,20 @@ The following chart describes the actions users can take to interact with the Bo
 
 ## Setup
 
-Bonding Curves can be deployed by a DAO via a BondingCurveFactory. We will provide a factory for this "one-click deployment", though users can of course choose to deploy how they see fit.
+Bonding Curves can be deployed by a DAO via a Factory. We will provide a factory for this "one-click deployment", though users can of course choose to deploy how they see fit.
 
 Bonding Curves are composed of several contracts, though the factory abstracts the need to know about them individually:
 
 - Bonding Curve
 - Bonded Token
+- Dividend Pool
 - Buy Curve Logic
 - Sell Curve Logic
 
 ## Usage
+
+### Bonding Curve
+The primary point of external interaction with the curve - this is where users can buy & sell bondedTokens, and where the curve recieves revenue.
 
 [**`priceToBuy`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current price in collateralTokens to buy a given number of bondedTokens.
 
@@ -139,6 +146,9 @@ function pay(
 ) public
 ```
 
+### Dividend Pool
+Users interact with this contract to claim their dividend allocations.
+
 [**`withdraw`**](./contracts/BondingCurve/BondingCurve.sol): Withdraw collateralToken dividends sender is entitled to for a given period, in blocks.
 
 ```
@@ -154,10 +164,6 @@ function withdraw(
 
   - We'll be incorporating ERC777 hooks, which will alleviate this issue for tokens that adopt that standard.
 
-- **Dividend tracking has significant gas costs** - With bondedTokens represented as ERC20s, we need additional data to track who is entitled to what dividend payments. This is currently implemented in a manner similar to [MiniMe Token](https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol), but this approach has significant gas costs.
-
-  - We are incorporating a Merkle proof-based approach. We discuss this and alternative implementations [here](https://github.com/dOrgTech/BC-DAO/issues/5).
-
 - **Payments directly to DAO Avatar can circumvent dividends** - It's possible for actors to bypass the bonding curve and send payments directly to the DAO Avatar. If customers pay the DAO directly rather than sending payment with the pay() function to the bonding curve, then the DAO would receive 100% of the payment, effectively cutting out token holders from receiving their portion.
 
   - For instance, DutchX fees might initially be configured to hit the pay() function on the bonding curve, resulting in continuous cash-flows to both token-holders (in the form of claimable dividends) and the DAO according to **splitOnPay**. However, the DAO might vote to re-route the fees directly to itself, avoiding the pay split with token holders.
@@ -166,11 +172,13 @@ function withdraw(
 
   - We have an open discussion on this issue [here](https://github.com/dOrgTech/BC-DAO/issues/4).
 
-- **An incorrect dividend merkle root can steal dividends from token holders**
+- **An incorrect Merkle root in the Dividend Pool can result in misallocated dividends**
 
-  - The potential for a DAO user uploading an incorrect root (say, one that entitles them to all the dividends) should be largely mitigated by the consensus layer of the DAO, which should have an incentive to maintain the value of their bonded token rather than steal one payment periods worth of funds from holders. Staking & slashing mechanics could also be formalized.
+  - The potential for a DAO user uploading a malicious root (say, one that entitles them to all the dividends) should be largely mitigated by the consensus layer of the DAO, which should have an incentive to maintain the value of their bonded token rather than steal one payment periods worth of funds from holders. Staking & slashing mechanics could also be formalized for root proposers.
 
-  - However, this mechanic is still potentially vulnerable to exploits if the DAO recieves a large windfall payment during a claim period. This is an area of active discussion.
+   - Our interface will allow easy verification of the validity of a proposed merkle root by bonded token holders and DAO members.
+
+  - However, this mechanic is still theoretically vulnerable to exploits - say, if the DAO recieves a large windfall payment during a claim period. This is an area of active discussion.
 
 ## Future Plans
 
@@ -195,7 +203,3 @@ We envision the following features may be useful to DAOs implementing bonding cu
 ### Technical Features
 
 - **Modularity** - We envision an "OpenZeppelin for bonding curves" - an open source repo to compose your own bonding curve from a suite of well-established components.
-
-## Contract Docs
-
-TODO: link to auto generated contract docs (still WIP, Milestone 2)
