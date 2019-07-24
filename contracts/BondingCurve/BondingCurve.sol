@@ -40,6 +40,8 @@ contract BondingCurve is Initializable, Ownable {
     string internal constant SPLIT_ON_PAY_INVALID = "splitOnPay must be a valid percentage";
     string internal constant SPLIT_ON_PAY_MATH_ERROR = "splitOnPay splits returned a greater token value than input value";
     string internal constant NO_MICRO_PAYMENTS = "Payment amount must be greater than 100 'units' for calculations to work correctly";
+    string internal constant TOKEN_BURN_FAILED = "bondedToken burn failed";
+    string internal constant TRANSFER_TO_RECIPIENT_FAILED = "Transfer to recipient failed";
     
 
     event BeneficiarySet(address beneficiary);
@@ -139,16 +141,17 @@ contract BondingCurve is Initializable, Ownable {
     /// @param recipient    Address to send collateralTokens to
     function sell(uint256 numTokens, uint256 minPrice, address recipient)
         public {
+
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
         require(_bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
 
         uint256 burnReward = rewardForSell(numTokens);
         require(burnReward >= minPrice, PRICE_BELOW_MIN);
 
-        _bondedToken.burn(msg.sender, numTokens);
         _reserveBalance = _reserveBalance.sub(burnReward);
 
-        _collateralToken.transfer(recipient, burnReward);
+        _bondedToken.burn(msg.sender, numTokens);
+        require(_collateralToken.transfer(recipient, burnReward), TRANSFER_TO_RECIPIENT_FAILED);
 
         emit Sell(msg.sender, recipient, numTokens, burnReward);
     }
