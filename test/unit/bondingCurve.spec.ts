@@ -292,6 +292,8 @@ contract('Bonding Curve', accounts => {
           amount: numTokens
         });
       });
+
+      it('should allow user to buy for a different recipient', async function() {});
     });
 
     describe('Sell Failure Cases', async () => {
@@ -365,6 +367,8 @@ contract('Bonding Curve', accounts => {
         const afterBalance = await paymentToken.balanceOf(buyer);
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(expectedSellReward));
       });
+
+      it('should allow user sell with a different recipient', async function() {});
     });
   });
 
