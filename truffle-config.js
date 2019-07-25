@@ -1,5 +1,8 @@
 require('dotenv').config();
 
+require('@babel/register');
+require('@babel/polyfill');
+
 const mnemonic = process.env.MNENOMIC;
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
@@ -9,7 +12,7 @@ module.exports = {
   networks: {
     development: {
       host: '127.0.0.1',
-      port: 8545,
+      port: 8585,
       network_id: '*'
     },
     coverage: {
@@ -65,7 +68,11 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.5.7'
+      version: '0.5.10',
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
     }
   }
 };

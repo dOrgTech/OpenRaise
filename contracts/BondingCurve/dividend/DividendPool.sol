@@ -1,8 +1,8 @@
-pragma solidity >= 0.4.22 <6.0.0;
+pragma solidity ^0.5.4;
 
 import "zos-lib/contracts/Initializable.sol";
 import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
-import "./PaymentPool.sol";
+import "@statesauce/merkle-payments/contracts/PaymentPool.sol";
 
 /**
  * @title Dividend Payment Pool
