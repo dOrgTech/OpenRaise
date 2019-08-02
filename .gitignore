@@ -62,10 +62,11 @@ typings/
 
 # zos sessions
 zos.dev-*
+.zos.session
+.openzeppelin/.session
+.openzeppelin/dev-*
 
 # contracts build
 build
-
-.zos.session
 
 .DS_Store

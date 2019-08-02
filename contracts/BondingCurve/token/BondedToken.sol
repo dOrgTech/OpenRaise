@@ -1,4 +1,4 @@
-pragma solidity >= 0.4.22 <6.0.0;
+pragma solidity ^0.5.7;
 
 import "zos-lib/contracts/Initializable.sol";
 import "openzeppelin-eth/contracts/token/ERC20/ERC20Detailed.sol";

@@ -5,13 +5,7 @@ const expect = require('chai').expect;
 const should = require('chai').should();
 const lib = require('zos-lib');
 
-const {
-  appCreate,
-  getAppAddress,
-  encodeCall,
-  getZosConfig,
-  getCurrentZosNetworkConfig
-} = require('../testHelpers');
+const helpers = require('../testHelpers');
 
 const PaymentToken = artifacts.require('StandaloneERC20');
 const BondedToken = artifacts.require('BondedToken');
@@ -66,11 +60,7 @@ contract('DividendPool', accounts => {
     }
   ];
 
-  const appAddress = getAppAddress();
-
   beforeEach(async function() {
-    this.app = await App.at(appAddress);
-
     this.paymentToken = await PaymentToken.new();
     this.paymentToken.initialize(
       values.paymentToken.name,
@@ -78,11 +68,15 @@ contract('DividendPool', accounts => {
       values.paymentToken.decimals
     );
 
-    const dividendPoolAddress = await appCreate(
-      'bc-dao',
-      'DividendPool',
+    const dividendPoolAddress = await helpers.appCreate(
+      helpers.constants.BC_DAO_PACKAGE,
+      helpers.constants.DIVIDEND_POOL,
       constants.ZERO_ADDRESS,
-      encodeCall('initialize', ['address', 'address'], [this.paymentToken.address, accounts[0]])
+      helpers.encodeCall(
+        'initialize',
+        ['address', 'address'],
+        [this.paymentToken.address, accounts[0]]
+      )
     );
 
     this.dividendPool = await DividendPool.at(dividendPoolAddress);

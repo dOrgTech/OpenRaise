@@ -6,13 +6,7 @@ const expect = require('chai').expect;
 const should = require('chai').should();
 const lib = require('zos-lib');
 
-const {
-  appCreate,
-  getAppAddress,
-  encodeCall,
-  getZosConfig,
-  getCurrentZosNetworkConfig
-} = require('../testHelpers');
+const helpers = require('../testHelpers');
 
 const PaymentToken = artifacts.require('StandaloneERC20');
 const BondedToken = artifacts.require('BondedToken');
@@ -85,23 +79,48 @@ contract('Bonding Curve', accounts => {
     );
 
     dividendPool = await DividendPool.at(
-      await appCreate('bc-dao', 'DividendPool', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.DIVIDEND_POOL,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     buyCurve = await StaticCurveLogic.at(
-      await appCreate('bc-dao', 'StaticCurveLogic', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.STATIC_CURVE_LOGIC,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     sellCurve = await StaticCurveLogic.at(
-      await appCreate('bc-dao', 'StaticCurveLogic', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.STATIC_CURVE_LOGIC,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     bondedToken = await BondedToken.at(
-      await appCreate('bc-dao', 'BondedToken', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.BONDED_TOKEN,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     bondingCurve = await BondingCurve.at(
-      await appCreate('bc-dao', 'BondingCurve', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.BONDING_CURVE,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     await dividendPool.initialize(paymentToken.address, curveOwner);
@@ -474,7 +493,12 @@ contract('Bonding Curve', accounts => {
           const splitOnPay = new BN(0);
 
           const testBondingCurve = await BondingCurve.at(
-            await appCreate('bc-dao', 'BondingCurve', constants.ZERO_ADDRESS, '0x')
+            await helpers.appCreate(
+              helpers.constants.BC_DAO_PACKAGE,
+              helpers.constants.BONDING_CURVE,
+              constants.ZERO_ADDRESS,
+              '0x'
+            )
           );
 
           await testBondingCurve.initialize(
@@ -497,7 +521,12 @@ contract('Bonding Curve', accounts => {
           const splitOnPay = new BN(100);
 
           const testBondingCurve = await BondingCurve.at(
-            await appCreate('bc-dao', 'BondingCurve', constants.ZERO_ADDRESS, '0x')
+            await helpers.appCreate(
+              helpers.constants.BC_DAO_PACKAGE,
+              helpers.constants.BONDING_CURVE,
+              constants.ZERO_ADDRESS,
+              '0x'
+            )
           );
 
           await testBondingCurve.initialize(

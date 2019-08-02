@@ -1,8 +1,19 @@
 const fs = require('fs');
-const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
+const {expectEvent} = require('openzeppelin-test-helpers');
 const {encodeCall} = require('zos-lib');
 
 const App = artifacts.require('App');
+
+const constants = {
+  BC_DAO_PACKAGE: '@dorg/bc-dao',
+  STATIC_CURVE_LOGIC: 'StaticCurveLogic',
+  BANCOR_CURVE_LOGIC: 'BancorCurveLogic',
+  BONDED_TOKEN: 'BondedToken',
+  DIVIDEND_POOL: 'DividendPool',
+  BONDING_CURVE: 'BondingCurve',
+  BONDING_CURVE_FACTORY: 'BondingCurveFactory',
+  BANCOR_CURVE_SERVICE: 'BancorCurveService'
+};
 
 /*
  *  Find zos config file name for specified network
@@ -26,26 +37,26 @@ function resolveNetworkFilename(networkId) {
 /*
  *  Get zos config info for specified networkId.
  */
-function getZosNetworkConfig(networkId) {
+function getOZNetworkConfig(networkId) {
   const networkName = resolveNetworkFilename(networkId);
-  const zosNetworkFile = fs.readFileSync(`./zos.${networkName}.json`);
+  const zosNetworkFile = fs.readFileSync(`./.openzeppelin/${networkName}.json`);
 
   return JSON.parse(zosNetworkFile);
 }
 
-function getZosConfig() {
-  return JSON.parse(fs.readFileSync('./zos.json'));
+function getOZConfig() {
+  return JSON.parse(fs.readFileSync('./.openzeppelin/project.json'));
 }
 
 function getAppAddress() {
   const currentNetworkId = App.network_id;
-  const zosNetworkConfig = getZosNetworkConfig(currentNetworkId);
+  const zosNetworkConfig = getOZNetworkConfig(currentNetworkId);
   return zosNetworkConfig.app.address;
 }
 
-function getCurrentZosNetworkConfig() {
+function getCurrentOZNetworkConfig() {
   const currentNetworkId = App.network_id;
-  return getZosNetworkConfig(currentNetworkId);
+  return getOZNetworkConfig(currentNetworkId);
 }
 
 // Helper function for creating instances via current App contract
@@ -58,62 +69,12 @@ async function appCreate(packageName, contractName, admin, data) {
   return createdEvent.args.proxy;
 }
 
-async function deployBondingCurve(
-  bondedTokenName,
-  bondedTokenSymbol,
-  bondedTokenDecimals,
-  buyCurveType,
-  sellCurveType
-) {
-  // const buyCurveAddress = await appCreate(
-  //   'bc-dao',
-  //   buyCurveType,
-  //   constants.ZERO_ADDRESS,
-  //   encodeCall('initialize', ['uint256'], [buyTokenRatio.toString()])
-  // );
-  // // this.buyCurve = await StaticCurveLogic.at(buyCurveAddress);
-  // const sellCurveAddress = await appCreate(
-  //   'bc-dao',
-  //   sellCurveType,
-  //   constants.ZERO_ADDRESS,
-  //   encodeCall('initialize', ['uint256'], [sellTokenRatio.toString()])
-  // );
-  // const claimsTokenAddress = await appCreate(
-  //   'bc-dao',
-  //   'BondedToken',
-  //   constants.ZERO_ADDRESS,
-  //   encodeCall(
-  //     'initialize',
-  //     ['string', 'string', 'uint8', 'address'],
-  //     [bondedTokenName, bondedTokenSymbol, bondedTokenDecimals, bonding]
-  //   )
-  // );
-  // // this.claimsToken = await BondedToken.at(claimsTokenAddress);
-  // // this.sellCurve = await StaticCurveLogic.at(sellCurveAddress);
-  // const bondingCurveAddress = await appCreate(
-  //   'bc-dao',
-  //   'BondingCurve',
-  //   constants.ZERO_ADDRESS,
-  //   encodeCall(
-  //     'initialize',
-  //     ['address', 'address', 'address', 'address', 'address', 'address', 'uint256'],
-  //     [
-  //       sender,
-  //       sender,
-  //       this.paymentToken.address,
-  //       this.claimsToken.address,
-  //       this.buyCurve.address,
-  //       this.sellCurve.address,
-  //       splitOnPayRatio.toString()
-  //     ]
-  //   )
-  // );
-  // this.bondingCurve = await BondingCurve.at(bondingCurveAddress);
-}
-
-module.exports.getZosConfig = getZosConfig;
-module.exports.getZosNetworkConfig = getZosNetworkConfig;
-module.exports.getCurrentZosNetworkConfig = getCurrentZosNetworkConfig;
-module.exports.appCreate = appCreate;
-module.exports.getAppAddress = getAppAddress;
-module.exports.encodeCall = encodeCall;
+module.exports = {
+  getOZConfig: getOZConfig,
+  getOZNetworkConfig: getOZNetworkConfig,
+  getCurrentOZNetworkConfig: getCurrentOZNetworkConfig,
+  appCreate: appCreate,
+  getAppAddress: getAppAddress,
+  encodeCall: encodeCall,
+  constants: constants
+};
