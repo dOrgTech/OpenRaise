@@ -1,5 +1,5 @@
 {
-  "zosversion": "2.2",
+  "manifestVersion": "2.2",
   "contracts": {
     "StaticCurveLogic": "StaticCurveLogic",
     "BancorCurveLogic": "BancorCurveLogic",
@@ -12,13 +12,13 @@
   "dependencies": {
     "openzeppelin-eth": "^2.2.0"
   },
-  "name": "bc-dao",
-  "version": "0.0.1",
+  "name": "@dorg/bc-dao",
+  "version": "0.0.1-alpha",
   "compiler": {
-    "manager": "zos",
+    "manager": "truffle",
+    "solcVersion": "0.5.10",
     "compilerSettings": {
       "optimizer": {}
-    },
-    "solcVersion": "0.5.10"
+    }
   }
 }

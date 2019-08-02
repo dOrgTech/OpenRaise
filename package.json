@@ -10,8 +10,9 @@
     "truffle-config.js"
   ],
   "scripts": {
-    "test": "zos push && truffle test",
-    "build": "zos publish --network development && zos push --network development",
+    "test": "oz push --network development && truffle test",
+    "compile": "truffle compile --all",
+    "build": "oz publish --network development && oz push --network development",
     "eslint": "./node_modules/.bin/eslint ./",
     "eslint:fix": "./node_modules/.bin/eslint ./ --fix",
     "solhint": "./node_modules/.bin/solhint contracts/**/*.sol",
@@ -34,15 +35,15 @@
     "@daostack/arc": "0.0.1-rc.23",
     "@statesauce/merkle-payments": "^0.1.3",
     "dotenv": "^6.2.0",
-    "openzeppelin-eth": "2.2.0",
-    "openzeppelin-solidity": "^2.3.0",
+    "openzeppelin-eth": "^2.2.0",
     "openzeppelin-test-helpers": "^0.4.0",
     "truffle-hdwallet-provider": "^1.0.3",
-    "zos-lib": "2.2.3"
+    "zos-lib": "^2.4.2"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
+    "@openzeppelin/cli": "^2.5.1",
     "chai": "^4.2.0",
     "eslint": "^5.16.0",
     "eslint-config-airbnb-base": "^13.2.0",
@@ -56,7 +57,6 @@
     "prettier-plugin-solidity": "^1.0.0-alpha.27",
     "solhint": "^2.1.0",
     "solhint-plugin-prettier": "0.0.3",
-    "solidity-coverage": "^0.5.11",
-    "zos": "2.3.0"
+    "solidity-coverage": "^0.5.11"
   }
 }
