@@ -4,13 +4,7 @@ const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-he
 // Import preferred chai flavor: both expect and should are supported
 const {expect} = require('chai');
 
-const {
-  appCreate,
-  getAppAddress,
-  encodeCall,
-  getZosConfig,
-  getCurrentZosNetworkConfig
-} = require('../testHelpers');
+const helpers = require('../testHelpers');
 
 const PaymentToken = artifacts.require('StandaloneERC20');
 const BondedToken = artifacts.require('BondedToken');
@@ -45,7 +39,7 @@ contract('BondingCurveFactory', accounts => {
     bondedTokenSymbol: 'BND'
   };
 
-  const zosContracts = getCurrentZosNetworkConfig().contracts;
+  const zosContracts = helpers.getCurrentOZNetworkConfig().contracts;
 
   const staticCurveLogicImpl = zosContracts.StaticCurveLogic.address;
   const bancorCurveLogicImpl = zosContracts.BancorCurveLogic.address;
@@ -74,13 +68,23 @@ contract('BondingCurveFactory', accounts => {
     deployParams.collateralToken = paymentToken.address;
 
     bancorCurveService = await BancorCurveService.at(
-      await appCreate('bc-dao', 'BancorCurveService', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.BANCOR_CURVE_SERVICE,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     await bancorCurveService.initialize();
 
     factory = await BondingCurveFactory.at(
-      await appCreate('bc-dao', 'BondingCurveFactory', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.BONDING_CURVE_FACTORY,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     await factory.initialize(

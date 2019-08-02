@@ -6,13 +6,7 @@ const expect = require('chai').expect;
 const should = require('chai').should();
 const lib = require('zos-lib');
 
-const {
-  appCreate,
-  getAppAddress,
-  encodeCall,
-  getZosConfig,
-  getCurrentZosNetworkConfig
-} = require('../testHelpers');
+const helpers = require('../testHelpers');
 
 const StaticCurveLogic = artifacts.require('StaticCurveLogic');
 
@@ -45,11 +39,11 @@ contract('StaticCurveLogic', ([sender, receiver, testAccount]) => {
   };
 
   beforeEach(async function() {
-    const curveAddress = await appCreate(
-      'bc-dao',
-      'StaticCurveLogic',
+    const curveAddress = await helpers.appCreate(
+      helpers.constants.BC_DAO_PACKAGE,
+      helpers.constants.STATIC_CURVE_LOGIC,
       constants.ZERO_ADDRESS,
-      encodeCall('initialize', ['uint256'], [tokenRatio.toString()])
+      helpers.encodeCall('initialize', ['uint256'], [tokenRatio.toString()])
     );
 
     this.curve = await StaticCurveLogic.at(curveAddress);

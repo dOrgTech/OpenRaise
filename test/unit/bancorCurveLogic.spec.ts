@@ -6,13 +6,7 @@ const expect = require('chai').expect;
 const should = require('chai').should();
 const lib = require('zos-lib');
 
-const {
-  appCreate,
-  getAppAddress,
-  encodeCall,
-  getZosConfig,
-  getCurrentZosNetworkConfig
-} = require('../testHelpers');
+const helpers = require('../testHelpers');
 
 const BancorCurveLogic = artifacts.require('BancorCurveLogic');
 const BancorCurveService = artifacts.require('BancorCurveService');
@@ -49,13 +43,23 @@ contract('BancorCurveLogic', ([sender, receiver, testAccount]) => {
 
   beforeEach(async function() {
     bancorCurveService = await BancorCurveService.at(
-      await appCreate('bc-dao', 'BancorCurveService', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.BANCOR_CURVE_SERVICE,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     await bancorCurveService.initialize();
 
     curve = await BancorCurveLogic.at(
-      await appCreate('bc-dao', 'BancorCurveLogic', constants.ZERO_ADDRESS, '0x')
+      await helpers.appCreate(
+        helpers.constants.BC_DAO_PACKAGE,
+        helpers.constants.BANCOR_CURVE_LOGIC,
+        constants.ZERO_ADDRESS,
+        '0x'
+      )
     );
 
     await curve.initialize(bancorCurveService.address, 1000);
