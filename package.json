@@ -13,6 +13,7 @@
     "test": "oz push --network development && truffle test",
     "compile": "truffle compile --all",
     "build": "oz publish --network development && oz push --network development",
+    "deploy": "sh ecosystem.deploy.sh",
     "eslint": "./node_modules/.bin/eslint ./",
     "eslint:fix": "./node_modules/.bin/eslint ./ --fix",
     "solhint": "./node_modules/.bin/solhint contracts/**/*.sol",
