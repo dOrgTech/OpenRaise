@@ -1,5 +1,5 @@
 pragma solidity >= 0.4.22 <6.0.0;
-import "zos-lib/contracts/Initializable.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 /**
  * bancor formula by bancor

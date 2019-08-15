@@ -1,8 +1,8 @@
 pragma solidity ^0.5.7;
 
-import "zos-lib/contracts/Initializable.sol";
-import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
-import "@statesauce/merkle-payments/contracts/PaymentPool.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "./PaymentPool.sol";
 
 /**
  * @title Dividend Payment Pool

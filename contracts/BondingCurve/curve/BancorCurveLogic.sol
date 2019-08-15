@@ -1,7 +1,7 @@
 pragma solidity >= 0.4.22 <6.0.0;
 
-import "openzeppelin-eth/contracts/math/SafeMath.sol";
-import "zos-lib/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../interface/ICurveLogic.sol";
 import "./BancorCurveService.sol";
 
@@ -60,5 +60,10 @@ contract BancorCurveLogic is Initializable, ICurveLogic {
     /// @notice Get reserve ratio
     function reserveRatio() public view returns (uint32) {
         return _reserveRatio;
+    }
+
+    /// @notice Get bancor service address
+    function bancorService() public view returns (BancorCurveService) {
+        return _bancorService;
     }
 }

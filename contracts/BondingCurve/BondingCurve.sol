@@ -1,9 +1,9 @@
 pragma solidity ^0.5.7;
 
-import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-eth/contracts/math/SafeMath.sol";
-import "openzeppelin-eth/contracts/ownership/Ownable.sol";
-import "zos-lib/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
 import "./dividend/DividendPool.sol";
 import "./token/BondedToken.sol";

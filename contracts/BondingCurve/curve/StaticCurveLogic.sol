@@ -1,7 +1,7 @@
 pragma solidity ^0.5.7;
 
-import "zos-lib/contracts/Initializable.sol";
-import "openzeppelin-eth/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "../interface/ICurveLogic.sol";
 
 /**
@@ -21,7 +21,7 @@ contract StaticCurveLogic is Initializable, ICurveLogic {
 
     /// @dev Initialize contract
     /// @param tokenRatio Ratio of reserve tokens transfered or recieved to bonded tokens minted or burned, respectively. Divided by precison value for calculations.
-    function initialize(uint256 tokenRatio) public initializer {
+    function initialize(uint256 tokenRatio) initializer public {
         _tokenRatio = tokenRatio;
     }
 
@@ -49,7 +49,7 @@ contract StaticCurveLogic is Initializable, ICurveLogic {
     }
 
     /// @notice Get token ratio
-    function tokenRatio() public view returns (uint256) {
+    function tokenRatio() public returns (uint256) {
         return _tokenRatio;
     }
 
