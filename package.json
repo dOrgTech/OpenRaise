@@ -10,9 +10,10 @@
     "truffle-config.js"
   ],
   "scripts": {
-    "test": "oz push --network development && truffle test",
+    "test": "oz publish --network development && oz push --network development && truffle test",
     "compile": "truffle compile --all",
-    "build": "oz publish --network development && oz push --network development",
+    "build": "rimraf build && truffle compile",
+    "deploy": "sh ecosystem.deploy.sh",
     "eslint": "./node_modules/.bin/eslint ./",
     "eslint:fix": "./node_modules/.bin/eslint ./ --fix",
     "solhint": "./node_modules/.bin/solhint contracts/**/*.sol",
@@ -55,6 +56,7 @@
     "husky": "^3.0.0",
     "prettier": "^1.18.2",
     "prettier-plugin-solidity": "^1.0.0-alpha.27",
+    "rimraf": "^2.6.3",
     "solhint": "^2.1.0",
     "solhint-plugin-prettier": "0.0.3",
     "solidity-coverage": "^0.5.11"
