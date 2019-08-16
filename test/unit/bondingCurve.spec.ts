@@ -1,23 +1,16 @@
 // Import all required modules from openzeppelin-test-helpers
-const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
+const {BN, constants, expectRevert} = require('openzeppelin-test-helpers');
+
+const expectEvent = require('../expectEvent');
 
 // Import preferred chai flavor: both expect and should are supported
 const expect = require('chai').expect;
 const should = require('chai').should();
-const lib = require('zos-lib');
-
-const helpers = require('../testHelpers');
-
-const PaymentToken = artifacts.require('StandaloneERC20');
-const BondedToken = artifacts.require('BondedToken');
-const BondingCurve = artifacts.require('BondingCurve');
-const DividendPool = artifacts.require('DividendPool');
-const StaticCurveLogic = artifacts.require('StaticCurveLogic');
-const BondingCurveFactory = artifacts.require('BondingCurveFactory');
-
-const App = artifacts.require('App');
-
 const PAY_EVENT = 'Pay';
+
+const deploy = require('../../index.js');
+
+const {bondedTokenValues, paymentTokenValues} = require('../constants/tokenValues');
 
 /*
   Uses StaticCurveLogic for simpler tests.
@@ -27,6 +20,7 @@ contract('Bonding Curve', accounts => {
   let tx;
   let result;
 
+  let project;
   let paymentToken;
   let dividendPool;
   let bondedToken;
@@ -34,10 +28,11 @@ contract('Bonding Curve', accounts => {
   let buyCurve;
   let sellCurve;
 
-  const defaultAccount = accounts[0];
+  const adminAccount = accounts[0];
   const curveOwner = accounts[1];
   const tokenMinter = accounts[2];
   const userAccounts = accounts.slice(3, accounts.length);
+  const miscUser = userAccounts[0];
 
   let deployParams = {
     owner: curveOwner,
@@ -52,87 +47,40 @@ contract('Bonding Curve', accounts => {
 
   const tokenRatioPrecision = new BN(1000000);
 
-  let values = {
-    paymentToken: {
-      name: 'PaymentToken',
-      symbol: 'PAY',
-      decimals: new BN(18)
-    },
-    bondedToken: {
-      name: 'BondedToken',
-      symbol: 'BND',
-      decimals: new BN(18)
-    }
-  };
-
   beforeEach(async function() {
-    //Initial supply starts with sender who can also mint
-    paymentToken = await PaymentToken.new();
-    paymentToken.initialize(
-      values.paymentToken.name,
-      values.paymentToken.symbol,
-      values.paymentToken.decimals,
-      new BN(web3.utils.toWei('60000', 'ether')),
-      tokenMinter,
-      [tokenMinter],
-      [tokenMinter]
-    );
+    project = await deploy.deployProject();
 
-    dividendPool = await DividendPool.at(
-      await helpers.appCreate(
-        helpers.constants.BC_DAO_PACKAGE,
-        helpers.constants.DIVIDEND_POOL,
-        constants.ZERO_ADDRESS,
-        '0x'
-      )
-    );
+    paymentToken = await deploy.deployBondedToken(project, [
+      paymentTokenValues.parameters.name,
+      paymentTokenValues.parameters.symbol,
+      paymentTokenValues.parameters.decimals,
+      tokenMinter
+    ]);
 
-    buyCurve = await StaticCurveLogic.at(
-      await helpers.appCreate(
-        helpers.constants.BC_DAO_PACKAGE,
-        helpers.constants.STATIC_CURVE_LOGIC,
-        constants.ZERO_ADDRESS,
-        '0x'
-      )
-    );
+    const paymentTokenInitialBalance = new BN(web3.utils.toWei('60000', 'ether'));
 
-    sellCurve = await StaticCurveLogic.at(
-      await helpers.appCreate(
-        helpers.constants.BC_DAO_PACKAGE,
-        helpers.constants.STATIC_CURVE_LOGIC,
-        constants.ZERO_ADDRESS,
-        '0x'
-      )
-    );
+    await paymentToken.methods
+      .mint(tokenMinter, paymentTokenInitialBalance.toString())
+      .send({from: tokenMinter});
 
-    bondedToken = await BondedToken.at(
-      await helpers.appCreate(
-        helpers.constants.BC_DAO_PACKAGE,
-        helpers.constants.BONDED_TOKEN,
-        constants.ZERO_ADDRESS,
-        '0x'
-      )
-    );
+    bondedToken = await deploy.deployBondedToken(project, [
+      bondedTokenValues.parameters.name,
+      bondedTokenValues.parameters.symbol,
+      bondedTokenValues.parameters.decimals,
+      tokenMinter
+    ]);
 
-    bondingCurve = await BondingCurve.at(
-      await helpers.appCreate(
-        helpers.constants.BC_DAO_PACKAGE,
-        helpers.constants.BONDING_CURVE,
-        constants.ZERO_ADDRESS,
-        '0x'
-      )
-    );
+    dividendPool = await deploy.deployDividendPool(project, [paymentToken.address, curveOwner]);
 
-    await dividendPool.initialize(paymentToken.address, curveOwner);
-    await buyCurve.initialize(deployParams.buyCurveParams);
-    await sellCurve.initialize(deployParams.sellCurveParams);
-    await bondedToken.initialize(
-      deployParams.bondedTokenName,
-      deployParams.bondedTokenSymbol,
-      18,
-      bondingCurve.address
-    );
-    await bondingCurve.initialize(
+    buyCurve = await deploy.deployStaticCurveLogic(project, [
+      deployParams.buyCurveParams.toString()
+    ]);
+
+    sellCurve = await deploy.deployStaticCurveLogic(project, [
+      deployParams.sellCurveParams.toString()
+    ]);
+
+    bondingCurve = await deploy.deployBondingCurve(project, [
       curveOwner,
       curveOwner,
       paymentToken.address,
@@ -140,33 +88,54 @@ contract('Bonding Curve', accounts => {
       buyCurve.address,
       sellCurve.address,
       dividendPool.address,
-      deployParams.splitOnPay
-    );
+      deployParams.splitOnPay.toString()
+    ]);
+
+    await bondedToken.methods.addMinter(bondingCurve.address).send({from: tokenMinter});
+    await bondedToken.methods.renounceMinter().send({from: tokenMinter});
   });
 
   describe('Initialization', async () => {
     it('should have properly initialized parameters', async function() {
-      expect(await bondingCurve.owner()).to.be.equal(curveOwner);
-      expect(await bondingCurve.beneficiary()).to.be.equal(curveOwner);
-      expect(await bondingCurve.collateralToken()).to.be.equal(paymentToken.address);
-      expect(await bondingCurve.bondedToken()).to.be.equal(bondedToken.address);
-      expect(await bondingCurve.buyCurve()).to.be.equal(buyCurve.address);
-      expect(await bondingCurve.sellCurve()).to.be.equal(sellCurve.address);
-      expect(await bondingCurve.dividendPool()).to.be.equal(dividendPool.address);
-      expect(await bondingCurve.splitOnPay()).to.be.bignumber.equal(deployParams.splitOnPay);
+      expect(await bondingCurve.methods.owner().call({from: miscUser})).to.be.equal(curveOwner);
+      expect(await bondingCurve.methods.beneficiary().call({from: miscUser})).to.be.equal(
+        curveOwner
+      );
+      expect(await bondingCurve.methods.collateralToken().call({from: miscUser})).to.be.equal(
+        paymentToken.address
+      );
+      expect(await bondingCurve.methods.bondedToken().call({from: miscUser})).to.be.equal(
+        bondedToken.address
+      );
+      expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
+        buyCurve.address
+      );
+      expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
+        sellCurve.address
+      );
+      expect(await bondingCurve.methods.dividendPool().call({from: miscUser})).to.be.equal(
+        dividendPool.address
+      );
+      expect(
+        new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
+      ).to.be.bignumber.equal(deployParams.splitOnPay);
     });
   });
 
   describe('Curve Admin', async () => {
     it('should allow owner to set new beneficiary', async function() {
-      tx = await bondingCurve.setBeneficiary(userAccounts[0], {from: curveOwner});
-      expect(await bondingCurve.beneficiary()).to.be.equal(userAccounts[0]);
+      tx = await bondingCurve.methods.setBeneficiary(userAccounts[0]).send({
+        from: curveOwner
+      });
+      expect(await bondingCurve.methods.beneficiary().call({from: miscUser})).to.be.equal(
+        userAccounts[0]
+      );
     });
 
     it('should not allow non-owner to set new beneficiary', async function() {
       await expectRevert.unspecified(
-        bondingCurve.setBeneficiary(constants.ZERO_ADDRESS, {
-          from: userAccounts[0]
+        bondingCurve.methods.setBeneficiary(constants.ZERO_ADDRESS).send({
+          from: miscUser
         })
       );
     });
@@ -175,8 +144,9 @@ contract('Bonding Curve', accounts => {
       const oldOwner = curveOwner;
       const newOwner = userAccounts[0];
 
-      tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
-      expect(await bondingCurve.owner()).to.be.equal(newOwner);
+      tx = await bondingCurve.methods.transferOwnership(newOwner).send({from: oldOwner});
+
+      expect(await bondingCurve.methods.owner().call({from: newOwner})).to.be.equal(newOwner);
     });
 
     it('should not allow non-owner to set new owner', async function() {
@@ -184,7 +154,7 @@ contract('Bonding Curve', accounts => {
       const newOwner = userAccounts[1];
 
       await expectRevert.unspecified(
-        bondingCurve.transferOwnership(newOwner, {
+        bondingCurve.methods.transferOwnership(newOwner).send({
           from: nonOwner
         })
       );
@@ -196,14 +166,18 @@ contract('Bonding Curve', accounts => {
       const newOwner = userAccounts[0];
       const newBeneficiary = userAccounts[1];
 
-      tx = await bondingCurve.transferOwnership(newOwner, {from: oldOwner});
+      tx = await bondingCurve.methods.transferOwnership(newOwner).send({
+        from: oldOwner
+      });
 
-      result = await bondingCurve.beneficiary();
+      result = await bondingCurve.methods.beneficiary().call({from: miscUser});
       expect(result).to.be.equal(oldBeneficiary);
 
-      await bondingCurve.setBeneficiary(newBeneficiary, {from: newOwner});
+      await bondingCurve.methods.setBeneficiary(newBeneficiary).send({
+        from: newOwner
+      });
 
-      result = await bondingCurve.beneficiary();
+      result = await bondingCurve.methods.beneficiary().call({from: miscUser});
       expect(result).to.be.equal(newBeneficiary);
     });
   });
@@ -222,33 +196,43 @@ contract('Bonding Curve', accounts => {
     const minSellPrice = new BN(0); //We don't want a min price unless we're specifically testing that
 
     it('should show buy price correctly', async function() {
-      result = await bondingCurve.priceToBuy(numTokens);
+      result = await bondingCurve.methods.priceToBuy(numTokens.toString()).call({from: miscUser});
 
-      expect(result).to.be.bignumber.equal(expectedBuyPrice);
+      expect(new BN(result)).to.be.bignumber.equal(expectedBuyPrice);
     });
 
     it('should show sell reward correctly', async function() {
-      result = await bondingCurve.rewardForSell(numTokens);
+      result = await bondingCurve.methods
+        .rewardForSell(numTokens.toString())
+        .call({from: miscUser});
 
-      expect(result).to.be.bignumber.equal(expectedSellReward);
+      expect(new BN(result)).to.be.bignumber.equal(expectedSellReward);
     });
 
     it('should not allow bondingCurve owner to mint bondedTokens', async function() {
-      await expectRevert.unspecified(bondedToken.mint(curveOwner, 100, {from: curveOwner}));
+      await expectRevert.unspecified(
+        bondedToken.methods.mint(curveOwner, 100).send({from: curveOwner})
+      );
     });
 
     it('should not allow other addresses to mint bondedTokens', async function() {
-      await expectRevert.unspecified(bondedToken.mint(curveOwner, 100, {from: curveOwner}));
+      await expectRevert.unspecified(
+        bondedToken.methods.mint(curveOwner, 100).send({from: curveOwner})
+      );
     });
 
     describe('Buy Failure Cases', async () => {
       it('should not allow to buy with 0 tokens specified', async function() {
-        await expectRevert.unspecified(bondingCurve.buy(0, maxBuyPrice, buyer, {from: buyer}));
+        await expectRevert.unspecified(
+          bondingCurve.methods.buy(0, maxBuyPrice.toString(), buyer).send({from: buyer})
+        );
       });
 
       it('should not allow user without collateralTokens approved to buy bondedTokens', async function() {
         await expectRevert.unspecified(
-          bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer})
+          bondingCurve.methods
+            .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
+            .send({from: buyer})
         );
       });
 
@@ -258,57 +242,109 @@ contract('Bonding Curve', accounts => {
 
     describe('Buy', async () => {
       beforeEach(async () => {
-        await paymentToken.mint(curveOwner, userBalances, {from: tokenMinter});
-        await paymentToken.mint(buyer, userBalances, {from: tokenMinter});
-        await paymentToken.approve(bondingCurve.address, approvalAmount, {from: curveOwner});
-        await paymentToken.approve(bondingCurve.address, approvalAmount, {from: buyer});
+        await paymentToken.methods.mint(curveOwner, userBalances.toString()).send({
+          from: tokenMinter
+        });
+        await paymentToken.methods.mint(buyer, userBalances.toString()).send({from: tokenMinter});
+        await paymentToken.methods.approve(bondingCurve.address, approvalAmount.toString()).send({
+          from: curveOwner
+        });
+        await paymentToken.methods.approve(bondingCurve.address, approvalAmount.toString()).send({
+          from: buyer
+        });
       });
 
       it('should mint bondedTokens correctly on buy', async function() {
-        const beforeBalance = await bondedToken.balanceOf(buyer);
-        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+        const beforeBalance = new BN(
+          await bondedToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
 
-        const afterBalance = await bondedToken.balanceOf(buyer);
+        tx = await bondingCurve.methods
+          .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
+
+        const afterBalance = new BN(
+          await bondedToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
+
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(numTokens));
       });
 
       it('should transfer collateral tokens from buyer correctly on buy', async function() {
-        const beforeBalance = await paymentToken.balanceOf(buyer);
+        const beforeBalance = new BN(
+          await paymentToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
 
-        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+        tx = await bondingCurve.methods
+          .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        const afterBalance = await paymentToken.balanceOf(buyer);
+        const afterBalance = new BN(
+          await paymentToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
+
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(expectedBuyPrice));
       });
 
       it('should transfer collateral tokens to reserve correctly on buy', async function() {
-        const beforeBalance = await paymentToken.balanceOf(bondingCurve.address);
-        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+        const beforeBalance = new BN(
+          await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
+        );
 
-        const event = expectEvent.inLogs(tx.logs, 'Buy');
+        tx = await bondingCurve.methods
+          .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        const afterBalance = await paymentToken.balanceOf(bondingCurve.address);
-        expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(event.args.reserveAmount));
+        const event = expectEvent.inLogs(tx.events, 'Buy');
+
+        const afterBalance = new BN(
+          await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
+        );
+
+        const reserveAmount = new BN(expectEvent.getParameter(event, 'reserveAmount'));
+
+        expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(reserveAmount));
       });
 
       it('should transfer collateral tokens to beneficiary correctly on buy', async function() {
-        const beforeBalance = await paymentToken.balanceOf(deployParams.beneficiary);
-        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+        const beforeBalance = new BN(
+          await paymentToken.methods.balanceOf(deployParams.beneficiary).call({from: miscUser})
+        );
 
-        const event = expectEvent.inLogs(tx.logs, 'Buy');
+        tx = await bondingCurve.methods
+          .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        const afterBalance = await paymentToken.balanceOf(deployParams.beneficiary);
-        expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(event.args.beneficiaryAmount));
+        const event = expectEvent.inLogs(tx.events, 'Buy');
+
+        const afterBalance = new BN(
+          await paymentToken.methods.balanceOf(deployParams.beneficiary).call({from: miscUser})
+        );
+
+        const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
+
+        expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(beneficiaryAmount));
       });
 
       it('should register buy event on buy', async function() {
-        tx = await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
-
+        tx = await bondingCurve.methods
+          .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
         //Verify events
-        expectEvent.inLogs(tx.logs, 'Buy', {
+        expectEvent.inLogs(tx.events, 'Buy', {
           buyer: buyer,
           recipient: buyer,
-          amount: numTokens
+          amount: numTokens.toString()
         });
       });
 
@@ -317,12 +353,16 @@ contract('Bonding Curve', accounts => {
 
     describe('Sell Failure Cases', async () => {
       it('should not allow to sell with 0 tokens specified', async function() {
-        await expectRevert.unspecified(bondingCurve.sell(0, maxBuyPrice, buyer, {from: buyer}));
+        await expectRevert.unspecified(
+          bondingCurve.methods.sell(0, maxBuyPrice.toString(), buyer).send({from: buyer})
+        );
       });
 
       it('should not allow user without bondedTokens to sell', async function() {
         await expectRevert.unspecified(
-          bondingCurve.sell(numTokens, minSellPrice, buyer, {from: buyer})
+          bondingCurve.methods.sell(numTokens.toString(), minSellPrice.toString(), buyer).send({
+            from: buyer
+          })
         );
       });
 
@@ -331,29 +371,47 @@ contract('Bonding Curve', accounts => {
 
     describe('Sell', async () => {
       beforeEach(async () => {
-        await paymentToken.mint(curveOwner, userBalances, {from: tokenMinter});
-        await paymentToken.mint(buyer, userBalances, {from: tokenMinter});
-        await paymentToken.approve(bondingCurve.address, approvalAmount, {from: curveOwner});
-        await paymentToken.approve(bondingCurve.address, approvalAmount, {from: buyer});
-        await bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer});
+        await paymentToken.methods.mint(curveOwner, userBalances.toString()).send({
+          from: tokenMinter
+        });
+        await paymentToken.methods.mint(buyer, userBalances.toString()).send({
+          from: tokenMinter
+        });
+        await paymentToken.methods.approve(bondingCurve.address, approvalAmount.toString()).send({
+          from: curveOwner
+        });
+        await paymentToken.methods.approve(bondingCurve.address, approvalAmount.toString()).send({
+          from: buyer
+        });
+        await bondingCurve.methods.buy(numTokens.toString(), maxBuyPrice.toString(), buyer).send({
+          from: buyer
+        });
       });
 
       it('should allow user with bondedTokens to sell all bondedTokens', async function() {
-        tx = await bondingCurve.sell(numTokens, minSellPrice, buyer, {from: buyer});
+        tx = await bondingCurve.methods
+          .sell(numTokens.toString(), minSellPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        expectEvent.inLogs(tx.logs, 'Sell', {
+        expectEvent.inLogs(tx.events, 'Sell', {
           seller: buyer,
           recipient: buyer,
-          amount: numTokens
+          amount: numTokens.toString()
         });
       });
 
       it('should allow user with bondedTokens to sell some bondedTokens', async function() {
         const tokensToSell = numTokens.div(new BN(2));
 
-        tx = await bondingCurve.sell(tokensToSell, minSellPrice, buyer, {from: buyer});
+        tx = await bondingCurve.methods
+          .sell(tokensToSell.toString(), minSellPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        expectEvent.inLogs(tx.logs, 'Sell', {
+        expectEvent.inLogs(tx.events, 'Sell', {
           seller: buyer,
           recipient: buyer,
           amount: tokensToSell
@@ -361,29 +419,53 @@ contract('Bonding Curve', accounts => {
       });
 
       it('should burn tokens from seller on sell', async function() {
-        const beforeBalance = await bondedToken.balanceOf(buyer);
+        const beforeBalance = new BN(
+          await bondedToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
 
-        tx = await bondingCurve.sell(numTokens, minSellPrice, buyer, {from: buyer});
+        tx = await bondingCurve.methods
+          .sell(numTokens.toString(), minSellPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        const afterBalance = await bondedToken.balanceOf(buyer);
+        const afterBalance = new BN(
+          await bondedToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(numTokens));
       });
 
       it('should transfer collateral tokens from reserve on sell', async function() {
-        const beforeBalance = await paymentToken.balanceOf(bondingCurve.address);
+        const beforeBalance = new BN(
+          await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
+        );
 
-        tx = await bondingCurve.sell(numTokens, minSellPrice, buyer, {from: buyer});
+        tx = await bondingCurve.methods
+          .sell(numTokens.toString(), minSellPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        const afterBalance = await paymentToken.balanceOf(bondingCurve.address);
+        const afterBalance = new BN(
+          await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
+        );
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(expectedSellReward));
       });
 
       it('should transfer collateral tokens to seller on sell', async function() {
-        const beforeBalance = await paymentToken.balanceOf(buyer);
+        const beforeBalance = new BN(
+          await paymentToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
 
-        tx = await bondingCurve.sell(numTokens, minSellPrice, buyer, {from: buyer});
+        tx = await bondingCurve.methods
+          .sell(numTokens.toString(), minSellPrice.toString(), buyer)
+          .send({
+            from: buyer
+          });
 
-        const afterBalance = await paymentToken.balanceOf(buyer);
+        const afterBalance = new BN(
+          await paymentToken.methods.balanceOf(buyer).call({from: miscUser})
+        );
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(expectedSellReward));
       });
 
@@ -398,40 +480,54 @@ contract('Bonding Curve', accounts => {
     const paymentAmount = new BN(10000);
 
     beforeEach(async () => {
-      await paymentToken.mint(curveOwner, userBalances, {from: tokenMinter});
-      await paymentToken.mint(nonOwner, userBalances, {from: tokenMinter});
-      await paymentToken.approve(bondingCurve.address, paymentAmount, {from: curveOwner});
-      await paymentToken.approve(bondingCurve.address, paymentAmount, {from: nonOwner});
+      await paymentToken.methods.mint(curveOwner, userBalances.toString()).send({
+        from: tokenMinter
+      });
+      await paymentToken.methods.mint(nonOwner, userBalances.toString()).send({
+        from: tokenMinter
+      });
+      await paymentToken.methods.approve(bondingCurve.address, paymentAmount.toString()).send({
+        from: curveOwner
+      });
+      await paymentToken.methods.approve(bondingCurve.address, paymentAmount.toString()).send({
+        from: nonOwner
+      });
     });
 
     it('should not allow payments of amount 0', async function() {
-      await expectRevert.unspecified(bondingCurve.pay(0, {from: curveOwner}));
+      await expectRevert.unspecified(bondingCurve.methods.pay(0).send({from: curveOwner}));
     });
 
     it('should register payments', async function() {
-      tx = await bondingCurve.pay(paymentAmount, {from: nonOwner});
+      tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({from: nonOwner});
 
-      expectEvent.inLogs(tx.logs, PAY_EVENT, {
+      expectEvent.inLogs(tx.events, PAY_EVENT, {
         from: nonOwner,
         token: paymentToken.address,
-        amount: paymentAmount
+        amount: paymentAmount.toString()
       });
 
-      tx = await bondingCurve.pay(paymentAmount, {from: curveOwner});
+      tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({from: curveOwner});
 
-      expectEvent.inLogs(tx.logs, PAY_EVENT, {
+      expectEvent.inLogs(tx.events, PAY_EVENT, {
         from: curveOwner,
         token: paymentToken.address,
-        amount: paymentAmount
+        amount: paymentAmount.toString()
       });
     });
 
     it('should not allow pay with greater amount than senders balance', async function() {
+      const exceededBalance = userBalances.add(userBalances);
+
       await expectRevert.unspecified(
-        bondingCurve.pay(userBalances.add(userBalances), {from: nonOwner})
+        bondingCurve.methods.pay(exceededBalance.toString()).send({
+          from: nonOwner
+        })
       );
       await expectRevert.unspecified(
-        bondingCurve.pay(userBalances.add(userBalances), {from: curveOwner})
+        bondingCurve.methods.pay(exceededBalance.toString()).send({
+          from: curveOwner
+        })
       );
     });
 
@@ -444,44 +540,61 @@ contract('Bonding Curve', accounts => {
       const expectedDividendAmount = paymentAmount.mul(dividendSplit).div(maxPercentage);
 
       it('should register correct split between beneficiary and dividend pool from non-curve owner', async function() {
-        tx = await bondingCurve.pay(paymentAmount, {from: nonOwner});
+        tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({from: nonOwner});
 
-        expectEvent.inLogs(tx.logs, PAY_EVENT, {
+        expectEvent.inLogs(tx.events, PAY_EVENT, {
           from: nonOwner,
           token: paymentToken.address,
-          amount: paymentAmount,
-          beneficiaryAmount: expectedBeneficiaryAmount,
-          dividendAmount: expectedDividendAmount
+          amount: paymentAmount.toString(),
+          beneficiaryAmount: expectedBeneficiaryAmount.toString(),
+          dividendAmount: expectedDividendAmount.toString()
         });
       });
 
       it('should register correct split between beneficiary and dividend pool from curve owner', async function() {
-        tx = await bondingCurve.pay(paymentAmount, {from: curveOwner});
+        tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({
+          from: curveOwner
+        });
 
-        expectEvent.inLogs(tx.logs, PAY_EVENT, {
+        expectEvent.inLogs(tx.events, PAY_EVENT, {
           from: curveOwner,
           token: paymentToken.address,
-          amount: paymentAmount,
-          beneficiaryAmount: expectedBeneficiaryAmount,
-          dividendAmount: expectedDividendAmount
+          amount: paymentAmount.toString(),
+          beneficiaryAmount: expectedBeneficiaryAmount.toString(),
+          dividendAmount: expectedDividendAmount.toString()
         });
       });
 
       it('should transfer correct token amounts between beneficiary and dividend pool', async function() {
-        const beneficiaryBeforeBalance = await paymentToken.balanceOf(curveOwner);
-        const dividendBeforeBalance = await paymentToken.balanceOf(dividendPool.address);
+        const beneficiaryBeforeBalance = new BN(
+          await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
+        );
 
-        tx = await bondingCurve.pay(paymentAmount, {from: nonOwner});
-        const event = expectEvent.inLogs(tx.logs, PAY_EVENT);
+        const dividendBeforeBalance = new BN(
+          await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
+        );
 
-        const beneficiaryAfterBalance = await paymentToken.balanceOf(curveOwner);
-        const dividendAfterBalance = await paymentToken.balanceOf(dividendPool.address);
+        tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({
+          from: nonOwner
+        });
+        const event = expectEvent.inLogs(tx.events, PAY_EVENT);
 
-        expect(event.args.beneficiaryAmount).to.be.bignumber.equal(
+        const beneficiaryAfterBalance = new BN(
+          await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
+        );
+
+        const dividendAfterBalance = new BN(
+          await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
+        );
+
+        const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
+        const dividendAmount = new BN(expectEvent.getParameter(event, 'dividendAmount'));
+
+        expect(beneficiaryAmount).to.be.bignumber.equal(
           beneficiaryAfterBalance.sub(beneficiaryBeforeBalance)
         );
 
-        expect(event.args.dividendAmount).to.be.bignumber.equal(
+        expect(dividendAmount).to.be.bignumber.equal(
           dividendAfterBalance.sub(dividendBeforeBalance)
         );
       });
@@ -492,16 +605,7 @@ contract('Bonding Curve', accounts => {
         beforeEach(async () => {
           const splitOnPay = new BN(0);
 
-          const testBondingCurve = await BondingCurve.at(
-            await helpers.appCreate(
-              helpers.constants.BC_DAO_PACKAGE,
-              helpers.constants.BONDING_CURVE,
-              constants.ZERO_ADDRESS,
-              '0x'
-            )
-          );
-
-          await testBondingCurve.initialize(
+          const testBondingCurve = await deploy.deployBondingCurve(project, [
             curveOwner,
             curveOwner,
             paymentToken.address,
@@ -509,8 +613,8 @@ contract('Bonding Curve', accounts => {
             buyCurve.address,
             sellCurve.address,
             dividendPool.address,
-            splitOnPay
-          );
+            splitOnPay.toString()
+          ]);
         });
 
         it('should transfer all tokens to beneficiary when splitOnPay is 0%', async function() {});
@@ -520,16 +624,7 @@ contract('Bonding Curve', accounts => {
         beforeEach(async () => {
           const splitOnPay = new BN(100);
 
-          const testBondingCurve = await BondingCurve.at(
-            await helpers.appCreate(
-              helpers.constants.BC_DAO_PACKAGE,
-              helpers.constants.BONDING_CURVE,
-              constants.ZERO_ADDRESS,
-              '0x'
-            )
-          );
-
-          await testBondingCurve.initialize(
+          const testBondingCurve = await deploy.deployBondingCurve(project, [
             curveOwner,
             curveOwner,
             paymentToken.address,
@@ -537,8 +632,8 @@ contract('Bonding Curve', accounts => {
             buyCurve.address,
             sellCurve.address,
             dividendPool.address,
-            splitOnPay
-          );
+            splitOnPay.toString()
+          ]);
         });
 
         it('should transfer all tokens to dividend pool when splitOnPay is 100%', async function() {});
