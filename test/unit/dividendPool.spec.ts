@@ -1,108 +1,73 @@
-const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
+const {
+  BN,
+  constants,
+  expectEvent,
+  expectRevert
+} = require("openzeppelin-test-helpers");
 
 // Import preferred chai flavor: both expect and should are supported
-const expect = require('chai').expect;
-const should = require('chai').should();
-const lib = require('zos-lib');
+const expect = require("chai").expect;
+const should = require("chai").should();
 
-const helpers = require('../testHelpers');
+require("../setup");
+const {
+  deployProject,
+  deployDividendPool,
+  deployStandaloneERC20
+} = require("../../index.js");
 
-const PaymentToken = artifacts.require('StandaloneERC20');
-const BondedToken = artifacts.require('BondedToken');
-const DividendPool = artifacts.require('DividendPool');
-const App = artifacts.require('App');
+const { paymentTokenValues } = require("../constants/tokenValues");
 
-contract('DividendPool', accounts => {
+contract("DividendPool", accounts => {
   let tx;
   let result;
-  let initialBlockNumber;
+  let project;
 
-  let values = {
-    paymentToken: {
-      name: 'PaymentToken',
-      symbol: 'PAY',
-      decimals: new BN(18)
-    }
-  };
+  let paymentToken;
+  let dividendPool;
 
-  let payments = [
-    {
-      payee: accounts[2],
-      amount: 10
-    },
-    {
-      payee: accounts[3],
-      amount: 12
-    },
-    {
-      payee: accounts[4],
-      amount: 2
-    },
-    {
-      payee: accounts[5],
-      amount: 1
-    },
-    {
-      payee: accounts[6],
-      amount: 32
-    },
-    {
-      payee: accounts[7],
-      amount: 10
-    },
-    {
-      payee: accounts[8],
-      amount: 9
-    },
-    {
-      payee: accounts[9],
-      amount: 101 // this amount is used to test logic when the payment pool doesn't have sufficient funds
-    }
-  ];
+  const creator = accounts[0];
+  const initializer = accounts[1];
+  const minter = accounts[2];
 
   beforeEach(async function() {
-    this.paymentToken = await PaymentToken.new();
-    this.paymentToken.initialize(
-      values.paymentToken.name,
-      values.paymentToken.symbol,
-      values.paymentToken.decimals
-    );
+    project = await deployProject();
 
-    const dividendPoolAddress = await helpers.appCreate(
-      helpers.constants.BC_DAO_PACKAGE,
-      helpers.constants.DIVIDEND_POOL,
-      constants.ZERO_ADDRESS,
-      helpers.encodeCall(
-        'initialize',
-        ['address', 'address'],
-        [this.paymentToken.address, accounts[0]]
-      )
-    );
+    paymentToken = await deployStandaloneERC20(project, [
+      paymentTokenValues.parameters.name,
+      paymentTokenValues.parameters.symbol,
+      paymentTokenValues.parameters.decimals,
+      initializer
+    ]);
 
-    this.dividendPool = await DividendPool.at(dividendPoolAddress);
-
-    initialBlockNumber = await web3.eth.getBlockNumber();
+    dividendPool = await deployDividendPool(project, [
+      paymentToken.address,
+      creator
+    ]);
   });
 
-  afterEach(async function() {
-    // one of the tests is bleeding state...
-    payments[0].amount = 10;
+  it("should initialize payment token parameters correctly", async function() {
+    result = await dividendPool.methods.token().call({ from: initializer });
+    expect(result).to.be.equal(paymentToken.address);
   });
+  it("should initialize owner correctly", async function() {
+    result = await dividendPool.methods.owner().call({ from: initializer });
+    expect(result).to.be.equal(creator);
+  });
+  it("should register payment correctly", async function() {});
+  it("should allow DAO to publish valid root", async function() {});
+  it("should not allow DAO to publish invalid root", async function() {});
 
-  it('should register payment correctly', async function() {});
-  it('should allow DAO to publish valid root', async function() {});
-  it('should not allow DAO to publish invalid root', async function() {});
+  it("should not allow any other address to publish valid root", async function() {});
+  it("should not allow any other address to publish invalid root", async function() {});
 
-  it('should not allow any other address to publish valid root', async function() {});
-  it('should not allow any other address to publish invalid root', async function() {});
-
-  it('should allow Valid user to withdraw dividend for a single payment', async function() {});
-  it('should not allow Invalid user should to withdraw dividend for a single payment', async function() {});
-  it('should allow User who sold tokens to withdraw dividends for a previous payment', async function() {});
-  it('should not allow User who sold tokens to withdraw dividends for a subsequent payment', async function() {});
-  it('should allow Valid user to withdraw dividends for multiple payments', async function() {});
-  it('should not allow Invalid user to withdraw dividends for multiple payments', async function() {});
-  it('should allow many payments and withdrawals with one user', async function() {});
-  it('should allow many payments and withdrawals with one user', async function() {});
-  it('should User who previously sold tokens should be able to withdraw dividends for previous payments', async function() {});
+  it("should allow Valid user to withdraw dividend for a single payment", async function() {});
+  it("should not allow Invalid user should to withdraw dividend for a single payment", async function() {});
+  it("should allow User who sold tokens to withdraw dividends for a previous payment", async function() {});
+  it("should not allow User who sold tokens to withdraw dividends for a subsequent payment", async function() {});
+  it("should allow Valid user to withdraw dividends for multiple payments", async function() {});
+  it("should not allow Invalid user to withdraw dividends for multiple payments", async function() {});
+  it("should allow many payments and withdrawals with one user", async function() {});
+  it("should allow many payments and withdrawals with one user", async function() {});
+  it("should User who previously sold tokens should be able to withdraw dividends for previous payments", async function() {});
 });

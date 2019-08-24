@@ -1,7 +1,7 @@
 pragma solidity ^0.5.7;
 
-import "openzeppelin-eth/contracts/math/SafeMath.sol";
-import "zos-lib/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./bancor-formula/BancorFormula.sol";
 
 /**

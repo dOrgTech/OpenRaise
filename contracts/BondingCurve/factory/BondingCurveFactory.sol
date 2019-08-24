@@ -1,11 +1,11 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "zos-lib/contracts/Initializable.sol";
-import "zos-lib/contracts/upgradeability/AdminUpgradeabilityProxy.sol";
-import "zos-lib/contracts/application/App.sol";
-import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-eth/contracts/token/ERC20/StandaloneERC20.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/upgrades/contracts/upgradeability/AdminUpgradeabilityProxy.sol";
+import "@openzeppelin/upgrades/contracts/application/App.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/StandaloneERC20.sol";
 import "../BondingCurve.sol";
 import "../curve/BancorCurveLogic.sol";
 import "../curve/BancorCurveService.sol";

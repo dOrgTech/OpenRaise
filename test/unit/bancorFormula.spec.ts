@@ -1,74 +1,62 @@
 // Import all required modules from openzeppelin-test-helpers
-const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-helpers');
+const {
+  BN,
+  constants,
+  expectEvent,
+  expectRevert
+} = require("openzeppelin-test-helpers");
 
 // Import preferred chai flavor: both expect and should are supported
-const expect = require('chai').expect;
-const should = require('chai').should();
+const expect = require("chai").expect;
+const should = require("chai").should();
 
-const BancorFormula = artifacts.require('BancorFormula');
+require("../setup");
+const { deployProject, deployBancorFormula } = require("../../index.js");
 
-contract('BancorFormula', accounts => {
+const { values } = require("../constants/bancorValues");
+
+contract("BancorFormula", accounts => {
   let tx;
+  let result;
+  let project;
 
-  let values = {
-    a: {
-      supply: 1,
-      connectorBalance: 1,
-      connectorWeight: 1000,
-      depositAmount: 1,
-      expectedResult: new BN(0)
-    },
-    b: {
-      supply: 1000000,
-      connectorBalance: 10000,
-      connectorWeight: 1000,
-      depositAmount: 10000,
-      expectedResult: new BN(693)
-    },
-    c: {
-      supply: 100000000,
-      connectorBalance: 1000000,
-      connectorWeight: 1000,
-      depositAmount: 10000,
-      expectedResult: new BN(995)
-    }
-  };
+  const creator = accounts[0];
+  const initializer = accounts[1];
 
   beforeEach(async function() {
-    this.bancorFormula = await BancorFormula.new();
-    await this.bancorFormula.initialize();
+    project = await deployProject();
+    this.bancorFormula = await deployBancorFormula(project);
   });
 
-  it('calculate correct purchase result for value set A', async function() {
-    const result = await this.bancorFormula.calculatePurchaseReturn(
-      values.a.supply,
-      values.a.connectorBalance,
-      values.a.connectorWeight,
-      values.a.depositAmount
-    );
+  it("calculates correct buy results for all value sets", async function() {
+    for (let i = 0; i < values.length; i++) {
+      let valueSet = values[i];
+      const result = await this.bancorFormula.methods
+        .calculatePurchaseReturn(
+          valueSet.supply,
+          valueSet.connectorBalance,
+          valueSet.connectorWeight,
+          valueSet.depositAmount
+        )
+        .call({ from: initializer });
 
-    expect(result).to.be.bignumber.equal(values.a.expectedResult);
+      expect(new BN(result)).to.be.bignumber.equal(valueSet.expectedBuyResult);
+    }
   });
 
-  it('calculate correct purchase result for value set B', async function() {
-    const result = await this.bancorFormula.calculatePurchaseReturn(
-      values.b.supply,
-      values.b.connectorBalance,
-      values.b.connectorWeight,
-      values.b.depositAmount
-    );
+  it("calculates correct sale results for all value sets", async function() {
+    for (let i = 0; i < values.length; i++) {
+      let valueSet = values[i];
+      const result = await this.bancorFormula.methods
+        .calculateSaleReturn(
+          valueSet.supply,
+          valueSet.connectorBalance,
+          valueSet.connectorWeight,
+          valueSet.depositAmount
+        )
+        .call({ from: initializer });
 
-    expect(result).to.be.bignumber.equal(values.b.expectedResult);
-  });
-
-  it('calculate correct purchase result for value set C', async function() {
-    const result = await this.bancorFormula.calculatePurchaseReturn(
-      values.c.supply,
-      values.c.connectorBalance,
-      values.c.connectorWeight,
-      values.c.depositAmount
-    );
-
-    expect(result).to.be.bignumber.equal(values.c.expectedResult);
+      expect(new BN(result)).to.be.bignumber.equal(valueSet.expectedSaleResult);
+    }
   });
 });
