@@ -12,6 +12,7 @@ const DividendPool = Contracts.getFromLocal('DividendPool');
 const BondingCurve = Contracts.getFromLocal('BondingCurve');
 const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
 const BondedToken = Contracts.getFromLocal('BondedToken');
+const RewardsDistributorWrapper = Contracts.getFromLocal('RewardsDistributorWrapper');
 
 const CONTRACT_ABIS = {
   BondingCurve,
@@ -20,7 +21,8 @@ const CONTRACT_ABIS = {
   StaticCurveLogic,
   BondedToken,
   DividendPool,
-  BancorCurveService
+  BancorCurveService,
+  RewardsDistributorWrapper
 };
 
 const CONTRACT_NAMES = {
@@ -30,7 +32,8 @@ const CONTRACT_NAMES = {
   StaticCurveLogic: 'StaticCurveLogic',
   BondedToken: 'BondedToken',
   DividendPool: 'DividendPool',
-  BancorCurveService: 'BancorCurveService'
+  BancorCurveService: 'BancorCurveService',
+  RewardsDistributorWrapper: 'RewardsDistributorWrapper'
 };
 
 const PACKAGE_NAMES = {
@@ -55,6 +58,7 @@ async function setupApp(txParams) {
   await appProject.setImplementation(BondedToken, CONTRACT_NAMES.BondedToken);
   await appProject.setImplementation(DividendPool, CONTRACT_NAMES.DividendPool);
   await appProject.setImplementation(BancorCurveService, CONTRACT_NAMES.BancorCurveService);
+  await appProject.setImplementation(RewardsDistributor, CONTRACT_NAMES.RewardsDistributor);
 
   return appProject;
 }
@@ -166,6 +170,15 @@ async function deployStandaloneERC20(myProject, initArgs) {
   //   });
 }
 
+async function deployRewardsDistributorWrapper(myProject, initArgs) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(RewardsDistributorWrapper, {
+    initArgs
+  });
+  return instance;
+}
+
 async function getImplementation(project, contractName) {
   const directory = await project.getCurrentDirectory();
   const implementation = await directory.getImplementation(contractName);
@@ -203,6 +216,7 @@ module.exports = {
   deployBondingCurveFactory,
   deployBondedToken,
   deployStandaloneERC20,
+  deployRewardsDistributorWrapper,
   CONTRACT_NAMES,
   CONTRACT_ABIS,
   getImplementation,

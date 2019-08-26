@@ -20,60 +20,60 @@ contract RewardsDistributor {
     ///  ELIGIBLE_UNIT, won't receive any reward.
     ///
     ///  Recommended value 10**(decimals / 2), that is 10**9 for most ERC20.
-    uint256 public ELIGIBLE_UNIT = 10**9;
+    uint256 public constant ELIGIBLE_UNIT = 10**9;
 
     /// @notice Stake per address.
-    mapping(address => uint256) stake;
+    mapping(address => uint256) internal _stake;
 
     /// @notice Stake reminder per address.
-    mapping(address => uint256) stakeReminder;
+    mapping(address => uint256) internal _stakeReminder;
 
     /// @notice Total staked tokens. In ELIGIBLE_UNIT units.
-    uint256 public stakeTotal;
+    uint256 internal _stakeTotal;
 
     /// @notice Total reward since the beginning of time, in units per
     ///  ELIGIBLE_UNIT.
-    uint256 rewardTotal;
+    uint256 internal _rewardTotal;
 
     /// @notice Reminder from the last reward distribution.
-    uint256 rewardRemainder;
+    uint256 internal _rewardRemainder;
 
     /// @notice Proportional rewards awarded *before* this stake was created.
-    mapping(address => int256) rewardOffset;
+    mapping(address => int256) _rewardOffset;
 
 
-    event DepositMade(address _from, uint value);
-    event DistributionMade(address _from, uint value);
-    event RewardWithdrawalMade(address _to, uint value);
-    event StakeWithdrawalMade(address _to, uint value);
+    event DepositMade(address indexed _from, uint256 value);
+    event DistributionMade(address indexed _from, uint256 value);
+    event RewardWithdrawalMade(address indexed _to, uint256 value);
+    event StakeWithdrawalMade(address indexed _to, uint256 value);
 
 
     /// Initialize the contract.
     constructor() public {
-        stakeTotal = 0;
-        rewardTotal = 0;
-        rewardRemainder = 0;
+        _stakeTotal = 0;
+        _rewardTotal = 0;
+        _rewardRemainder = 0;
     }
 
 
     /// @notice Deposit funds into contract.
     function _deposit(address staker, uint256 tokens) internal returns (bool success) {
 
-        uint256 _tokensToAdd = tokens.add(stakeReminder[staker]);
+        uint256 _tokensToAdd = tokens.add(_stakeReminder[staker]);
 
         uint256 _eligibleUnitsToAdd = _tokensToAdd.div(ELIGIBLE_UNIT);
 
         // update the new reminder for this address
-        stakeReminder[staker] = _tokensToAdd.mod(ELIGIBLE_UNIT);
+        _stakeReminder[staker] = _tokensToAdd.mod(ELIGIBLE_UNIT);
 
         // set the current stake for this address
-        stake[staker] = stake[staker].add(_eligibleUnitsToAdd);
+        _stake[staker] = _stake[staker].add(_eligibleUnitsToAdd);
 
         // update total eligible stake units
-        stakeTotal = stakeTotal.add(_eligibleUnitsToAdd);
+        _stakeTotal = _stakeTotal.add(_eligibleUnitsToAdd);
 
         // update reward offset
-        rewardOffset[staker] += (int256)(rewardTotal * _eligibleUnitsToAdd);
+        _rewardOffset[staker] += (int256)(_rewardTotal * _eligibleUnitsToAdd);
 
         emit DepositMade(staker, tokens);
         return true;
@@ -83,19 +83,19 @@ contract RewardsDistributor {
     /// @notice Distribute tokens pro rata to all stakers.
     function _distribute(uint tokens) internal returns (bool success) {
         require(tokens > 0);
-        require(stakeTotal > 0);
+        require(_stakeTotal > 0);
 
         // add past distribution reminder
-        uint256 _amountToDistribute = tokens.add(rewardRemainder);
+        uint256 _amountToDistribute = tokens.add(_rewardRemainder);
 
         // determine rewards per eligible stake
-        uint256 _ratio = _amountToDistribute.div(stakeTotal);
+        uint256 _ratio = _amountToDistribute.div(_stakeTotal);
 
         // carry on reminder
-        rewardRemainder = _amountToDistribute.mod(stakeTotal);
+        _rewardRemainder = _amountToDistribute.mod(_stakeTotal);
 
         // increase total rewards per stake unit
-        rewardTotal = rewardTotal.add(_ratio);
+        _rewardTotal = _rewardTotal.add(_ratio);
 
         emit DistributionMade(msg.sender, tokens);
         return true;
@@ -108,7 +108,7 @@ contract RewardsDistributor {
         uint256 _reward = getReward(staker);
 
         // refresh reward offset (so a new call to getReward returns 0)
-        rewardOffset[staker] = (int256) (rewardTotal.mul(stake[staker]));
+        _rewardOffset[staker] = (int256) (_rewardTotal.mul(_stake[staker]));
 
         emit RewardWithdrawalMade(staker, _reward);
         return _reward;
@@ -125,19 +125,19 @@ contract RewardsDistributor {
         // update stake and reminder for this address
         uint256 _newStake = _currentStake.sub(tokens);
 
-        stakeReminder[staker] = _newStake.mod(ELIGIBLE_UNIT);
+        _stakeReminder[staker] = _newStake.mod(ELIGIBLE_UNIT);
 
-        uint256 _eligibleUnitsDelta = stake[staker].sub(
+        uint256 _eligibleUnitsDelta = _stake[staker].sub(
             _newStake.div(ELIGIBLE_UNIT)
         );
 
-        stake[staker] = stake[staker].sub(_eligibleUnitsDelta);
+        _stake[staker] = _stake[staker].sub(_eligibleUnitsDelta);
 
         // update total stake
-        stakeTotal = stakeTotal.sub(_eligibleUnitsDelta);
+        _stakeTotal = _stakeTotal.sub(_eligibleUnitsDelta);
 
         // update reward offset
-        rewardOffset[staker] -= (int256) (rewardTotal.mul(_eligibleUnitsDelta));
+        _rewardOffset[staker] -= (int256) (_rewardTotal.mul(_eligibleUnitsDelta));
 
         emit StakeWithdrawalMade(staker, tokens);
         return true;
@@ -147,12 +147,19 @@ contract RewardsDistributor {
     /// READ ONLY
     ///
 
+
+    /// @notice Read total stake.
+    function getStakeTotal() public returns (uint256) {
+        return _stakeTotal;
+    }
+
+
     /// @notice Read current stake for address.
     function getStake(address staker) public view returns (uint256 tokens) {
         tokens = (
-            stake[staker].mul(ELIGIBLE_UNIT)
+            _stake[staker].mul(ELIGIBLE_UNIT)
         ).add(
-            stakeReminder[staker]
+            _stakeReminder[staker]
         );
 
         return tokens;
@@ -163,8 +170,8 @@ contract RewardsDistributor {
     function getReward(address staker) public view returns (uint256 tokens) {
         int256 _tokens = (
             (int256)(
-                stake[staker].mul(rewardTotal)
-            ) - rewardOffset[staker]
+                _stake[staker].mul(_rewardTotal)
+            ) - _rewardOffset[staker]
         );
 
         tokens = (uint256) (_tokens);
