@@ -20,29 +20,6 @@ import "../interface/ICurveLogic.sol";
  * This was developed to simplify the deployment process for DAOs
  */
 contract BondingCurveFactory is Initializable {
-
-    struct DeployParams {
-      address beneficiary;
-      address owner;
-      uint256 buyCurveParams;
-      uint256 sellCurveParams;
-      address collateralToken;
-      uint splitOnPay;
-      string bondedTokenName;
-      string bondedTokenSymbol;
-    }
-
-    struct DeployBancorParams {
-      address beneficiary;
-      address owner;
-      uint32 buyCurveParams;
-      uint32 sellCurveParams;
-      address collateralToken;
-      uint splitOnPay;
-      string bondedTokenName;
-      string bondedTokenSymbol;
-    }
-
     address internal _staticCurveLogicImpl;
     address internal _bancorCurveLogicImpl;
     address internal _bondedTokenImpl;
@@ -61,7 +38,7 @@ contract BondingCurveFactory is Initializable {
         address indexed sender
     );
 
-    function initialize (
+    function initialize(
         address staticCurveLogicImpl,
         address bancorCurveLogicImpl,
         address bondedTokenImpl,
@@ -69,112 +46,137 @@ contract BondingCurveFactory is Initializable {
         address dividendPoolImpl,
         address bancorCurveServiceImpl
     ) public initializer {
-      _staticCurveLogicImpl = staticCurveLogicImpl;
-      _bancorCurveLogicImpl = bancorCurveLogicImpl;
-      _bondedTokenImpl = bondedTokenImpl;
-      _bondingCurveImpl = bondingCurveImpl;
-      _dividendPoolImpl = dividendPoolImpl;
-      _bancorCurveServiceImpl = bancorCurveServiceImpl;
+        _staticCurveLogicImpl = staticCurveLogicImpl;
+        _bancorCurveLogicImpl = bancorCurveLogicImpl;
+        _bondedTokenImpl = bondedTokenImpl;
+        _bondingCurveImpl = bondingCurveImpl;
+        _dividendPoolImpl = dividendPoolImpl;
+        _bancorCurveServiceImpl = bancorCurveServiceImpl;
     }
 
-    function _createProxy(address implementation, address admin, bytes memory data) internal returns (address proxy) {
+    function _createProxy(address implementation, address admin, bytes memory data)
+        internal
+        returns (address proxy)
+    {
         AdminUpgradeabilityProxy proxy = new AdminUpgradeabilityProxy(implementation, admin, data);
         emit ProxyCreated(address(proxy));
         return address(proxy);
     }
 
-  function deploy(
-    DeployParams memory deployParams
-  ) public
-    // returns(address buyCurve, address sellCurve, address bondedToken, address bondingCurve, address dividendPool) 
+    function deployStatic(
+        address owner,
+        address beneficiary,
+        address collateralToken,
+        uint256 buyCurveParams,
+        uint256 sellCurveParams,
+        uint256 splitOnPay,
+        string calldata bondedTokenName,
+        string calldata bondedTokenSymbol
+    ) external {
+        address[] memory proxies = new address[](5);
+
+        proxies[0] = _createProxy(_staticCurveLogicImpl, address(0), "");
+        proxies[1] = _createProxy(_staticCurveLogicImpl, address(0), "");
+        proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
+        proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
+        proxies[4] = _createProxy(_dividendPoolImpl, address(0), "");
+
+        StaticCurveLogic(proxies[0]).initialize(buyCurveParams);
+        StaticCurveLogic(proxies[1]).initialize(sellCurveParams);
+        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
+        DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
+
+        BondingCurve(proxies[3]).initialize(
+            owner,
+            beneficiary,
+            IERC20(collateralToken),
+            BondedToken(proxies[2]),
+            ICurveLogic(proxies[0]),
+            ICurveLogic(proxies[1]),
+            DividendPool(proxies[4]),
+            splitOnPay
+        );
+
+        emit BondingCurveDeployed(
+            proxies[3],
+            proxies[2],
+            proxies[0],
+            proxies[1],
+            proxies[4],
+            msg.sender
+        );
+    }
+
+    function deployBancor(
+        address owner,
+        address beneficiary,
+        address collateralToken,
+        uint32 buyCurveParams,
+        uint32 sellCurveParams,
+        uint256 splitOnPay,
+        string calldata bondedTokenName,
+        string calldata bondedTokenSymbol
+    ) external {
+        address[] memory proxies = new address[](5);
+
+        proxies[0] = _createProxy(_bancorCurveLogicImpl, address(0), "");
+        proxies[1] = _createProxy(_bancorCurveLogicImpl, address(0), "");
+        proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
+        proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
+        proxies[4] = _createProxy(_dividendPoolImpl, address(0), "");
+
+        BancorCurveLogic(proxies[0]).initialize(
+            BancorCurveService(_bancorCurveServiceImpl),
+            buyCurveParams
+        );
+        BancorCurveLogic(proxies[1]).initialize(
+            BancorCurveService(_bancorCurveServiceImpl),
+            sellCurveParams
+        );
+        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
+        DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
+
+        BondingCurve(proxies[3]).initialize(
+            owner,
+            beneficiary,
+            IERC20(collateralToken),
+            BondedToken(proxies[2]),
+            ICurveLogic(proxies[0]),
+            ICurveLogic(proxies[1]),
+            DividendPool(proxies[4]),
+            splitOnPay
+        );
+
+        emit BondingCurveDeployed(
+            proxies[3],
+            proxies[2],
+            proxies[0],
+            proxies[1],
+            proxies[4],
+            msg.sender
+        );
+    }
+
+    function getImplementations()
+        public
+        view
+        returns (
+            address staticCurveLogicImpl,
+            address bancorCurveLogicImpl,
+            address bondedTokenImpl,
+            address bondingCurveImpl,
+            address dividendPoolImpl,
+            address bancorCurveServiceImpl
+        )
     {
-    address buyCurve = _createProxy(_staticCurveLogicImpl, address(0), "");
-    address sellCurve = _createProxy(_staticCurveLogicImpl, address(0), "");
-    address bondedToken = _createProxy(_bondedTokenImpl, address(0), "");
-    address bondingCurve = _createProxy(_bondingCurveImpl, address(0), "");
-    address dividendPool = _createProxy(_dividendPoolImpl, address(0), "");
-
-    StaticCurveLogic(buyCurve).initialize(deployParams.buyCurveParams);
-    StaticCurveLogic(sellCurve).initialize(deployParams.sellCurveParams);
-    BondedToken(bondedToken).initialize(deployParams.bondedTokenName, deployParams.bondedTokenSymbol, 18, bondingCurve);
-    DividendPool(dividendPool).initialize(IERC20(deployParams.collateralToken), deployParams.owner);
-
-    BondingCurve(bondingCurve).initialize(
-        deployParams.owner,
-        deployParams.beneficiary,
-        IERC20(deployParams.collateralToken),
-        BondedToken(bondedToken),
-        ICurveLogic(buyCurve),
-        ICurveLogic(sellCurve),
-        DividendPool(dividendPool),
-        deployParams.splitOnPay
-    );
-
-    emit BondingCurveDeployed(
-        bondingCurve,
-        bondedToken,
-        buyCurve,
-        sellCurve,
-        dividendPool,
-        msg.sender
-    );
-  }
-
-  function getImplementations() public view returns(
-      address staticCurveLogicImpl,
-      address bancorCurveLogicImpl,
-      address bondedTokenImpl,
-      address bondingCurveImpl,
-      address dividendPoolImpl,
-      address bancorCurveServiceImpl
-    ) {
-    return (
-        _staticCurveLogicImpl,
-        _bancorCurveLogicImpl,
-        _bondedTokenImpl,
-        _bondingCurveImpl,
-        _dividendPoolImpl,
-        _bancorCurveServiceImpl
-    );
-  }
-
-  function deployBancor(
-    DeployBancorParams memory deployParams
-  ) public
-    // returns(address buyCurve, address sellCurve, address bondedToken, address bondingCurve, address dividendPool) 
-    {
-    address buyCurve = _createProxy(_bancorCurveLogicImpl, address(0), "");
-    address sellCurve = _createProxy(_bancorCurveLogicImpl, address(0), "");
-    address bondedToken = _createProxy(_bondedTokenImpl, address(0), "");
-    address bondingCurve = _createProxy(_bondingCurveImpl, address(0), "");
-    address dividendPool = _createProxy(_dividendPoolImpl, address(0), "");
-
-    // TODO: require(_bancorCurveServiceImpl.isInitialized())
-
-    BancorCurveLogic(buyCurve).initialize(BancorCurveService(_bancorCurveServiceImpl), deployParams.buyCurveParams);
-    BancorCurveLogic(sellCurve).initialize(BancorCurveService(_bancorCurveServiceImpl), deployParams.sellCurveParams);
-    BondedToken(bondedToken).initialize(deployParams.bondedTokenName, deployParams.bondedTokenSymbol, 18, bondingCurve);
-    DividendPool(dividendPool).initialize(IERC20(deployParams.collateralToken), deployParams.owner);
-
-    BondingCurve(bondingCurve).initialize(
-        deployParams.owner,
-        deployParams.beneficiary,
-        IERC20(deployParams.collateralToken),
-        BondedToken(bondedToken),
-        ICurveLogic(buyCurve),
-        ICurveLogic(sellCurve),
-        DividendPool(dividendPool),
-        deployParams.splitOnPay
-    );
-
-    emit BondingCurveDeployed(
-        bondingCurve,
-        bondedToken,
-        buyCurve,
-        sellCurve,
-        dividendPool,
-        msg.sender
-    );
-  }
+        return (
+            _staticCurveLogicImpl,
+            _bancorCurveLogicImpl,
+            _bondedTokenImpl,
+            _bondingCurveImpl,
+            _dividendPoolImpl,
+            _bancorCurveServiceImpl
+        );
+    }
 
 }
