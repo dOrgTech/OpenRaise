@@ -33,11 +33,11 @@
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
     "@babel/register": "^7.5.5",
-    "dotenv": "^6.2.0",
-    "truffle-hdwallet-provider": "^1.0.3",
-    "@openzeppelin/contracts-ethereum-package": "^2.2.1",
+    "@openzeppelin/contracts-ethereum-package": "^2.2.3",
     "@openzeppelin/upgrades": "^2.5.2",
-    "openzeppelin-test-helpers": "^0.4.2"
+    "dotenv": "^6.2.0",
+    "openzeppelin-test-helpers": "^0.4.2",
+    "truffle-hdwallet-provider": "^1.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
