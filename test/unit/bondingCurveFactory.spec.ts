@@ -1,5 +1,6 @@
 // Import all required modules from openzeppelin-test-helpers
 const {BN, constants, expectRevert} = require('openzeppelin-test-helpers');
+require('../setup');
 
 const expectEvent = require('../expectEvent');
 
@@ -102,20 +103,23 @@ contract('BondingCurveFactory', accounts => {
 
     beforeEach(async function() {
       deployTx = await factory.methods
-        .deploy([
+        .deployStatic(
           deployParams.owner,
           deployParams.beneficiary,
+          deployParams.collateralToken,
           deployParams.buyCurveParams.toString(),
           deployParams.sellCurveParams.toString(),
-          deployParams.collateralToken,
           deployParams.splitOnPay.toString(),
           deployParams.bondedTokenName,
           deployParams.bondedTokenSymbol
-        ])
+        )
         .send({from: curveOwner});
     });
 
-    it('should emit deployed event', () => {
+    it('should emit deployed event', async () => {
+      const gasCost = deployTx.gasUsed;
+      console.log('Deploy Cost', gasCost);
+
       expectEvent.inLogs(deployTx.events, 'BondingCurveDeployed');
     });
 
@@ -243,20 +247,23 @@ contract('BondingCurveFactory', accounts => {
 
     beforeEach(async function() {
       deployTx = await factory.methods
-        .deployBancor([
+        .deployBancor(
           deployParams.owner,
           deployParams.beneficiary,
-          bancorTestValues.connectorWeight.toString(),
-          bancorTestValues.connectorWeight.toString(),
           deployParams.collateralToken,
+          bancorTestValues.connectorWeight.toString(),
+          bancorTestValues.connectorWeight.toString(),
           deployParams.splitOnPay.toString(),
           deployParams.bondedTokenName,
           deployParams.bondedTokenSymbol
-        ])
+        )
         .send({from: curveOwner});
     });
 
-    it('should emit deployed event', () => {
+    it('should emit deployed event', async () => {
+      const gasCost = deployTx.gasUsed;
+      console.log('Deploy Cost', gasCost);
+
       expectEvent.inLogs(deployTx.events, 'BondingCurveDeployed');
     });
 
