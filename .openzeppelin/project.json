@@ -10,7 +10,7 @@
     "BancorCurveService": "BancorCurveService"
   },
   "dependencies": {
-    "openzeppelin-eth": "^2.2.0"
+    "@openzeppelin/contracts-ethereum-package": "^2.2.3"
   },
   "name": "@dorg/bc-dao",
   "version": "0.0.1-alpha",
