@@ -98,6 +98,12 @@ contract BondingCurve is Initializable, Ownable {
         _dividendPool = dividendPool;
 
         _splitOnPay = splitOnPay;
+
+        emit BuyCurveSet(address(_buyCurve));
+        emit SellCurveSet(address(_sellCurve));
+        emit SplitOnPaySet(_splitOnPay);
+        emit SplitOnPaySet(splitOnPay);
+
     }
 
     /// @notice             Get the price in ether to mint tokens
@@ -174,19 +180,18 @@ contract BondingCurve is Initializable, Ownable {
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
+        uint256 remainderTokens;
 
         uint256 dividendPercentage = MAX_PERCENTAGE.sub(_splitOnPay);
 
         tokensToBeneficiary = (amount.mul(_splitOnPay)).div(MAX_PERCENTAGE);
         tokensToDividendHolders = (amount.mul(dividendPercentage)).div(MAX_PERCENTAGE);
-
-        // uint256 remainderTokens = amount.sub(tokensToBeneficiary).sub(tokensToDividendHolders);
+        remainderTokens = amount.sub(tokensToBeneficiary).sub(tokensToDividendHolders);
 
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
 
         paymentToken.transfer(_beneficiary, tokensToBeneficiary);
-        paymentToken.transfer(address(_dividendPool), tokensToDividendHolders);
-        // require(paymentToken.transfer(msg.sender, remainderTokens), "Transfer of remainder to sender failed");
+        paymentToken.transfer(address(_dividendPool), tokensToDividendHolders.add(remainderTokens));
 
         emit Pay(
             msg.sender,
