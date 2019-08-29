@@ -42,10 +42,10 @@ contract RewardsDistributor {
     mapping(address => int256) _rewardOffset;
 
 
-    event DepositMade(address indexed _from, uint256 value);
-    event DistributionMade(address indexed _from, uint256 value);
-    event RewardWithdrawalMade(address indexed _to, uint256 value);
-    event StakeWithdrawalMade(address indexed _to, uint256 value);
+    event DepositMade(address indexed from, uint256 value);
+    event DistributionMade(uint256 value);
+    event RewardWithdrawalMade(address indexed to, uint256 value);
+    event StakeWithdrawalMade(address indexed to, uint256 value);
 
 
     /// Initialize the contract.
@@ -97,7 +97,7 @@ contract RewardsDistributor {
         // increase total rewards per stake unit
         _rewardTotal = _rewardTotal.add(_ratio);
 
-        emit DistributionMade(msg.sender, tokens);
+        emit DistributionMade(tokens);
         return true;
     }
 
@@ -150,7 +150,7 @@ contract RewardsDistributor {
 
     /// @notice Read total stake.
     function getStakeTotal() public returns (uint256) {
-        return _stakeTotal;
+        return _stakeTotal.mul(ELIGIBLE_UNIT);
     }
 
 
