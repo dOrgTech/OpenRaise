@@ -113,6 +113,13 @@ async function deployDividendPool(myProject, initArgs) {
   return instance;
 }
 
+async function createBondingCurve(myProject) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(BondingCurve);
+  return instance;
+}
+
 async function deployBondingCurve(myProject, initArgs) {
   ZWeb3.initialize(web3.currentProvider);
 
@@ -199,6 +206,7 @@ module.exports = {
   deployBancorCurveService,
   deployBancorCurveLogic,
   deployDividendPool,
+  createBondingCurve,
   deployBondingCurve,
   deployBondingCurveFactory,
   deployBondedToken,
