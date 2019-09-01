@@ -4,11 +4,13 @@ pragma solidity ^0.5.6;
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 
-/// @title RewardsDistributor - Distribute pro rata rewards (dividends)
-/// @author Bogdan Batog (https://batog.info)
-/// @dev Distribute pro rata rewards (dividends) to token holders in O(1) time.
-///      Based on http://batog.info/papers/scalable-reward-distribution.pdf
-///      And on https://solmaz.io/2019/02/24/scalable-reward-changing/
+/**
+ * @title RewardsDistributor - Distribute pro rata rewards (dividends)
+ * @author Bogdan Batog (https://batog.info)
+ * @dev Distribute pro rata rewards (dividends) to token holders in O(1) time.
+ *      Based on [1] http://batog.info/papers/scalable-reward-distribution.pdf
+ *      And on [2] https://solmaz.io/2019/02/24/scalable-reward-changing/
+ */
 contract RewardsDistributor {
     using SafeMath for uint256;
 
@@ -17,7 +19,7 @@ contract RewardsDistributor {
     ///
     ///  Only multiple of ELIGIBLE_UNIT will be subject to reward
     ///  distribution. Any fractional part of deposit, smaller than
-    ///  ELIGIBLE_UNIT, won't receive any reward.
+    ///  ELIGIBLE_UNIT, won't receive any reward, but it will be tracked.
     ///
     ///  Recommended value 10**(decimals / 2), that is 10**9 for most ERC20.
     uint256 public constant ELIGIBLE_UNIT = 10**9;
@@ -25,20 +27,25 @@ contract RewardsDistributor {
     /// @notice Stake per address.
     mapping(address => uint256) internal _stake;
 
-    /// @notice Stake reminder per address.
+    /// @notice Stake reminder per address, smaller than ELIGIBLE_UNIT.
     mapping(address => uint256) internal _stakeReminder;
 
     /// @notice Total staked tokens. In ELIGIBLE_UNIT units.
     uint256 internal _stakeTotal;
 
-    /// @notice Total reward since the beginning of time, in units per
-    ///  ELIGIBLE_UNIT.
+    /// @notice Total accumulated reward since the beginning of time, in units
+    /// per ELIGIBLE_UNIT.
     uint256 internal _rewardTotal;
 
-    /// @notice Reminder from the last reward distribution.
+    /// @notice Reminder from the last _distribute() call, this amount was not
+    /// enough to award at least 1 wei to every staked ELIGIBLE_UNIT. At the
+    /// time of last _distribute() call _rewardRemainder < _stakeTotal.
+    /// Note that later, _stakeTotal can decrease, but _rewardRemainder will
+    /// stay unchanged until the next call to _distribute().
     uint256 internal _rewardRemainder;
 
     /// @notice Proportional rewards awarded *before* this stake was created.
+    /// See [2] for more details.
     mapping(address => int256) _rewardOffset;
 
 
