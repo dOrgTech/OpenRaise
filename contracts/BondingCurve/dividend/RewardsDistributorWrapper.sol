@@ -15,7 +15,7 @@ contract RewardsDistributorWrapper is RewardsDistributor {
 
     /// @notice Distribute tokens pro rata to all stakers.
     function distribute(uint tokens) public returns (bool success) {
-        return _distribute(tokens);
+        return _distribute(address(0), tokens);
     }
 
     /// @notice Withdraw accumulated reward for the staker address.

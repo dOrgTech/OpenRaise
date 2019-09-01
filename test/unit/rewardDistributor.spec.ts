@@ -149,6 +149,7 @@ contract('RewardsDistributorWrapper', accounts => {
 
     tx = await rd.methods.distribute(amountDistribute.toString()).send({from: acct_a});
     expectEvent.inLogs(tx.events, 'DistributionMade', {
+      from: 0,
       value: amountDistribute
     });
 

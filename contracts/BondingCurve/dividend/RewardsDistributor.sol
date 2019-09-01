@@ -43,7 +43,7 @@ contract RewardsDistributor {
 
 
     event DepositMade(address indexed from, uint256 value);
-    event DistributionMade(uint256 value);
+    event DistributionMade(address indexed from, uint256 value);
     event RewardWithdrawalMade(address indexed to, uint256 value);
     event StakeWithdrawalMade(address indexed to, uint256 value);
 
@@ -81,7 +81,7 @@ contract RewardsDistributor {
 
 
     /// @notice Distribute tokens pro rata to all stakers.
-    function _distribute(uint tokens) internal returns (bool success) {
+    function _distribute(address from, uint tokens) internal returns (bool success) {
         require(tokens > 0);
         require(_stakeTotal > 0);
 
@@ -97,7 +97,7 @@ contract RewardsDistributor {
         // increase total rewards per stake unit
         _rewardTotal = _rewardTotal.add(_ratio);
 
-        emit DistributionMade(tokens);
+        emit DistributionMade(from, tokens);
         return true;
     }
 
