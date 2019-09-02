@@ -356,7 +356,7 @@ contract('RewardsDistributorWrapper', accounts => {
     ).to.be.equal(String(10 ** 9 - 10 ** 6 - 10 ** 3));
   });
 
-  it("carries reminder to second distribution and withdraws reward", async function() {
+  it("carries remainder to second distribution and withdraws reward", async function() {
     await rd.methods.deposit(acct_a, String(10 ** 9)).send({from: acct_a});
     await rd.methods.deposit(acct_b, String(9 * 10 ** 9)).send({from: acct_a});
 
@@ -377,7 +377,7 @@ contract('RewardsDistributorWrapper', accounts => {
       value: 9
     });
 
-    // 9 wei reminder + 1 new wei can now be divided to 10 EILIGIBLE_UNITS
+    // 9 wei remainder + 1 new wei can now be divided to 10 EILIGIBLE_UNITS
     await rd.methods.distribute(String(1)).send({from: acct_a});
 
     tx = await rd.methods.withdrawReward(acct_a).send({from: acct_a});

@@ -27,8 +27,8 @@ contract RewardsDistributor {
     /// @notice Stake per address.
     mapping(address => uint256) internal _stake;
 
-    /// @notice Stake reminder per address, smaller than ELIGIBLE_UNIT.
-    mapping(address => uint256) internal _stakeReminder;
+    /// @notice Stake remainder per address, smaller than ELIGIBLE_UNIT.
+    mapping(address => uint256) internal _stakeRemainder;
 
     /// @notice Total staked tokens. In ELIGIBLE_UNIT units.
     uint256 internal _stakeTotal;
@@ -37,7 +37,7 @@ contract RewardsDistributor {
     /// per ELIGIBLE_UNIT.
     uint256 internal _rewardTotal;
 
-    /// @notice Reminder from the last _distribute() call, this amount was not
+    /// @notice Remainder from the last _distribute() call, this amount was not
     /// enough to award at least 1 wei to every staked ELIGIBLE_UNIT. At the
     /// time of last _distribute() call _rewardRemainder < _stakeTotal.
     /// Note that later, _stakeTotal can decrease, but _rewardRemainder will
@@ -66,12 +66,12 @@ contract RewardsDistributor {
     /// @notice Deposit funds into contract.
     function _deposit(address staker, uint256 tokens) internal returns (bool success) {
 
-        uint256 _tokensToAdd = tokens.add(_stakeReminder[staker]);
+        uint256 _tokensToAdd = tokens.add(_stakeRemainder[staker]);
 
         uint256 _eligibleUnitsToAdd = _tokensToAdd.div(ELIGIBLE_UNIT);
 
-        // update the new reminder for this address
-        _stakeReminder[staker] = _tokensToAdd.mod(ELIGIBLE_UNIT);
+        // update the new remainder for this address
+        _stakeRemainder[staker] = _tokensToAdd.mod(ELIGIBLE_UNIT);
 
         // set the current stake for this address
         _stake[staker] = _stake[staker].add(_eligibleUnitsToAdd);
@@ -92,13 +92,13 @@ contract RewardsDistributor {
         require(tokens > 0);
         require(_stakeTotal > 0);
 
-        // add past distribution reminder
+        // add past distribution remainder
         uint256 _amountToDistribute = tokens.add(_rewardRemainder);
 
         // determine rewards per eligible stake
         uint256 _ratio = _amountToDistribute.div(_stakeTotal);
 
-        // carry on reminder
+        // carry on remainder
         _rewardRemainder = _amountToDistribute.mod(_stakeTotal);
 
         // increase total rewards per stake unit
@@ -129,10 +129,10 @@ contract RewardsDistributor {
 
         require(tokens <= _currentStake);
 
-        // update stake and reminder for this address
+        // update stake and remainder for this address
         uint256 _newStake = _currentStake.sub(tokens);
 
-        _stakeReminder[staker] = _newStake.mod(ELIGIBLE_UNIT);
+        _stakeRemainder[staker] = _newStake.mod(ELIGIBLE_UNIT);
 
         uint256 _eligibleUnitsDelta = _stake[staker].sub(
             _newStake.div(ELIGIBLE_UNIT)
@@ -166,7 +166,7 @@ contract RewardsDistributor {
         tokens = (
             _stake[staker].mul(ELIGIBLE_UNIT)
         ).add(
-            _stakeReminder[staker]
+            _stakeRemainder[staker]
         );
 
         return tokens;
