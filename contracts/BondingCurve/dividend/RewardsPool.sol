@@ -1,5 +1,6 @@
 pragma solidity ^0.5.6;
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./RewardsDistributor.sol";
 import "../access/StakerRole.sol";
 import "../access/FunderRole.sol";
@@ -7,14 +8,19 @@ import "../access/FunderRole.sol";
 /// @title RewardsPool
 /// @author Bogdan Batog (https://batog.info)
 /// @dev ONLY FOR TESTING. DO NOT DEPLOY THIS!!!!!
-contract RewardsPool is RewardsDistributor, StakerRole, FunderRole {
+contract RewardsPool is Initializable, RewardsDistributor, StakerRole, FunderRole {
+    function initialize(address sender) public initializer {
+        StakerRole.initialize(sender);
+        FunderRole.initialize(sender);
+    }
+
     /// @notice Deposit funds into contract.
     function deposit(address staker, uint256 tokens) public onlyStaker returns (bool success) {
         return _deposit(staker, tokens);
     }
 
     /// @notice Distribute tokens pro rata to all stakers.
-    function distribute(uint256 tokens) public FunderRole returns (bool success) {
+    function distribute(uint256 tokens) public onlyFunder returns (bool success) {
         return _distribute(address(0), tokens);
     }
 
