@@ -7,6 +7,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../interface/ICurveLogic.sol";
 import "../dividend/DividendPool.sol";
 import "../token/BondedToken.sol";
+import "../access/ControllerRole.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
@@ -215,7 +216,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
     /// @notice Set beneficiary to a new address
     /// @param beneficiary       New beneficiary
     function setBeneficiary(address sender, address beneficiary) public onlyController {
-        require(isOwner(sender));
+        require(owner() == sender);
         _beneficiary = beneficiary;
         emit BeneficiarySet(_beneficiary);
     }
@@ -223,7 +224,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
     /// @notice Set buy curve to a new address
     /// @param buyCurve       New buy curve
     function setBuyCurve(address sender, ICurveLogic buyCurve) public onlyController {
-        require(isOwner(sender));
+        require(owner() == sender);
         _buyCurve = buyCurve;
         emit BuyCurveSet(address(_buyCurve));
     }
@@ -231,7 +232,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
     /// @notice Set sell curve to a new address
     /// @param sellCurve       New sell curve
     function setSellCurve(address sender, ICurveLogic sellCurve) public onlyController {
-        require(isOwner(sender));
+        require(owner() == sender);
         _sellCurve = sellCurve;
         emit SellCurveSet(address(_sellCurve));
     }
@@ -239,7 +240,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
     /// @notice Set split on pay to new value
     /// @param splitOnPay       New split on pay value
     function setSplitOnPay(address sender, uint256 splitOnPay) public onlyController {
-        require(isOwner(sender));
+        require(owner() == sender);
         _splitOnPay = splitOnPay;
         emit SplitOnPaySet(_splitOnPay);
     }

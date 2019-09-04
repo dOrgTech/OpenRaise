@@ -19,7 +19,7 @@ contract ControllerRole is Initializable {
 
     modifier onlyController() {
         require(
-            isController(_msgSender()),
+            isController(msg.sender),
             "ControllerRole: caller does not have the Controller role"
         );
         _;
@@ -34,7 +34,7 @@ contract ControllerRole is Initializable {
     }
 
     function renounceController() public {
-        _removeController(_msgSender());
+        _removeController(msg.sender);
     }
 
     function _addController(address account) internal {

@@ -7,7 +7,9 @@
     "DividendPool": "DividendPool",
     "BondingCurve": "BondingCurve",
     "BondingCurveFactory": "BondingCurveFactory",
-    "BancorCurveService": "BancorCurveService"
+    "BancorCurveService": "BancorCurveService",
+    "BondingCurveController": "BondingCurveController",
+    "BondingCurveControlled": "BondingCurveControlled"
   },
   "dependencies": {
     "@openzeppelin/contracts-ethereum-package": "^2.2.3"

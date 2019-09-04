@@ -5,7 +5,7 @@ import "@openzeppelin/upgrades/contracts/upgradeability/AdminUpgradeabilityProxy
 import "@openzeppelin/upgrades/contracts/application/App.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/StandaloneERC20.sol";
-import "../BondingCurve.sol";
+import "../managed/BondingCurveControlled.sol";
 import "../curve/BancorCurveLogic.sol";
 import "../curve/BancorCurveService.sol";
 import "../curve/StaticCurveLogic.sol";
@@ -85,9 +85,10 @@ contract BondingCurveFactory is Initializable {
         BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
         DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
 
-        BondingCurve(proxies[3]).initialize(
+        BondingCurveControlled(proxies[3]).initialize(
             owner,
             beneficiary,
+            address(this),
             IERC20(collateralToken),
             BondedToken(proxies[2]),
             ICurveLogic(proxies[0]),
@@ -135,9 +136,10 @@ contract BondingCurveFactory is Initializable {
         BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
         DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
 
-        BondingCurve(proxies[3]).initialize(
+        BondingCurveControlled(proxies[3]).initialize(
             owner,
             beneficiary,
+            address(this),
             IERC20(collateralToken),
             BondedToken(proxies[2]),
             ICurveLogic(proxies[0]),
