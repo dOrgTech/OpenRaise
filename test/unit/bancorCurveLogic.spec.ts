@@ -4,90 +4,61 @@ const {BN, constants, expectEvent, expectRevert} = require('openzeppelin-test-he
 // Import preferred chai flavor: both expect and should are supported
 const expect = require('chai').expect;
 const should = require('chai').should();
-const lib = require('zos-lib');
 
-const {
-  appCreate,
-  getAppAddress,
-  encodeCall,
-  getZosConfig,
-  getCurrentZosNetworkConfig
-} = require('../testHelpers');
+require('../setup');
+const {deployProject, deployBancorCurveService, deployBancorCurveLogic} = require('../../index.js');
 
-const BancorCurveLogic = artifacts.require('BancorCurveLogic');
-const BancorCurveService = artifacts.require('BancorCurveService');
+const {values} = require('../constants/bancorValues');
 
-contract('BancorCurveLogic', ([sender, receiver, testAccount]) => {
+contract('BancorCurveLogic', accounts => {
   let tx;
+  let project;
+
+  const creator = accounts[0];
+  const initializer = accounts[1];
 
   let curve;
   let bancorCurveService;
 
-  let values = {
-    a: {
-      supply: 1,
-      connectorBalance: 1,
-      connectorWeight: 1000,
-      depositAmount: 1,
-      expectedResult: new BN(0)
-    },
-    b: {
-      supply: 1000000,
-      connectorBalance: 10000,
-      connectorWeight: 1000,
-      depositAmount: 10000,
-      expectedResult: new BN(693)
-    },
-    c: {
-      supply: 100000000,
-      connectorBalance: 1000000,
-      connectorWeight: 1000,
-      depositAmount: 10000,
-      expectedResult: new BN(995)
-    }
-  };
-
+  const reserveRatio = new BN(1000);
   beforeEach(async function() {
-    bancorCurveService = await BancorCurveService.at(
-      await appCreate('bc-dao', 'BancorCurveService', constants.ZERO_ADDRESS, '0x')
-    );
-
-    await bancorCurveService.initialize();
-
-    curve = await BancorCurveLogic.at(
-      await appCreate('bc-dao', 'BancorCurveLogic', constants.ZERO_ADDRESS, '0x')
-    );
-
-    await curve.initialize(bancorCurveService.address, 1000);
+    project = await deployProject();
+    bancorCurveService = await deployBancorCurveService(project);
+    curve = await deployBancorCurveLogic(project, [
+      bancorCurveService.address,
+      reserveRatio.toString()
+    ]);
   });
 
-  it('calculate correct buy result for value set A', async function() {
-    const result = await curve.calcMintPrice(
-      values.a.supply,
-      values.a.connectorBalance,
-      values.a.depositAmount
-    );
+  it('initializes reserve ratio parameter correctly', async function() {
+    const result = await curve.methods.reserveRatio().call({from: initializer});
 
-    expect(result).to.be.bignumber.equal(values.a.expectedResult);
+    expect(new BN(result)).to.be.bignumber.equal(reserveRatio);
   });
 
-  it('calculate correct buy result for value set B', async function() {
-    const result = await curve.calcMintPrice(
-      values.b.supply,
-      values.b.connectorBalance,
-      values.b.depositAmount
-    );
+  it('initializes curve service parameter correctly', async function() {
+    const result = await curve.methods.bancorService().call({from: initializer});
 
-    expect(result).to.be.bignumber.equal(values.b.expectedResult);
+    expect(result).to.be.equal(bancorCurveService.address);
   });
 
-  it('calculate correct buy result for value set C', async function() {
-    const result = await curve.calcMintPrice(
-      values.c.supply,
-      values.c.connectorBalance,
-      values.c.depositAmount
-    );
+  it('calculates correct buy results for all value sets', async function() {
+    for (let i = 0; i < values.length; i++) {
+      const valueSet = values[i];
+      const result = await curve.methods
+        .calcMintPrice(valueSet.supply, valueSet.connectorBalance, valueSet.depositAmount)
+        .call({from: initializer});
 
-    expect(result).to.be.bignumber.equal(values.c.expectedResult);
+      expect(new BN(result)).to.be.bignumber.equal(valueSet.expectedBuyResult);
+    }
+  });
+
+  it('calculates correct sell results for all value sets', async function() {
+    let valueSet = values[0];
+    const result = await curve.methods
+      .calcBurnReward(valueSet.supply, valueSet.connectorBalance, valueSet.depositAmount)
+      .call({from: initializer});
+
+    expect(new BN(result)).to.be.bignumber.equal(valueSet.expectedSaleResult);
   });
 });

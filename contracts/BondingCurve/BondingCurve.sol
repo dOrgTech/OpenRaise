@@ -1,9 +1,9 @@
 pragma solidity ^0.5.7;
 
-import "openzeppelin-eth/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-eth/contracts/math/SafeMath.sol";
-import "openzeppelin-eth/contracts/ownership/Ownable.sol";
-import "zos-lib/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
 import "./dividend/DividendPool.sol";
 import "./token/BondedToken.sol";
@@ -42,13 +42,28 @@ contract BondingCurve is Initializable, Ownable {
     string internal constant NO_MICRO_PAYMENTS = "Payment amount must be greater than 100 'units' for calculations to work correctly";
     string internal constant TOKEN_BURN_FAILED = "bondedToken burn failed";
     string internal constant TRANSFER_TO_RECIPIENT_FAILED = "Transfer to recipient failed";
-    
 
     event BeneficiarySet(address beneficiary);
+    event BuyCurveSet(address buyCurve);
+    event SellCurveSet(address sellCurve);
+    event SplitOnPaySet(uint256 splitOnPay);
 
-    event Buy(address indexed buyer, address indexed recipient, uint256 amount, uint256 price, uint256 reserveAmount, uint256 beneficiaryAmount);
+    event Buy(
+        address indexed buyer,
+        address indexed recipient,
+        uint256 amount,
+        uint256 price,
+        uint256 reserveAmount,
+        uint256 beneficiaryAmount
+    );
     event Sell(address indexed seller, address indexed recipient, uint256 amount, uint256 reward);
-    event Pay(address indexed from, address indexed token, uint256 amount, uint256 beneficiaryAmount, uint256 dividendAmount);
+    event Pay(
+        address indexed from,
+        address indexed token,
+        uint256 amount,
+        uint256 beneficiaryAmount,
+        uint256 dividendAmount
+    );
 
     /// @dev Initialize contract
     /// @param owner Contract owner, can conduct administrative functions.
@@ -69,7 +84,7 @@ contract BondingCurve is Initializable, Ownable {
         DividendPool dividendPool,
         uint256 splitOnPay
     ) public initializer {
-        require(splitOnPay >= 0 && splitOnPay <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
+        require(splitOnPay <= 100, SPLIT_ON_PAY_INVALID);
 
         Ownable.initialize(owner);
 
@@ -83,6 +98,12 @@ contract BondingCurve is Initializable, Ownable {
         _dividendPool = dividendPool;
 
         _splitOnPay = splitOnPay;
+
+        emit BuyCurveSet(address(_buyCurve));
+        emit SellCurveSet(address(_sellCurve));
+        emit SplitOnPaySet(_splitOnPay);
+        emit SplitOnPaySet(splitOnPay);
+
     }
 
     /// @notice             Get the price in ether to mint tokens
@@ -101,8 +122,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @param numTokens    The number of bondedTokens to buy
     /// @param maxPrice     Maximum total price allowable to pay in collateralTokens. If zero, any price is allowed.
     /// @param recipient    Address to send the new bondedTokens to
-    function buy(uint256 numTokens, uint256 maxPrice, address recipient)
-        public {
+    function buy(uint256 numTokens, uint256 maxPrice, address recipient) public {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
         uint256 buyPrice = priceToBuy(numTokens);
@@ -120,17 +140,13 @@ contract BondingCurve is Initializable, Ownable {
 
         _reserveBalance = _reserveBalance.add(tokensToReserve);
 
-        require(_bondedToken.mint(recipient, numTokens), TOKEN_MINTING_FAILED);
+        _bondedToken.mint(recipient, numTokens);
 
         require(
             _collateralToken.transferFrom(msg.sender, address(this), buyPrice),
             TRANSFER_FROM_FAILED
         );
-
-        require(
-            _collateralToken.transfer(_beneficiary, tokensToBeneficiary),
-            TRANSFER_TO_BENEFICIARY_FAILED
-        );
+        _collateralToken.transfer(_beneficiary, tokensToBeneficiary);
 
         emit Buy(msg.sender, recipient, numTokens, buyPrice, tokensToReserve, tokensToBeneficiary);
     }
@@ -139,9 +155,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @param numTokens    The number of bondedTokens to sell
     /// @param minPrice     Minimum total price allowable to receive in collateralTokens
     /// @param recipient    Address to send collateralTokens to
-    function sell(uint256 numTokens, uint256 minPrice, address recipient)
-        public {
-
+    function sell(uint256 numTokens, uint256 minPrice, address recipient) public {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
         require(_bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
 
@@ -151,7 +165,7 @@ contract BondingCurve is Initializable, Ownable {
         _reserveBalance = _reserveBalance.sub(burnReward);
 
         _bondedToken.burn(msg.sender, numTokens);
-        require(_collateralToken.transfer(recipient, burnReward), TRANSFER_TO_RECIPIENT_FAILED);
+        _collateralToken.transfer(recipient, burnReward);
 
         emit Sell(msg.sender, recipient, numTokens, burnReward);
     }
@@ -162,35 +176,30 @@ contract BondingCurve is Initializable, Ownable {
     function pay(uint256 amount) public {
         require(amount > MICRO_PAYMENT_THRESHOLD, NO_MICRO_PAYMENTS);
 
-        //TODO: Get payment token from dividendPool
         IERC20 paymentToken = _collateralToken;
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
+        uint256 remainderTokens;
 
-        // Calculate amounts to beneficiary and dividend holders based on splitOnPay
-        if (_splitOnPay == 0) {
-            tokensToDividendHolders = amount;
-        } else if (_splitOnPay == MAX_PERCENTAGE) {
-            tokensToBeneficiary = amount;
-        } else {
-            uint256 dividendPercentage = MAX_PERCENTAGE.sub(_splitOnPay);
+        uint256 dividendPercentage = MAX_PERCENTAGE.sub(_splitOnPay);
 
-            tokensToBeneficiary = (amount.mul(_splitOnPay)).div(MAX_PERCENTAGE);
-            tokensToDividendHolders = (amount.mul(dividendPercentage)).div(MAX_PERCENTAGE);
-        }
-
-        // require(tokensToBeneficiary.add(tokensToDividendHolders) <= amount, SPLIT_ON_PAY_MATH_ERROR);
-
-        // uint256 remainderTokens = amount.sub(tokensToBeneficiary).sub(tokensToDividendHolders);
+        tokensToBeneficiary = (amount.mul(_splitOnPay)).div(MAX_PERCENTAGE);
+        tokensToDividendHolders = (amount.mul(dividendPercentage)).div(MAX_PERCENTAGE);
+        remainderTokens = amount.sub(tokensToBeneficiary).sub(tokensToDividendHolders);
 
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
 
-        require(paymentToken.transfer(_beneficiary, tokensToBeneficiary), "Transfer to beneficiary failed");
-        require(paymentToken.transfer(address(_dividendPool), tokensToDividendHolders), "Transfer to dividend pool failed");
-        // require(paymentToken.transfer(msg.sender, remainderTokens), "Transfer of remainder to sender failed");
+        paymentToken.transfer(_beneficiary, tokensToBeneficiary);
+        paymentToken.transfer(address(_dividendPool), tokensToDividendHolders.add(remainderTokens));
 
-        emit Pay(msg.sender, address(paymentToken), amount, tokensToBeneficiary, tokensToDividendHolders);
+        emit Pay(
+            msg.sender,
+            address(paymentToken),
+            amount,
+            tokensToBeneficiary,
+            tokensToDividendHolders
+        );
     }
 
     /*
@@ -202,6 +211,27 @@ contract BondingCurve is Initializable, Ownable {
     function setBeneficiary(address beneficiary) public onlyOwner {
         _beneficiary = beneficiary;
         emit BeneficiarySet(_beneficiary);
+    }
+
+    /// @notice Set buy curve to a new address
+    /// @param buyCurve       New buy curve
+    function setBuyCurve(ICurveLogic buyCurve) public onlyOwner {
+        _buyCurve = buyCurve;
+        emit BuyCurveSet(address(_buyCurve));
+    }
+
+    /// @notice Set sell curve to a new address
+    /// @param sellCurve       New sell curve
+    function setSellCurve(ICurveLogic sellCurve) public onlyOwner {
+        _sellCurve = sellCurve;
+        emit SellCurveSet(address(_sellCurve));
+    }
+
+    /// @notice Set split on pay to new value
+    /// @param splitOnPay       New split on pay value
+    function setSplitOnPay(uint256 splitOnPay) public onlyOwner {
+        _splitOnPay = splitOnPay;
+        emit SplitOnPaySet(_splitOnPay);
     }
 
     /*

@@ -16,6 +16,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage.json
 
 # nyc test coverage
 .nyc_output
@@ -62,10 +63,11 @@ typings/
 
 # zos sessions
 zos.dev-*
+.zos.session
+.openzeppelin/.session
+.openzeppelin/dev-*
 
 # contracts build
 build
-
-.zos.session
 
 .DS_Store

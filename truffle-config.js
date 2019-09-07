@@ -11,12 +11,12 @@ module.exports = {
   // to customize your Truffle configuration!
   networks: {
     development: {
-      host: '127.0.0.1',
-      port: 8585,
-      network_id: '*'
+      host: 'localhost',
+      network_id: '*',
+      port: 8545
     },
     coverage: {
-      host: '127.0.0.1',
+      host: 'localhost',
       network_id: '*',
       port: 8555, // <-- If you change this, also set the port option in .solcover.js.
       gas: 0xfffffffffff, // <-- Use this high gas value
@@ -68,7 +68,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.5.10',
+      version: '0.5.7',
       optimizer: {
         enabled: true,
         runs: 200
