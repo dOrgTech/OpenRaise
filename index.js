@@ -12,7 +12,7 @@ const DividendPool = Contracts.getFromLocal('DividendPool');
 const BondingCurve = Contracts.getFromLocal('BondingCurve');
 const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
 const BondedToken = Contracts.getFromLocal('BondedToken');
-const RewardsDistributorWrapper = Contracts.getFromLocal('RewardsDistributorWrapper');
+const RewardsDistributor = Contracts.getFromLocal('RewardsDistributor');
 
 const CONTRACT_ABIS = {
   BondingCurve,
@@ -22,7 +22,7 @@ const CONTRACT_ABIS = {
   BondedToken,
   DividendPool,
   BancorCurveService,
-  RewardsDistributorWrapper
+  RewardsDistributor
 };
 
 const CONTRACT_NAMES = {
@@ -33,7 +33,7 @@ const CONTRACT_NAMES = {
   BondedToken: 'BondedToken',
   DividendPool: 'DividendPool',
   BancorCurveService: 'BancorCurveService',
-  RewardsDistributorWrapper: 'RewardsDistributorWrapper'
+  RewardsDistributor: 'RewardsDistributor'
 };
 
 const PACKAGE_NAMES = {
@@ -177,10 +177,10 @@ async function deployStandaloneERC20(myProject, initArgs) {
   //   });
 }
 
-async function deployRewardsDistributorWrapper(myProject, initArgs) {
+async function deployRewardsDistributor(myProject, initArgs) {
   ZWeb3.initialize(web3.currentProvider);
 
-  const instance = await myProject.createProxy(RewardsDistributorWrapper, {
+  const instance = await myProject.createProxy(RewardsDistributor, {
     initArgs
   });
   return instance;
@@ -224,7 +224,7 @@ module.exports = {
   deployBondingCurveFactory,
   deployBondedToken,
   deployStandaloneERC20,
-  deployRewardsDistributorWrapper,
+  deployRewardsDistributor,
   CONTRACT_NAMES,
   CONTRACT_ABIS,
   getImplementation,
