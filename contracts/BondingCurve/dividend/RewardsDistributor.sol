@@ -168,7 +168,7 @@ contract RewardsDistributor is Initializable, Ownable {
 
 
     /// @notice Read total stake.
-    function getStakeTotal() public returns (uint256) {
+    function getStakeTotal() public view returns (uint256) {
         return _stakeTotal.mul(ELIGIBLE_UNIT);
     }
 

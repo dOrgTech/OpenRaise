@@ -10,7 +10,7 @@ import "../BondingCurve.sol";
 import "../curve/BancorCurveLogic.sol";
 import "../curve/BancorCurveService.sol";
 import "../curve/StaticCurveLogic.sol";
-import "../dividend/DividendPool.sol";
+import "../dividend/RewardsDistributor.sol";
 import "../token/BondedToken.sol";
 import "../interface/ICurveLogic.sol";
 
@@ -24,7 +24,7 @@ contract BondingCurveFactory is Initializable {
     address internal _bancorCurveLogicImpl;
     address internal _bondedTokenImpl;
     address internal _bondingCurveImpl;
-    address internal _dividendPoolImpl;
+    address internal _rewardsDistributorImpl;
     address internal _bancorCurveServiceImpl; //Must already be initialized
 
     event ProxyCreated(address proxy);
@@ -34,7 +34,7 @@ contract BondingCurveFactory is Initializable {
         address indexed bondedToken,
         address buyCurve,
         address sellCurve,
-        address dividendPool,
+        address rewardDistributor,
         address indexed sender
     );
 
@@ -43,14 +43,14 @@ contract BondingCurveFactory is Initializable {
         address bancorCurveLogicImpl,
         address bondedTokenImpl,
         address bondingCurveImpl,
-        address dividendPoolImpl,
-        address bancorCurveServiceImpl
+        address bancorCurveServiceImpl,
+        address rewardsDistributorImpl
     ) public initializer {
         _staticCurveLogicImpl = staticCurveLogicImpl;
         _bancorCurveLogicImpl = bancorCurveLogicImpl;
         _bondedTokenImpl = bondedTokenImpl;
         _bondingCurveImpl = bondingCurveImpl;
-        _dividendPoolImpl = dividendPoolImpl;
+        _rewardsDistributorImpl = rewardsDistributorImpl;
         _bancorCurveServiceImpl = bancorCurveServiceImpl;
     }
 
@@ -79,12 +79,12 @@ contract BondingCurveFactory is Initializable {
         proxies[1] = _createProxy(_staticCurveLogicImpl, address(0), "");
         proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
         proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
-        proxies[4] = _createProxy(_dividendPoolImpl, address(0), "");
+        proxies[4] = _createProxy(_rewardsDistributorImpl, address(0), "");
 
         StaticCurveLogic(proxies[0]).initialize(buyCurveParams);
         StaticCurveLogic(proxies[1]).initialize(sellCurveParams);
-        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
-        DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
+        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3], proxies[4]);
+        RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         BondingCurve(proxies[3]).initialize(
             owner,
@@ -93,7 +93,6 @@ contract BondingCurveFactory is Initializable {
             BondedToken(proxies[2]),
             ICurveLogic(proxies[0]),
             ICurveLogic(proxies[1]),
-            DividendPool(proxies[4]),
             splitOnPay
         );
 
@@ -123,7 +122,7 @@ contract BondingCurveFactory is Initializable {
         proxies[1] = _createProxy(_bancorCurveLogicImpl, address(0), "");
         proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
         proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
-        proxies[4] = _createProxy(_dividendPoolImpl, address(0), "");
+        proxies[4] = _createProxy(_rewardsDistributorImpl, address(0), "");
 
         BancorCurveLogic(proxies[0]).initialize(
             BancorCurveService(_bancorCurveServiceImpl),
@@ -133,8 +132,8 @@ contract BondingCurveFactory is Initializable {
             BancorCurveService(_bancorCurveServiceImpl),
             sellCurveParams
         );
-        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
-        DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
+        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3], proxies[4]);
+        RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         BondingCurve(proxies[3]).initialize(
             owner,
@@ -143,7 +142,6 @@ contract BondingCurveFactory is Initializable {
             BondedToken(proxies[2]),
             ICurveLogic(proxies[0]),
             ICurveLogic(proxies[1]),
-            DividendPool(proxies[4]),
             splitOnPay
         );
 
@@ -165,7 +163,7 @@ contract BondingCurveFactory is Initializable {
             address bancorCurveLogicImpl,
             address bondedTokenImpl,
             address bondingCurveImpl,
-            address dividendPoolImpl,
+            address rewardsDistributorImpl,
             address bancorCurveServiceImpl
         )
     {
@@ -174,7 +172,7 @@ contract BondingCurveFactory is Initializable {
             _bancorCurveLogicImpl,
             _bondedTokenImpl,
             _bondingCurveImpl,
-            _dividendPoolImpl,
+            _rewardsDistributorImpl,
             _bancorCurveServiceImpl
         );
     }

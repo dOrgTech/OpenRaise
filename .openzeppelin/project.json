@@ -4,7 +4,7 @@
     "StaticCurveLogic": "StaticCurveLogic",
     "BancorCurveLogic": "BancorCurveLogic",
     "BondedToken": "BondedToken",
-    "DividendPool": "DividendPool",
+    "RewardsDistributor": "RewardsDistributor",
     "BondingCurve": "BondingCurve",
     "BondingCurveFactory": "BondingCurveFactory",
     "BancorCurveService": "BancorCurveService"
