@@ -1,5 +1,7 @@
 // Import all required modules from openzeppelin-test-helpers
 const {BN, constants, expectRevert} = require('openzeppelin-test-helpers');
+const {ZERO_ADDRESS} = constants;
+
 require('../setup');
 
 const expectEvent = require('../expectEvent');
@@ -26,7 +28,7 @@ contract('BondingCurveFactory', accounts => {
   let bancorCurveLogicImpl;
   let bondedTokenImpl;
   let bondingCurveImpl;
-  let dividendPoolImpl;
+  let rewardsDistributorImpl;
 
   const adminAccount = accounts[0];
   const curveOwner = accounts[1];
@@ -52,7 +54,8 @@ contract('BondingCurveFactory', accounts => {
       paymentTokenValues.parameters.name,
       paymentTokenValues.parameters.symbol,
       paymentTokenValues.parameters.decimals,
-      tokenMinter
+      tokenMinter,
+      ZERO_ADDRESS
     ]);
 
     const paymentTokenInitialBalance = new BN(web3.utils.toWei('60000', 'ether'));
@@ -75,15 +78,15 @@ contract('BondingCurveFactory', accounts => {
     );
     bondedTokenImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondedToken);
     bondingCurveImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondingCurve);
-    dividendPoolImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.DividendPool);
+    rewardsDistributorImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.RewardsDistributor);
 
     factory = await deploy.deployBondingCurveFactory(project, [
       staticCurveLogicImpl,
       bancorCurveLogicImpl,
       bondedTokenImpl,
       bondingCurveImpl,
-      dividendPoolImpl,
-      bancorCurveService.address
+      bancorCurveService.address,
+      rewardsDistributorImpl
     ]);
   });
 
@@ -94,7 +97,7 @@ contract('BondingCurveFactory', accounts => {
     expect(result.bancorCurveLogicImpl).to.be.equal(bancorCurveLogicImpl);
     expect(result.bondedTokenImpl).to.be.equal(bondedTokenImpl);
     expect(result.bondingCurveImpl).to.be.equal(bondingCurveImpl);
-    expect(result.dividendPoolImpl).to.be.equal(dividendPoolImpl);
+    expect(result.rewardsDistributorImpl).to.be.equal(rewardsDistributorImpl);
     expect(result.bancorCurveServiceImpl).to.be.equal(bancorCurveService.address);
   });
 
@@ -128,7 +131,7 @@ contract('BondingCurveFactory', accounts => {
       let bondedToken;
       let buyCurve;
       let sellCurve;
-      let dividendPool;
+      let rewardsDistributor;
 
       beforeEach(async function() {
         const createdEvent = expectEvent.inLogs(deployTx.events, 'BondingCurveDeployed');
@@ -139,7 +142,7 @@ contract('BondingCurveFactory', accounts => {
         bondedToken = deployedContracts.bondedToken;
         buyCurve = deployedContracts.buyCurve;
         sellCurve = deployedContracts.sellCurve;
-        dividendPool = deployedContracts.dividendPool;
+        rewardsDistributor = deployedContracts.rewardsDistributor;
       });
 
       it('should deploy contracts on deploy', async function() {
@@ -154,7 +157,7 @@ contract('BondingCurveFactory', accounts => {
         );
         expect(await web3.eth.getCode(buyCurve.options.address)).to.not.be.equal(nonContractCode);
         expect(await web3.eth.getCode(sellCurve.options.address)).to.not.be.equal(nonContractCode);
-        expect(await web3.eth.getCode(dividendPool.options.address)).to.not.be.equal(
+        expect(await web3.eth.getCode(rewardsDistributor.options.address)).to.not.be.equal(
           nonContractCode
         );
       });
@@ -199,12 +202,9 @@ contract('BondingCurveFactory', accounts => {
         ).to.be.bignumber.equal(new BN(0));
       });
 
-      it('should correctly initialize dividend pool parameters', async function() {
-        expect(await dividendPool.methods.owner().call({from: miscUser})).to.be.equal(
-          deployParams.owner
-        );
-        expect(await dividendPool.methods.token().call({from: miscUser})).to.be.equal(
-          deployParams.collateralToken
+      it('should correctly initialize reward distributor parameters', async function() {
+        expect(await rewardsDistributor.methods.owner().call({from: miscUser})).to.be.equal(
+          bondedToken.options.address
         );
       });
 
@@ -272,7 +272,7 @@ contract('BondingCurveFactory', accounts => {
       let bondedToken;
       let buyCurve;
       let sellCurve;
-      let dividendPool;
+      let rewardsDistributor;
 
       beforeEach(async function() {
         const createdEvent = expectEvent.inLogs(deployTx.events, 'BondingCurveDeployed');
@@ -283,7 +283,7 @@ contract('BondingCurveFactory', accounts => {
         bondedToken = deployedContracts.bondedToken;
         buyCurve = deployedContracts.buyCurve;
         sellCurve = deployedContracts.sellCurve;
-        dividendPool = deployedContracts.dividendPool;
+        rewardsDistributor = deployedContracts.rewardsDistributor;
       });
 
       it('should deploy contracts on deploy', async function() {
@@ -298,7 +298,7 @@ contract('BondingCurveFactory', accounts => {
         );
         expect(await web3.eth.getCode(buyCurve.options.address)).to.not.be.equal(nonContractCode);
         expect(await web3.eth.getCode(sellCurve.options.address)).to.not.be.equal(nonContractCode);
-        expect(await web3.eth.getCode(dividendPool.options.address)).to.not.be.equal(
+        expect(await web3.eth.getCode(rewardsDistributor.options.address)).to.not.be.equal(
           nonContractCode
         );
       });
@@ -348,12 +348,9 @@ contract('BondingCurveFactory', accounts => {
         ).to.be.bignumber.equal(new BN(0));
       });
 
-      it('should correctly initialize dividend pool parameters', async function() {
-        expect(await dividendPool.methods.owner().call({from: miscUser})).to.be.equal(
-          deployParams.owner
-        );
-        expect(await dividendPool.methods.token().call({from: miscUser})).to.be.equal(
-          deployParams.collateralToken
+      it('should correctly initialize reward distributor parameters', async function() {
+        expect(await rewardsDistributor.methods.owner().call({from: miscUser})).to.be.equal(
+          bondedToken.options.address
         );
       });
 
@@ -390,7 +387,7 @@ async function getContractsFromDeployedEvent(event) {
     bondedToken: undefined,
     buyCurve: undefined,
     sellCurve: undefined,
-    dividendPool: undefined
+    rewardsDistributor: undefined
   };
 
   contracts.bondingCurve = await ZWeb3.contract(
@@ -409,9 +406,9 @@ async function getContractsFromDeployedEvent(event) {
     await deploy.getAbi(deploy.CONTRACT_NAMES.StaticCurveLogic),
     await expectEvent.getParameter(event, 'sellCurve')
   );
-  contracts.dividendPool = await ZWeb3.contract(
-    await deploy.getAbi(deploy.CONTRACT_NAMES.DividendPool),
-    await expectEvent.getParameter(event, 'dividendPool')
+  contracts.rewardsDistributor = await ZWeb3.contract(
+    await deploy.getAbi(deploy.CONTRACT_NAMES.RewardsDistributor),
+    await expectEvent.getParameter(event, 'rewardsDistributor')
   );
 
   return contracts;

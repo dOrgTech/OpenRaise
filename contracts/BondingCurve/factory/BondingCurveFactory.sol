@@ -34,7 +34,7 @@ contract BondingCurveFactory is Initializable {
         address indexed bondedToken,
         address buyCurve,
         address sellCurve,
-        address rewardDistributor,
+        address rewardsDistributor,
         address indexed sender
     );
 
