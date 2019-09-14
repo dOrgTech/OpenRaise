@@ -29,11 +29,13 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
   beforeEach(async function() {
     project = await deploy.deployProject();
 
+    // TODO: Use an ERC20Mintable instead of a BondedToken here!
     paymentToken = await deploy.deployBondedToken(project, [
       paymentTokenValues.parameters.name,
       paymentTokenValues.parameters.symbol,
       paymentTokenValues.parameters.decimals,
       tokenMinter,
+      ZERO_ADDRESS,
       ZERO_ADDRESS
     ]);
 
@@ -50,7 +52,8 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       bondedTokenValues.parameters.symbol,
       bondedTokenValues.parameters.decimals,
       tokenMinter,
-      rewardsDistributor.address
+      rewardsDistributor.address,
+      paymentToken.address
     ]);
 
     await rewardsDistributor.methods.transferOwnership(

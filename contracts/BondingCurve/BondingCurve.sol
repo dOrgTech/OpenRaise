@@ -79,7 +79,7 @@ contract BondingCurve is Initializable, Ownable {
         ICurveLogic sellCurve,
         uint256 splitOnPay
     ) public initializer {
-        require(splitOnPay <= 100, SPLIT_ON_PAY_INVALID);
+        require(splitOnPay <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
 
         Ownable.initialize(owner);
 
@@ -174,18 +174,19 @@ contract BondingCurve is Initializable, Ownable {
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
-        uint256 remainderTokens;
-
-        uint256 dividendPercentage = MAX_PERCENTAGE.sub(_splitOnPay);
 
         tokensToBeneficiary = (amount.mul(_splitOnPay)).div(MAX_PERCENTAGE);
-        tokensToDividendHolders = (amount.mul(dividendPercentage)).div(MAX_PERCENTAGE);
-        remainderTokens = amount.sub(tokensToBeneficiary).sub(tokensToDividendHolders);
+        tokensToDividendHolders = amount.sub(tokensToBeneficiary);
 
+        // incoming funds
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
 
+        // outgoing funds to Beneficiary
         paymentToken.transfer(_beneficiary, tokensToBeneficiary);
-        paymentToken.transfer(address(_bondedToken), tokensToDividendHolders.add(remainderTokens));
+
+        // outgoing funds to token holders as dividends (stored by BondedToken)
+        paymentToken.approve(address(_bondedToken), tokensToDividendHolders);
+        _bondedToken.distribute(address(this), tokensToDividendHolders);
 
         emit Pay(
             msg.sender,

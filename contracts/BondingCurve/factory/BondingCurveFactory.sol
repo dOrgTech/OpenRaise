@@ -74,6 +74,10 @@ contract BondingCurveFactory is Initializable {
         string calldata bondedTokenSymbol
     ) external {
         address[] memory proxies = new address[](5);
+        address[] memory tempCollateral = new address[](1);
+
+        // Hack to avoid "Stack Too Deep" error
+        tempCollateral[0] = collateralToken;
 
         proxies[0] = _createProxy(_staticCurveLogicImpl, address(0), "");
         proxies[1] = _createProxy(_staticCurveLogicImpl, address(0), "");
@@ -83,9 +87,14 @@ contract BondingCurveFactory is Initializable {
 
         StaticCurveLogic(proxies[0]).initialize(buyCurveParams);
         StaticCurveLogic(proxies[1]).initialize(sellCurveParams);
-        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3], proxies[4]);
-        RewardsDistributor(proxies[4]).initialize(proxies[2]);
-
+        BondedToken(proxies[2]).initialize(
+            bondedTokenName,
+            bondedTokenSymbol,
+            18,
+            proxies[3],  // minter is the BondingCurve
+            RewardsDistributor(proxies[4]),
+            IERC20(tempCollateral[0])
+        );
         BondingCurve(proxies[3]).initialize(
             owner,
             beneficiary,
@@ -95,6 +104,7 @@ contract BondingCurveFactory is Initializable {
             ICurveLogic(proxies[1]),
             splitOnPay
         );
+        RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         emit BondingCurveDeployed(
             proxies[3],
@@ -117,6 +127,10 @@ contract BondingCurveFactory is Initializable {
         string calldata bondedTokenSymbol
     ) external {
         address[] memory proxies = new address[](5);
+        address[] memory tempCollateral = new address[](1);
+
+        // Hack to avoid "Stack Too Deep" error
+        tempCollateral[0] = collateralToken;
 
         proxies[0] = _createProxy(_bancorCurveLogicImpl, address(0), "");
         proxies[1] = _createProxy(_bancorCurveLogicImpl, address(0), "");
@@ -132,9 +146,14 @@ contract BondingCurveFactory is Initializable {
             BancorCurveService(_bancorCurveServiceImpl),
             sellCurveParams
         );
-        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3], proxies[4]);
-        RewardsDistributor(proxies[4]).initialize(proxies[2]);
-
+        BondedToken(proxies[2]).initialize(
+            bondedTokenName,
+            bondedTokenSymbol,
+            18,
+            proxies[3],  // minter is the BondingCurve
+            RewardsDistributor(proxies[4]),
+            IERC20(tempCollateral[0])
+        );
         BondingCurve(proxies[3]).initialize(
             owner,
             beneficiary,
@@ -144,6 +163,7 @@ contract BondingCurveFactory is Initializable {
             ICurveLogic(proxies[1]),
             splitOnPay
         );
+        RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         emit BondingCurveDeployed(
             proxies[3],

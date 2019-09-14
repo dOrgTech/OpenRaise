@@ -109,10 +109,11 @@ contract('RewardsDistributor', accounts => {
   it("does no distribution if no stake >= ELIGIBLE_UNIT", async function() {
     await rd.methods.deposit(acct_a, '1234').send({from: creator});
 
-    await expectRevert.unspecified(
-      rd.methods.distribute(creator, '1000').send({from: creator}),
-      'no deposit greater than 1 ELIGIBLE_UNIT'
-    );
+    await rd.methods.distribute(creator, '1234000').send({from: creator});
+
+    expect (
+      await rd.methods.getReward(acct_a).call({from: creator})
+    ).to.be.equal('0')
   });
 
   it("does no distribution if stake becomes ineligible after withdrawl", async function() {
@@ -127,10 +128,11 @@ contract('RewardsDistributor', accounts => {
       value: amountWithdraw
     });
 
-    await expectRevert.unspecified(
-      rd.methods.distribute(creator, '1000').send({from: creator}),
-      'no deposit greater than 1 ELIGIBLE_UNIT'
-    );
+    await rd.methods.distribute(creator, '1234000').send({from: creator});
+
+    expect (
+      await rd.methods.getReward(acct_a).call({from: creator})
+    ).to.be.equal('0')
 
     // stake of A is 10000 but because it is < ELIGIBLE_UNIT total stake
     // should be zero

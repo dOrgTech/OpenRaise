@@ -50,11 +50,13 @@ contract('BondingCurveFactory', accounts => {
   beforeEach(async function() {
     project = await deploy.setupApp({adminAccount});
 
+    // TODO: replace this with an ERC20Mintable!
     paymentToken = await deploy.deployBondedToken(project, [
       paymentTokenValues.parameters.name,
       paymentTokenValues.parameters.symbol,
       paymentTokenValues.parameters.decimals,
       tokenMinter,
+      ZERO_ADDRESS,
       ZERO_ADDRESS
     ]);
 

@@ -15,23 +15,32 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
 
     RewardsDistributor _rewardsDistributor;
 
+    IERC20 _dividendToken;
+
     /// @dev Initialize contract
     /// @param name ERC20 token name
     /// @param symbol ERC20 token symbol
     /// @param decimals ERC20 token decimals
     /// @param minter Address to give exclusive minting and burning rights for token
-    /// @param rewardsDistributor Instance for managing dividends accounting.
+    /// @param rewardsDistributor Instance for managing dividend accounting.
+    /// @param dividendToken Instance of ERC20 in which dividends are paid.
     function initialize(
         string memory name,
         string memory symbol,
         uint8 decimals,
         address minter,
-        address rewardsDistributor
+        RewardsDistributor rewardsDistributor,
+        IERC20 dividendToken
     ) public initializer {
         ERC20Detailed.initialize(name, symbol, decimals);
         ERC20Mintable.initialize(minter);
 
-        _rewardsDistributor = RewardsDistributor(rewardsDistributor);
+        _rewardsDistributor = rewardsDistributor;
+
+        // TODO: uncomment below line once this contract is no longer used as PaymentToken in tests.
+        // require(address(dividendToken) != address(0), "No dividend ERC20 contract provided.");
+
+        _dividendToken = dividendToken;
     }
 
     /**
@@ -83,10 +92,13 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
         if (address(_rewardsDistributor) == address(0)) {
             return 0;
         }
+        if (address(_dividendToken) == address(0)) {
+            return 0;
+        }
 
         address payable _staker = msg.sender;
         uint256 _amount = _rewardsDistributor.withdrawReward(_staker);
-        _staker.transfer(_amount);
+        _dividendToken.transfer(_staker, _amount);
         return _amount;
     }
 
@@ -103,12 +115,29 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
     }
 
     /**
-     * Allocates received Eth as rewards to all balances greater than ELIGIBLE_UNIT.
+     * Claim and allocate provided dividend tokens to all balances greater than ELIGIBLE_UNIT.
      */
-    function distribute() external payable {
-        if (address(_rewardsDistributor) != address(0)) {
-            _rewardsDistributor.distribute(msg.sender, msg.value);
+    function distribute(address from, uint256 value) public returns (bool) {
+        if (address(_rewardsDistributor) == address(0)) {
+            return false;
         }
+
+        if (address(_dividendToken) == address(0)) {
+            return false;
+        }
+
+        if (value == 0) {
+            return false;
+        }
+
+        require(
+            _dividendToken.transferFrom(from, address(this), value),
+            "Dividend TransferFrom Failed."
+        );
+
+        _rewardsDistributor.distribute(from, value);
+
+        return true;
     }
 
 }

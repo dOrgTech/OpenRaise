@@ -95,20 +95,22 @@ contract RewardsDistributor is Initializable, Ownable {
     /// @notice Distribute tokens pro rata to all stakers.
     function distribute(address from, uint tokens) public onlyOwner returns (bool success) {
         require(tokens > 0);
-        require(_stakeTotal > 0);
 
         // add past distribution remainder
         uint256 _amountToDistribute = tokens.add(_rewardRemainder);
 
-        // determine rewards per eligible stake
-        uint256 _ratio = _amountToDistribute.div(_stakeTotal);
+        if (_stakeTotal == 0) {
+            _rewardRemainder = _amountToDistribute;
+        } else {
+            // determine rewards per eligible stake
+            uint256 _ratio = _amountToDistribute.div(_stakeTotal);
 
-        // carry on remainder
-        _rewardRemainder = _amountToDistribute.mod(_stakeTotal);
+            // carry on remainder
+            _rewardRemainder = _amountToDistribute.mod(_stakeTotal);
 
-        // increase total rewards per stake unit
-        _rewardTotal = _rewardTotal.add(_ratio);
-
+            // increase total rewards per stake unit
+            _rewardTotal = _rewardTotal.add(_ratio);
+        }
         emit DistributionMade(from, tokens);
         return true;
     }
