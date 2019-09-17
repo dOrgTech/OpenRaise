@@ -5,11 +5,12 @@ import "@openzeppelin/upgrades/contracts/upgradeability/AdminUpgradeabilityProxy
 import "@openzeppelin/upgrades/contracts/application/App.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/StandaloneERC20.sol";
-import "../managed/BondingCurveControlled.sol";
+import "./BondingCurveControlled.sol";
+import "../access/ControllerRole.sol";
 import "../curve/BancorCurveLogic.sol";
 import "../curve/BancorCurveService.sol";
 import "../curve/StaticCurveLogic.sol";
-import "../dividend/DividendPool.sol";
+import "../dividend/RewardsDistributor.sol";
 import "../token/BondedToken.sol";
 import "../interface/ICurveLogic.sol";
 
@@ -18,13 +19,14 @@ import "../interface/ICurveLogic.sol";
  * @dev Allows for the deploy of a Bonding Curve and supporting components in a single transaction
  * This was developed to simplify the deployment process for DAOs
  */
-contract BondingCurveFactory is Initializable {
+contract BondingCurveControlledFactory is Initializable, ControllerRole {
     address internal _staticCurveLogicImpl;
     address internal _bancorCurveLogicImpl;
     address internal _bondedTokenImpl;
     address internal _bondingCurveImpl;
-    address internal _dividendPoolImpl;
-    address internal _bancorCurveServiceImpl; //Must already be initialized
+    address internal _rewardsDistributorImpl;
+    address internal _bancorCurveService; //Must already be initialized
+    address internal _bondingCurveController;
 
     event ProxyCreated(address proxy);
 
@@ -33,7 +35,7 @@ contract BondingCurveFactory is Initializable {
         address indexed bondedToken,
         address buyCurve,
         address sellCurve,
-        address dividendPool,
+        address rewardsDistributor,
         address indexed sender
     );
 
@@ -42,15 +44,19 @@ contract BondingCurveFactory is Initializable {
         address bancorCurveLogicImpl,
         address bondedTokenImpl,
         address bondingCurveImpl,
-        address dividendPoolImpl,
-        address bancorCurveServiceImpl
+        address bancorCurveService,
+        address rewardsDistributorImpl,
+        address bondingCurveController
     ) public initializer {
         _staticCurveLogicImpl = staticCurveLogicImpl;
         _bancorCurveLogicImpl = bancorCurveLogicImpl;
         _bondedTokenImpl = bondedTokenImpl;
         _bondingCurveImpl = bondingCurveImpl;
-        _dividendPoolImpl = dividendPoolImpl;
-        _bancorCurveServiceImpl = bancorCurveServiceImpl;
+        _rewardsDistributorImpl = rewardsDistributorImpl;
+        _bancorCurveService = bancorCurveService;
+        _bondingCurveController = bondingCurveController;
+
+        ControllerRole.initialize(bondingCurveController);
     }
 
     function _createProxy(address implementation, address admin, bytes memory data)
@@ -63,6 +69,7 @@ contract BondingCurveFactory is Initializable {
     }
 
     function deployStatic(
+        address sender,
         address owner,
         address beneficiary,
         address collateralToken,
@@ -73,29 +80,38 @@ contract BondingCurveFactory is Initializable {
         string memory bondedTokenSymbol
     ) public {
         address[] memory proxies = new address[](5);
+        address[] memory tempCollateral = new address[](1);
+
+        // Hack to avoid "Stack Too Deep" error
+        tempCollateral[0] = collateralToken;
 
         proxies[0] = _createProxy(_staticCurveLogicImpl, address(0), "");
         proxies[1] = _createProxy(_staticCurveLogicImpl, address(0), "");
         proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
         proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
-        proxies[4] = _createProxy(_dividendPoolImpl, address(0), "");
+        proxies[4] = _createProxy(_rewardsDistributorImpl, address(0), "");
 
         StaticCurveLogic(proxies[0]).initialize(buyCurveParams);
         StaticCurveLogic(proxies[1]).initialize(sellCurveParams);
-        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
-        DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
-
+        BondedToken(proxies[2]).initialize(
+            bondedTokenName,
+            bondedTokenSymbol,
+            18,
+            proxies[3], // minter is the BondingCurve
+            RewardsDistributor(proxies[4]),
+            IERC20(tempCollateral[0])
+        );
         BondingCurveControlled(proxies[3]).initialize(
             owner,
             beneficiary,
-            address(this),
+            _bondingCurveController,
             IERC20(collateralToken),
             BondedToken(proxies[2]),
             ICurveLogic(proxies[0]),
             ICurveLogic(proxies[1]),
-            DividendPool(proxies[4]),
             splitOnPay
         );
+        RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         emit BondingCurveDeployed(
             proxies[3],
@@ -103,11 +119,12 @@ contract BondingCurveFactory is Initializable {
             proxies[0],
             proxies[1],
             proxies[4],
-            msg.sender
+            sender
         );
     }
 
     function deployBancor(
+        address sender,
         address owner,
         address beneficiary,
         address collateralToken,
@@ -118,35 +135,44 @@ contract BondingCurveFactory is Initializable {
         string memory bondedTokenSymbol
     ) public {
         address[] memory proxies = new address[](5);
+        address[] memory tempCollateral = new address[](1);
+
+        // Hack to avoid "Stack Too Deep" error
+        tempCollateral[0] = collateralToken;
 
         proxies[0] = _createProxy(_bancorCurveLogicImpl, address(0), "");
         proxies[1] = _createProxy(_bancorCurveLogicImpl, address(0), "");
         proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
         proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
-        proxies[4] = _createProxy(_dividendPoolImpl, address(0), "");
+        proxies[4] = _createProxy(_rewardsDistributorImpl, address(0), "");
 
         BancorCurveLogic(proxies[0]).initialize(
-            BancorCurveService(_bancorCurveServiceImpl),
+            BancorCurveService(_bancorCurveService),
             buyCurveParams
         );
         BancorCurveLogic(proxies[1]).initialize(
-            BancorCurveService(_bancorCurveServiceImpl),
+            BancorCurveService(_bancorCurveService),
             sellCurveParams
         );
-        BondedToken(proxies[2]).initialize(bondedTokenName, bondedTokenSymbol, 18, proxies[3]);
-        DividendPool(proxies[4]).initialize(IERC20(collateralToken), owner);
-
+        BondedToken(proxies[2]).initialize(
+            bondedTokenName,
+            bondedTokenSymbol,
+            18,
+            proxies[3], // minter is the BondingCurve
+            RewardsDistributor(proxies[4]),
+            IERC20(tempCollateral[0])
+        );
         BondingCurveControlled(proxies[3]).initialize(
             owner,
             beneficiary,
-            address(this),
+            _bondingCurveController,
             IERC20(collateralToken),
             BondedToken(proxies[2]),
             ICurveLogic(proxies[0]),
             ICurveLogic(proxies[1]),
-            DividendPool(proxies[4]),
             splitOnPay
         );
+        RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         emit BondingCurveDeployed(
             proxies[3],
@@ -154,7 +180,7 @@ contract BondingCurveFactory is Initializable {
             proxies[0],
             proxies[1],
             proxies[4],
-            msg.sender
+            sender
         );
     }
 
@@ -166,8 +192,9 @@ contract BondingCurveFactory is Initializable {
             address bancorCurveLogicImpl,
             address bondedTokenImpl,
             address bondingCurveImpl,
-            address dividendPoolImpl,
-            address bancorCurveServiceImpl
+            address rewardsDistributorImpl,
+            address bancorCurveService,
+            address bondingCurveController
         )
     {
         return (
@@ -175,8 +202,9 @@ contract BondingCurveFactory is Initializable {
             _bancorCurveLogicImpl,
             _bondedTokenImpl,
             _bondingCurveImpl,
-            _dividendPoolImpl,
-            _bancorCurveServiceImpl
+            _rewardsDistributorImpl,
+            _bancorCurveService,
+            _bondingCurveController
         );
     }
 
