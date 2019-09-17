@@ -8,10 +8,10 @@ const StaticCurveLogic = Contracts.getFromLocal('StaticCurveLogic');
 const BancorFormula = Contracts.getFromLocal('BancorFormula');
 const BancorCurveLogic = Contracts.getFromLocal('BancorCurveLogic');
 const BancorCurveService = Contracts.getFromLocal('BancorCurveService');
-const DividendPool = Contracts.getFromLocal('DividendPool');
 const BondingCurve = Contracts.getFromLocal('BondingCurve');
 const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
 const BondedToken = Contracts.getFromLocal('BondedToken');
+const RewardsDistributor = Contracts.getFromLocal('RewardsDistributor');
 
 const CONTRACT_ABIS = {
   BondingCurve,
@@ -19,8 +19,8 @@ const CONTRACT_ABIS = {
   BancorCurveLogic,
   StaticCurveLogic,
   BondedToken,
-  DividendPool,
-  BancorCurveService
+  BancorCurveService,
+  RewardsDistributor
 };
 
 const CONTRACT_NAMES = {
@@ -29,8 +29,8 @@ const CONTRACT_NAMES = {
   BancorCurveLogic: 'BancorCurveLogic',
   StaticCurveLogic: 'StaticCurveLogic',
   BondedToken: 'BondedToken',
-  DividendPool: 'DividendPool',
-  BancorCurveService: 'BancorCurveService'
+  BancorCurveService: 'BancorCurveService',
+  RewardsDistributor: 'RewardsDistributor'
 };
 
 const PACKAGE_NAMES = {
@@ -53,8 +53,8 @@ async function setupApp(txParams) {
   await appProject.setImplementation(BancorCurveLogic, CONTRACT_NAMES.BancorCurveLogic);
   await appProject.setImplementation(StaticCurveLogic, CONTRACT_NAMES.StaticCurveLogic);
   await appProject.setImplementation(BondedToken, CONTRACT_NAMES.BondedToken);
-  await appProject.setImplementation(DividendPool, CONTRACT_NAMES.DividendPool);
   await appProject.setImplementation(BancorCurveService, CONTRACT_NAMES.BancorCurveService);
+  await appProject.setImplementation(RewardsDistributor, CONTRACT_NAMES.RewardsDistributor);
 
   return appProject;
 }
@@ -99,15 +99,6 @@ async function deployBancorCurveLogic(myProject, initArgs) {
   ZWeb3.initialize(web3.currentProvider);
 
   const instance = await myProject.createProxy(BancorCurveLogic, {
-    initArgs
-  });
-  return instance;
-}
-
-async function deployDividendPool(myProject, initArgs) {
-  ZWeb3.initialize(web3.currentProvider);
-
-  const instance = await myProject.createProxy(DividendPool, {
     initArgs
   });
   return instance;
@@ -173,6 +164,15 @@ async function deployStandaloneERC20(myProject, initArgs) {
   //   });
 }
 
+async function deployRewardsDistributor(myProject, initArgs) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(RewardsDistributor, {
+    initArgs
+  });
+  return instance;
+}
+
 async function getImplementation(project, contractName) {
   const directory = await project.getCurrentDirectory();
   const implementation = await directory.getImplementation(contractName);
@@ -205,12 +205,12 @@ module.exports = {
   deployBancorFormula,
   deployBancorCurveService,
   deployBancorCurveLogic,
-  deployDividendPool,
   createBondingCurve,
   deployBondingCurve,
   deployBondingCurveFactory,
   deployBondedToken,
   deployStandaloneERC20,
+  deployRewardsDistributor,
   CONTRACT_NAMES,
   CONTRACT_ABIS,
   getImplementation,
