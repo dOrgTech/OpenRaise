@@ -1,6 +1,8 @@
 
 pragma solidity ^0.5.6;
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 
@@ -11,7 +13,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
  *      Based on [1] http://batog.info/papers/scalable-reward-distribution.pdf
  *      And on [2] https://solmaz.io/2019/02/24/scalable-reward-changing/
  */
-contract RewardsDistributor {
+contract RewardsDistributor is Initializable, Ownable {
     using SafeMath for uint256;
 
     /// @notice ELIGIBLE_UNIT is the smallest eligible unit for reward. Minimum
@@ -56,7 +58,10 @@ contract RewardsDistributor {
 
 
     /// Initialize the contract.
-    constructor() public {
+    /// @param owner Contract owner, can call functions that change state.
+    function initialize(address owner) public initializer {
+        Ownable.initialize(owner);
+
         _stakeTotal = 0;
         _rewardTotal = 0;
         _rewardRemainder = 0;
@@ -64,7 +69,7 @@ contract RewardsDistributor {
 
 
     /// @notice Deposit funds into contract.
-    function _deposit(address staker, uint256 tokens) internal returns (bool success) {
+    function deposit(address staker, uint256 tokens) public onlyOwner returns (bool success) {
 
         uint256 _tokensToAdd = tokens.add(_stakeRemainder[staker]);
 
@@ -88,29 +93,31 @@ contract RewardsDistributor {
 
 
     /// @notice Distribute tokens pro rata to all stakers.
-    function _distribute(address from, uint tokens) internal returns (bool success) {
+    function distribute(address from, uint tokens) public onlyOwner returns (bool success) {
         require(tokens > 0);
-        require(_stakeTotal > 0);
 
         // add past distribution remainder
         uint256 _amountToDistribute = tokens.add(_rewardRemainder);
 
-        // determine rewards per eligible stake
-        uint256 _ratio = _amountToDistribute.div(_stakeTotal);
+        if (_stakeTotal == 0) {
+            _rewardRemainder = _amountToDistribute;
+        } else {
+            // determine rewards per eligible stake
+            uint256 _ratio = _amountToDistribute.div(_stakeTotal);
 
-        // carry on remainder
-        _rewardRemainder = _amountToDistribute.mod(_stakeTotal);
+            // carry on remainder
+            _rewardRemainder = _amountToDistribute.mod(_stakeTotal);
 
-        // increase total rewards per stake unit
-        _rewardTotal = _rewardTotal.add(_ratio);
-
+            // increase total rewards per stake unit
+            _rewardTotal = _rewardTotal.add(_ratio);
+        }
         emit DistributionMade(from, tokens);
         return true;
     }
 
 
     /// @notice Withdraw accumulated reward for the staker address.
-    function _withdrawReward(address staker) internal returns (uint256 tokens) {
+    function withdrawReward(address staker) public onlyOwner returns (uint256 tokens) {
 
         uint256 _reward = getReward(staker);
 
@@ -123,7 +130,7 @@ contract RewardsDistributor {
 
 
     /// @notice Withdraw stake for the staker address
-    function _withdrawStake(address staker, uint256 tokens) internal returns (bool) {
+    function withdrawStake(address staker, uint256 tokens) public onlyOwner returns (bool) {
 
         uint256 _currentStake = getStake(staker);
 
@@ -150,13 +157,20 @@ contract RewardsDistributor {
         return true;
     }
 
+
+    /// @notice Withdraw stake for the staker address
+    function withdrawAllStake(address staker) public onlyOwner returns (bool) {
+        uint256 _currentStake = getStake(staker);
+        return withdrawStake(staker, _currentStake);
+    }
+
     ///
     /// READ ONLY
     ///
 
 
     /// @notice Read total stake.
-    function getStakeTotal() public returns (uint256) {
+    function getStakeTotal() public view returns (uint256) {
         return _stakeTotal.mul(ELIGIBLE_UNIT);
     }
 

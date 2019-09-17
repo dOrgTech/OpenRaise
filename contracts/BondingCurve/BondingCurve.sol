@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
-import "./dividend/DividendPool.sol";
 import "./token/BondedToken.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
@@ -23,8 +22,6 @@ contract BondingCurve is Initializable, Ownable {
 
     uint256 internal _reserveBalance;
     uint256 internal _splitOnPay;
-
-    DividendPool internal _dividendPool;
 
     uint256 private constant MAX_PERCENTAGE = 100;
     uint256 private constant MICRO_PAYMENT_THRESHOLD = 100;
@@ -72,7 +69,6 @@ contract BondingCurve is Initializable, Ownable {
     /// @param bondedToken Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
     /// @param buyCurve Curve logic for buy curve.
     /// @param sellCurve Curve logic for sell curve.
-    /// @param dividendPool Pool to recieve and allocate tokens for bonded token holders.
     /// @param splitOnPay Percentage of incoming collateralTokens distributed to beneficiary on pay(). The remainder being distributed among current bondedToken holders. Divided by precision value.
     function initialize(
         address owner,
@@ -81,10 +77,9 @@ contract BondingCurve is Initializable, Ownable {
         BondedToken bondedToken,
         ICurveLogic buyCurve,
         ICurveLogic sellCurve,
-        DividendPool dividendPool,
         uint256 splitOnPay
     ) public initializer {
-        require(splitOnPay <= 100, SPLIT_ON_PAY_INVALID);
+        require(splitOnPay <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
 
         Ownable.initialize(owner);
 
@@ -95,7 +90,6 @@ contract BondingCurve is Initializable, Ownable {
         _sellCurve = sellCurve;
         _bondedToken = bondedToken;
         _collateralToken = collateralToken;
-        _dividendPool = dividendPool;
 
         _splitOnPay = splitOnPay;
 
@@ -180,18 +174,19 @@ contract BondingCurve is Initializable, Ownable {
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
-        uint256 remainderTokens;
-
-        uint256 dividendPercentage = MAX_PERCENTAGE.sub(_splitOnPay);
 
         tokensToBeneficiary = (amount.mul(_splitOnPay)).div(MAX_PERCENTAGE);
-        tokensToDividendHolders = (amount.mul(dividendPercentage)).div(MAX_PERCENTAGE);
-        remainderTokens = amount.sub(tokensToBeneficiary).sub(tokensToDividendHolders);
+        tokensToDividendHolders = amount.sub(tokensToBeneficiary);
 
+        // incoming funds
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
 
+        // outgoing funds to Beneficiary
         paymentToken.transfer(_beneficiary, tokensToBeneficiary);
-        paymentToken.transfer(address(_dividendPool), tokensToDividendHolders.add(remainderTokens));
+
+        // outgoing funds to token holders as dividends (stored by BondedToken)
+        paymentToken.approve(address(_bondedToken), tokensToDividendHolders);
+        _bondedToken.distribute(address(this), tokensToDividendHolders);
 
         emit Pay(
             msg.sender,
@@ -271,11 +266,6 @@ contract BondingCurve is Initializable, Ownable {
     /// @notice Get split on pay parameter
     function splitOnPay() public view returns (uint256) {
         return _splitOnPay;
-    }
-
-    /// @notice Get dividend pool contract
-    function dividendPool() public view returns (DividendPool) {
-        return _dividendPool;
     }
 
     /// @notice Get minimum value accepted for payments

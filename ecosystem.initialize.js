@@ -9,7 +9,7 @@ const contractNames = {
   StaticCurveLogic: 'StaticCurveLogic',
   BancorCurveLogic: 'BancorCurveLogic',
   BondedToken: 'BondedToken',
-  DividendPool: 'DividendPool',
+  RewardsDistributor: 'RewardsDistributor',
   BondingCurve: 'BondingCurve',
   BondingCurveFactory: 'BondingCurveFactory',
   BancorCurveService: 'BancorCurveService'
@@ -78,7 +78,7 @@ async function initializeBondingCurveFactory(contractAddress) {
     ozNetworkConfig.contracts.BancorCurveLogic.address,
     ozNetworkConfig.contracts.BondedToken.address,
     ozNetworkConfig.contracts.BondingCurve.address,
-    ozNetworkConfig.contracts.DividendPool.address,
+    ozNetworkConfig.contracts.RewardsDistributor.address,
     getLatestProxy(contractNames.BancorCurveService).address
   );
 }
