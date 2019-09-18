@@ -45,7 +45,6 @@ contract StaticCurveLogic is Initializable, ICurveLogic {
         uint256 amount
     ) public view returns (uint256) {
         return amount.mul(_tokenRatio).div(PRECISION);
-        
     }
 
     /// @notice Get token ratio

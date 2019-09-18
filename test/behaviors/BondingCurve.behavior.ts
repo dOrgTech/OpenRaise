@@ -738,39 +738,116 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
           });
         });
 
-        // it('should transfer correct token amounts between beneficiary and dividend pool', async function() {
-        //   const beneficiaryBeforeBalance = new BN(
-        //     await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
-        //   );
+        it('should transfer correct token amounts between beneficiary and dividend pool', async function() {
+          const beneficiaryBeforeBalance = new BN(
+            await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
+          );
 
-        //   const dividendBeforeBalance = new BN(
-        //     await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
-        //   );
+          const dividendBeforeBalance = new BN(
+            await paymentToken.methods.balanceOf(bondedToken.address).call({from: miscUser})
+          );
 
-        //   tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({
-        //     from: nonOwner
-        //   });
-        //   const event = expectEvent.inLogs(tx.events, 'Pay');
+          tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({
+            from: nonOwner
+          });
+          const event = expectEvent.inLogs(tx.events, 'Pay');
 
-        //   const beneficiaryAfterBalance = new BN(
-        //     await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
-        //   );
+          const beneficiaryAfterBalance = new BN(
+            await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
+          );
 
-        //   const dividendAfterBalance = new BN(
-        //     await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
-        //   );
+          const dividendAfterBalance = new BN(
+            await paymentToken.methods.balanceOf(bondedToken.address).call({from: miscUser})
+          );
 
-        //   const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
-        //   const dividendAmount = new BN(expectEvent.getParameter(event, 'dividendAmount'));
+          const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
+          const dividendAmount = new BN(expectEvent.getParameter(event, 'dividendAmount'));
 
-        //   expect(beneficiaryAmount).to.be.bignumber.equal(
-        //     beneficiaryAfterBalance.sub(beneficiaryBeforeBalance)
-        //   );
+          expect(beneficiaryAmount).to.be.bignumber.equal(
+            beneficiaryAfterBalance.sub(beneficiaryBeforeBalance)
+          );
 
-        //   expect(dividendAmount).to.be.bignumber.equal(
-        //     dividendAfterBalance.sub(dividendBeforeBalance)
-        //   );
-        // });
+          expect(dividendAmount).to.be.bignumber.equal(
+            dividendAfterBalance.sub(dividendBeforeBalance)
+          );
+        });
+
+        describe('Dividends Distribution', async () => {
+          const userA = userAccounts[1];
+          const userB = userAccounts[2];
+
+          const userBalanceWethA = new BN(String(300 * 10 ** 9));
+          const userBalanceWethB = new BN(String(100 * 10 ** 9));
+
+          const hundred = new BN(100);
+
+          const userBalanceBndtkA = userBalanceWethA.div(hundred);
+          const userBalanceBndtkB = userBalanceWethB.div(hundred);
+
+          const distributeAmount = new BN(200);  // WETH
+
+          beforeEach(async () => {
+            // mint the collateral token (let's imagine it's WETH) for two test
+            // accounts and approve transfers to be initiated by bondingCurve
+            await paymentToken.methods.mint(userA, userBalanceWethA.toString()).send({from: tokenMinter});
+            await paymentToken.methods.mint(userB, userBalanceWethB.toString()).send({from: tokenMinter});
+
+            await paymentToken.methods.approve(bondingCurve.address, userBalanceWethA.toString()).send({
+              from: userA
+            });
+            await paymentToken.methods.approve(bondingCurve.address, userBalanceWethB.toString()).send({
+              from: userB
+            });
+
+            tx = await bondingCurve.methods
+            .buy(userBalanceBndtkA.toString(), maxBuyPrice.toString(), userA)
+            .send({from: userA});
+
+            tx = await bondingCurve.methods
+            .buy(userBalanceBndtkB.toString(), maxBuyPrice.toString(), userB)
+            .send({from: userB});
+
+            // at this point userA should own 3 * 10**9 bondedTokens and
+            //               userB should own 1 * 10**9 bondedTokens
+            const bondedTokensA = new BN(
+              await bondedToken.methods.balanceOf(userA).call({from: userA})
+            );
+            expect(bondedTokensA).to.be.bignumber.equal(userBalanceBndtkA);
+
+            const bondedTokensB = new BN(
+              await bondedToken.methods.balanceOf(userB).call({from: userB})
+            );
+            expect(bondedTokensB).to.be.bignumber.equal(userBalanceBndtkB);
+          });
+ 
+          it('should allocate reward proportionally on pay', async function() {
+            let expectedAmountForHolders = distributeAmount.mul(dividendSplit).div(maxPercentage);
+
+            tx = await bondingCurve.methods.pay(distributeAmount.toString()).send({from: nonOwner});
+  
+            result = await bondedToken.methods.getReward(userA).call({from: userA});
+            expect(result).to.be.equal(String(expectedAmountForHolders * 3 / 4));
+
+            result = await bondedToken.methods.getReward(userB).call({from: userB});
+            expect(result).to.be.equal(String(expectedAmountForHolders / 4));
+          });
+
+          it('should allow reward withdrawal after pay', async function() {
+            let expectedAmountForHolders = distributeAmount.mul(dividendSplit).div(maxPercentage);
+
+            tx = await bondingCurve.methods.pay(distributeAmount.toString()).send({from: nonOwner});
+
+            tx = await bondedToken.methods.withdrawReward().send({from: userB});
+            const userBAfterPayBalanceWeth = new BN(
+              await paymentToken.methods.balanceOf(userB).call({from: userB})
+            );
+            expect(userBAfterPayBalanceWeth).to.be.bignumber.equal(
+              expectedAmountForHolders.div(new BN(4))
+            );
+          });
+
+        });
+
       });
     });
   });
