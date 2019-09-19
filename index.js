@@ -51,12 +51,7 @@ const PACKAGE_NAMES = {
 async function setupApp(txParams) {
   // On-chain, single entry point of the entire application.
   const initialVersion = '2.5.2';
-  const appProject = await AppProject.fetchOrDeploy(
-    'example-openzeppelin-upgrades-simple',
-    initialVersion,
-    txParams,
-    {}
-  );
+  const appProject = await AppProject.fetchOrDeploy('@dorg/bc-dao', initialVersion, txParams, {});
 
   // Add all implementations
   await appProject.setImplementation(BondingCurve, CONTRACT_NAMES.BondingCurve);
@@ -66,6 +61,12 @@ async function setupApp(txParams) {
   await appProject.setImplementation(BondedToken, CONTRACT_NAMES.BondedToken);
   await appProject.setImplementation(BancorCurveService, CONTRACT_NAMES.BancorCurveService);
   await appProject.setImplementation(RewardsDistributor, CONTRACT_NAMES.RewardsDistributor);
+  await appProject.setImplementation(BondingCurveController, CONTRACT_NAMES.BondingCurveController);
+  await appProject.setImplementation(BondingCurveControlled, CONTRACT_NAMES.BondingCurveControlled);
+  await appProject.setImplementation(
+    BondingCurveControlledFactory,
+    CONTRACT_NAMES.BondingCurveControlledFactory
+  );
 
   return appProject;
 }
@@ -191,7 +192,7 @@ async function deployBondingCurveControlled(myProject, initArgs) {
   return instance;
 }
 
-async function deployBondingCurveControllerFactory(myProject, initArgs) {
+async function deployBondingCurveControlledFactory(myProject, initArgs) {
   ZWeb3.initialize(web3.currentProvider);
 
   const instance = await myProject.createProxy(BondingCurveControlledFactory, {
@@ -246,7 +247,7 @@ module.exports = {
   deployBondingCurveFactory,
   deployBondingCurveController,
   deployBondingCurveControlled,
-  deployBondingCurveControllerFactory,
+  deployBondingCurveControlledFactory,
   deployBondedToken,
   deployStandaloneERC20,
   deployRewardsDistributor,

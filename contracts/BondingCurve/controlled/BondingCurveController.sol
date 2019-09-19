@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.so
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/StandaloneERC20.sol";
 import "./BondingCurveControlled.sol";
 import "./BondingCurveControlledFactory.sol";
+import "../factory/BondingCurveFactory.sol";
 import "../curve/BancorCurveLogic.sol";
 import "../curve/BancorCurveService.sol";
 import "../curve/StaticCurveLogic.sol";
@@ -85,4 +86,55 @@ contract BondingCurveController is Initializable {
         bondingCurve.setSplitOnPay(msg.sender, splitOnPay);
     }
 
+    /*
+        Bonding Curve Factory
+    */
+
+    function deployStatic(
+        BondingCurveControlledFactory factory,
+        address owner,
+        address beneficiary,
+        address collateralToken,
+        uint256 buyCurveParams,
+        uint256 sellCurveParams,
+        uint256 splitOnPay,
+        string memory bondedTokenName,
+        string memory bondedTokenSymbol
+    ) public {
+        factory.deployStatic(
+            // msg.sender,
+            owner,
+            beneficiary,
+            collateralToken,
+            buyCurveParams,
+            sellCurveParams,
+            splitOnPay,
+            bondedTokenName,
+            bondedTokenSymbol
+        );
+    }
+
+    function deployBancor(
+        BondingCurveControlledFactory factory,
+        address owner,
+        address beneficiary,
+        address collateralToken,
+        uint32 buyCurveParams,
+        uint32 sellCurveParams,
+        uint256 splitOnPay,
+        string memory bondedTokenName,
+        string memory bondedTokenSymbol
+    ) public {
+        factory.deployBancor(
+            // msg.sender,
+            owner,
+            beneficiary,
+            collateralToken,
+            buyCurveParams,
+            sellCurveParams,
+            splitOnPay,
+            bondedTokenName,
+            bondedTokenSymbol
+        );
+    }
 }
