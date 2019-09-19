@@ -1,5 +1,6 @@
 const {expect} = require('chai');
 const {web3, BN} = require('../node_modules/openzeppelin-test-helpers/src/setup');
+const deploy = require('../index');
 
 function getParameter(event, parameterName) {
   const parameterList = event.returnValues;
@@ -59,6 +60,25 @@ async function inTransaction(txHash, emitter, eventName, eventArgs = {}) {
   return inLogs(logs, eventName, eventArgs);
 }
 
+function getAbi(contractName) {
+  return deploy.CONTRACT_ABIS[contractName].schema.abi;
+}
+
+async function inTransactionRaw(tx, contractName, contractAddress, eventName, eventArgs = {}) {
+  const txHash = tx.transactionHash;
+  const {abi} = deploy.CONTRACT_ABIS[contractName].schema;
+  const contract = new web3.eth.Contract(abi, contractAddress);
+  const receipt = await web3.eth.getTransactionReceipt(txHash);
+  const events = await contract.getPastEvents(eventName, {
+    fromBlock: receipt.blockNumber,
+    filter: eventArgs
+  });
+  if (events == undefined || events == null || events.length == 0) {
+    throw new Error();
+  }
+  return events;
+}
+
 function contains(args, key, value) {
   expect(key in args).to.equal(true, `Event argument '${key}' not found`);
 
@@ -79,5 +99,6 @@ module.exports = {
   inLogs,
   inConstruction,
   inTransaction,
+  inTransactionRaw,
   getParameter
 };
