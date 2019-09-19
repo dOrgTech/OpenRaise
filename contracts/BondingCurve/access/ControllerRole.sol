@@ -12,9 +12,7 @@ contract ControllerRole is Initializable {
     Roles.Role private _controllers;
 
     function initialize(address sender) public initializer {
-        if (!isController(sender)) {
-            _addController(sender);
-        }
+        _addController(sender);
     }
 
     modifier onlyController() {
@@ -29,22 +27,9 @@ contract ControllerRole is Initializable {
         return _controllers.has(account);
     }
 
-    function addController(address account) public onlyController {
-        _addController(account);
-    }
-
-    function renounceController() public {
-        _removeController(msg.sender);
-    }
-
     function _addController(address account) internal {
         _controllers.add(account);
         emit ControllerAdded(account);
-    }
-
-    function _removeController(address account) internal {
-        _controllers.remove(account);
-        emit ControllerRemoved(account);
     }
 
     uint256[50] private ______gap;

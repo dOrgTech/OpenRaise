@@ -119,6 +119,23 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
         '100'
       );
     });
+
+    it('should fail on invalid splitOnPay', async () => {
+      const invalidSplitOnPay = new BN(101);
+
+      await expectRevert.unspecified(
+        deploy.deployBondingCurveControlled(project, [
+          curveOwner,
+          curveOwner,
+          bondingCurveController.address,
+          paymentToken.address,
+          bondedToken.address,
+          buyCurve.address,
+          sellCurve.address,
+          invalidSplitOnPay.toString()
+        ])
+      );
+    });
   });
 
   describe('Curve Admin', async () => {
