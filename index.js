@@ -210,6 +210,13 @@ async function deployRewardsDistributor(myProject, initArgs) {
   return instance;
 }
 
+async function createRewardsDistributor(myProject) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(RewardsDistributor);
+  return instance;
+}
+
 async function getImplementation(project, contractName) {
   const directory = await project.getCurrentDirectory();
   const implementation = await directory.getImplementation(contractName);
@@ -251,6 +258,7 @@ module.exports = {
   deployBondedToken,
   deployStandaloneERC20,
   deployRewardsDistributor,
+  createRewardsDistributor,
   CONTRACT_NAMES,
   CONTRACT_ABIS,
   getImplementation,
