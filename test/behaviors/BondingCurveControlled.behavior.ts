@@ -9,6 +9,8 @@ const should = require('chai').should();
 const deploy = require('../../index.js');
 const contractConstants = require('../constants/contractConstants.js');
 
+const BondingCurveControlled = artifacts.require('BondingCurveControlled');
+
 async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
   const {adminAccount, curveOwner, tokenMinter, userAccounts, miscUser} = context;
   let {deployParams, bondedTokenValues, paymentTokenValues} = parameters;
@@ -16,13 +18,13 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
   let result;
 
   let project;
-  let bondingCurveController;
   let paymentToken;
-  let dividendPool;
+  let rewardsDistributor;
   let bondedToken;
   let bondingCurve;
   let buyCurve;
   let sellCurve;
+  let bondingCurveController;
 
   //   // Deploy bondingCurve proxy w/o initialization (check service for example)
   //   // Call initialize and expect revert
@@ -30,11 +32,14 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
   beforeEach(async function() {
     project = await deploy.deployProject();
 
+    // TODO: Use an ERC20Mintable instead of a BondedToken here!
     paymentToken = await deploy.deployBondedToken(project, [
       paymentTokenValues.parameters.name,
       paymentTokenValues.parameters.symbol,
       paymentTokenValues.parameters.decimals,
-      tokenMinter
+      tokenMinter,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS
     ]);
 
     const paymentTokenInitialBalance = new BN(web3.utils.toWei('60000', 'ether'));
@@ -43,14 +48,22 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
       .mint(tokenMinter, paymentTokenInitialBalance.toString())
       .send({from: tokenMinter});
 
+    rewardsDistributor = await deploy.deployRewardsDistributor(project, [curveOwner]);
+
+    bondingCurveController = await deploy.deployBondingCurveController(project);
+
     bondedToken = await deploy.deployBondedToken(project, [
       bondedTokenValues.parameters.name,
       bondedTokenValues.parameters.symbol,
       bondedTokenValues.parameters.decimals,
-      tokenMinter
+      tokenMinter,
+      rewardsDistributor.address,
+      paymentToken.address
     ]);
 
-    dividendPool = await deploy.deployDividendPool(project, [paymentToken.address, curveOwner]);
+    await rewardsDistributor.methods
+      .transferOwnership(bondedToken.address)
+      .send({from: curveOwner});
 
     buyCurve = await deploy.deployStaticCurveLogic(project, [
       deployParams.buyCurveParams.toString()
@@ -60,8 +73,6 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
       deployParams.sellCurveParams.toString()
     ]);
 
-    bondingCurveController = await deploy.deployBondingCurveController(project);
-
     bondingCurve = await deploy.deployBondingCurveControlled(project, [
       curveOwner,
       curveOwner,
@@ -70,7 +81,6 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
       bondedToken.address,
       buyCurve.address,
       sellCurve.address,
-      dividendPool.address,
       deployParams.splitOnPay.toString()
     ]);
 
@@ -96,32 +106,17 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
       expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
         sellCurve.address
       );
-      expect(await bondingCurve.methods.dividendPool().call({from: miscUser})).to.be.equal(
-        dividendPool.address
-      );
+      expect(
+        await bondingCurve.methods
+          .isController(bondingCurveController.address)
+          .call({from: miscUser})
+      ).to.be.equal(true);
       expect(
         new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
       ).to.be.bignumber.equal(deployParams.splitOnPay);
       expect(await bondingCurve.methods.reserveBalance().call({from: miscUser})).to.be.equal('0');
       expect(await bondingCurve.methods.getPaymentThreshold().call({from: miscUser})).to.be.equal(
         '100'
-      );
-    });
-
-    it('should fail on invalid splitOnPay', async () => {
-      const invalidSplitOnPay = new BN(101);
-
-      await expectRevert.unspecified(
-        deploy.deployBondingCurve(project, [
-          curveOwner,
-          curveOwner,
-          paymentToken.address,
-          bondedToken.address,
-          buyCurve.address,
-          sellCurve.address,
-          dividendPool.address,
-          invalidSplitOnPay.toString()
-        ])
       );
     });
   });
@@ -332,6 +327,7 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
         await bondingCurveController.methods
           .setSellCurve(bondingCurve.address, buyCurve.address)
           .send({from: curveOwner});
+
         await bondingCurveController.methods
           .setBuyCurve(bondingCurve.address, sellCurve.address)
           .send({from: curveOwner});
@@ -340,6 +336,14 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
           bondingCurveController.methods
             .buy(bondingCurve.address, numTokens.toString(), maxBuyPrice.toString(), buyer)
             .send({from: buyer})
+        );
+      });
+
+      it('should not allow non-controller to access buy method directly', async () => {
+        await expectRevert.unspecified(
+          bondingCurve.methods.buy(bondingCurve.address, numTokens.toString(), '1', buyer).send({
+            from: buyer
+          })
         );
       });
     });
@@ -405,13 +409,27 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
             from: buyer
           });
 
-        const event = expectEvent.inLogs(tx.events, 'Buy');
+        // await expectEvent.inTransaction(tx.tx, PaymentToken, 'Transfer', {
+        //   from: borrower,
+        //   to: crowdloan.address,
+        //   value: bit()
+        // });
+
+        // const contractName = deploy.CONTRACT_NAMES.BondingCurve;
+        // const eventName = 'Buy';
+
+        const events = await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Buy'
+        );
+
+        const reserveAmount = new BN(events[0].returnValues.reserveAmount);
 
         const afterBalance = new BN(
           await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
         );
-
-        const reserveAmount = new BN(expectEvent.getParameter(event, 'reserveAmount'));
 
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(reserveAmount));
       });
@@ -427,13 +445,18 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
             from: buyer
           });
 
-        const event = expectEvent.inLogs(tx.events, 'Buy');
+        const events = await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Buy'
+        );
+
+        const reserveAmount = new BN(events[0].returnValues.reserveAmount);
 
         const reserveBalance = new BN(
           await bondingCurve.methods.reserveBalance().call({from: miscUser})
         );
-
-        const reserveAmount = new BN(expectEvent.getParameter(event, 'reserveAmount'));
 
         expect(reserveBalance).to.be.bignumber.equal(beforeBalance.add(reserveAmount));
       });
@@ -449,13 +472,18 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
             from: buyer
           });
 
-        const event = expectEvent.inLogs(tx.events, 'Buy');
+        const events = await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Buy'
+        );
+
+        const beneficiaryAmount = new BN(events[0].returnValues.beneficiaryAmount);
 
         const afterBalance = new BN(
           await paymentToken.methods.balanceOf(deployParams.beneficiary).call({from: miscUser})
         );
-
-        const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
 
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(beneficiaryAmount));
       });
@@ -466,12 +494,18 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
           .send({
             from: buyer
           });
-        //Verify events
-        expectEvent.inLogs(tx.events, 'Buy', {
-          buyer: buyer,
-          recipient: buyer,
-          amount: numTokens.toString()
-        });
+
+        const events = await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Buy',
+          {
+            buyer: buyer,
+            recipient: buyer,
+            amount: numTokens.toString()
+          }
+        );
       });
 
       it('should allow buy if current price is below max price specified', async function() {
@@ -480,12 +514,18 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
           .send({
             from: buyer
           });
-        //Verify events
-        expectEvent.inLogs(tx.events, 'Buy', {
-          buyer: buyer,
-          recipient: buyer,
-          amount: numTokens.toString()
-        });
+
+        await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Buy',
+          {
+            buyer: buyer,
+            recipient: buyer,
+            amount: numTokens.toString()
+          }
+        );
       });
 
       it('should allow user to buy for a different recipient', async function() {
@@ -494,12 +534,17 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
           .send({
             from: buyer
           });
-        //Verify events
-        expectEvent.inLogs(tx.events, 'Buy', {
-          buyer: buyer,
-          recipient: userAccounts[1],
-          amount: numTokens.toString()
-        });
+        await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Buy',
+          {
+            buyer: buyer,
+            recipient: userAccounts[1],
+            amount: numTokens.toString()
+          }
+        );
       });
     });
 
@@ -524,6 +569,16 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
 
         await expectRevert.unspecified(
           bondingCurveController.methods
+            .sell(bondingCurve.address, numTokens.toString(), minSellPrice.toString(), buyer)
+            .send({
+              from: buyer
+            })
+        );
+      });
+
+      it('should not allow non-controller to access sell method directly', async () => {
+        await expectRevert.unspecified(
+          bondingCurve.methods
             .sell(bondingCurve.address, numTokens.toString(), minSellPrice.toString(), buyer)
             .send({
               from: buyer
@@ -560,27 +615,39 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
             from: buyer
           });
 
-        expectEvent.inLogs(tx.events, 'Sell', {
-          seller: buyer,
-          recipient: buyer,
-          amount: numTokens.toString()
-        });
+        await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Sell',
+          {
+            seller: buyer,
+            recipient: buyer,
+            amount: numTokens.toString()
+          }
+        );
       });
 
       it('should allow user with bondedTokens to sell some bondedTokens', async function() {
         const tokensToSell = numTokens.div(new BN(2));
 
         tx = await bondingCurveController.methods
-          .sell(tokensToSell.toString(), minSellPrice.toString(), buyer)
+          .sell(bondingCurve.address, tokensToSell.toString(), minSellPrice.toString(), buyer)
           .send({
             from: buyer
           });
 
-        expectEvent.inLogs(tx.events, 'Sell', {
-          seller: buyer,
-          recipient: buyer,
-          amount: tokensToSell
-        });
+        await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Sell',
+          {
+            seller: buyer,
+            recipient: buyer,
+            amount: tokensToSell.toString()
+          }
+        );
       });
 
       it('should burn tokens from seller on sell', async function() {
@@ -589,7 +656,7 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
         );
 
         tx = await bondingCurveController.methods
-          .sell(numTokens.toString(), minSellPrice.toString(), buyer)
+          .sell(bondingCurve.address, numTokens.toString(), minSellPrice.toString(), buyer)
           .send({
             from: buyer
           });
@@ -606,7 +673,7 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
         );
 
         tx = await bondingCurveController.methods
-          .sell(numTokens.toString(), minSellPrice.toString(), buyer)
+          .sell(bondingCurve.address, numTokens.toString(), minSellPrice.toString(), buyer)
           .send({
             from: buyer
           });
@@ -623,7 +690,7 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
         );
 
         tx = await bondingCurveController.methods
-          .sell(numTokens.toString(), minSellPrice.toString(), buyer)
+          .sell(bondingCurve.address, numTokens.toString(), minSellPrice.toString(), buyer)
           .send({
             from: buyer
           });
@@ -647,11 +714,17 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
             from: buyer
           });
 
-        expectEvent.inLogs(tx.events, 'Sell', {
-          seller: buyer,
-          recipient: recipient,
-          amount: numTokens.toString()
-        });
+        await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Sell',
+          {
+            seller: buyer,
+            recipient: recipient,
+            amount: numTokens.toString()
+          }
+        );
 
         const recipientAfterBalance = new BN(
           await paymentToken.methods.balanceOf(recipient).call({from: miscUser})
@@ -715,21 +788,33 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
           .pay(bondingCurve.address, paymentAmount.toString())
           .send({from: nonOwner});
 
-        expectEvent.inLogs(tx.events, 'Pay', {
-          from: nonOwner,
-          token: paymentToken.address,
-          amount: paymentAmount.toString()
-        });
+        await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Pay',
+          {
+            from: nonOwner,
+            token: paymentToken.address,
+            amount: paymentAmount.toString()
+          }
+        );
 
         tx = await bondingCurveController.methods
           .pay(bondingCurve.address, paymentAmount.toString())
           .send({from: curveOwner});
 
-        expectEvent.inLogs(tx.events, 'Pay', {
-          from: curveOwner,
-          token: paymentToken.address,
-          amount: paymentAmount.toString()
-        });
+        await expectEvent.inTransactionRaw(
+          tx,
+          deploy.CONTRACT_NAMES.BondingCurve,
+          bondingCurve.address,
+          'Pay',
+          {
+            from: curveOwner,
+            token: paymentToken.address,
+            amount: paymentAmount.toString()
+          }
+        );
       });
 
       it('should not allow pay with greater amount than senders balance', async function() {
@@ -764,13 +849,19 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
             .pay(bondingCurve.address, paymentAmount.toString())
             .send({from: nonOwner});
 
-          expectEvent.inLogs(tx.events, 'Pay', {
-            from: nonOwner,
-            token: paymentToken.address,
-            amount: paymentAmount.toString(),
-            beneficiaryAmount: expectedBeneficiaryAmount.toString(),
-            dividendAmount: expectedDividendAmount.toString()
-          });
+          await expectEvent.inTransactionRaw(
+            tx,
+            deploy.CONTRACT_NAMES.BondingCurve,
+            bondingCurve.address,
+            'Pay',
+            {
+              from: nonOwner,
+              token: paymentToken.address,
+              amount: paymentAmount.toString(),
+              beneficiaryAmount: expectedBeneficiaryAmount.toString(),
+              dividendAmount: expectedDividendAmount.toString()
+            }
+          );
         });
 
         it('should register correct split between beneficiary and dividend pool from curve owner', async function() {
@@ -780,55 +871,59 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
               from: curveOwner
             });
 
-          expectEvent.inLogs(tx.events, 'Pay', {
-            from: curveOwner,
-            token: paymentToken.address,
-            amount: paymentAmount.toString(),
-            beneficiaryAmount: expectedBeneficiaryAmount.toString(),
-            dividendAmount: expectedDividendAmount.toString()
-          });
-        });
-
-        it('should transfer correct token amounts between beneficiary and dividend pool', async function() {
-          const beneficiaryBeforeBalance = new BN(
-            await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
-          );
-
-          const dividendBeforeBalance = new BN(
-            await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
-          );
-
-          tx = await bondingCurveController.methods
-            .pay(bondingCurve.address, paymentAmount.toString())
-            .send({
-              from: nonOwner
-            });
-          const event = expectEvent.inLogs(tx.events, 'Pay');
-
-          const beneficiaryAfterBalance = new BN(
-            await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
-          );
-
-          const dividendAfterBalance = new BN(
-            await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
-          );
-
-          const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
-          const dividendAmount = new BN(expectEvent.getParameter(event, 'dividendAmount'));
-
-          expect(beneficiaryAmount).to.be.bignumber.equal(
-            beneficiaryAfterBalance.sub(beneficiaryBeforeBalance)
-          );
-
-          expect(dividendAmount).to.be.bignumber.equal(
-            dividendAfterBalance.sub(dividendBeforeBalance)
+          await expectEvent.inTransactionRaw(
+            tx,
+            deploy.CONTRACT_NAMES.BondingCurve,
+            bondingCurve.address,
+            'Pay',
+            {
+              from: curveOwner,
+              token: paymentToken.address,
+              amount: paymentAmount.toString(),
+              beneficiaryAmount: expectedBeneficiaryAmount.toString(),
+              dividendAmount: expectedDividendAmount.toString()
+            }
           );
         });
+
+        // it('should transfer correct token amounts between beneficiary and dividend pool', async function() {
+        //   const beneficiaryBeforeBalance = new BN(
+        //     await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
+        //   );
+
+        //   const dividendBeforeBalance = new BN(
+        //     await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
+        //   );
+
+        //   tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({
+        //     from: nonOwner
+        //   });
+        //   const event = expectEvent.inLogs(tx.events, 'Pay');
+
+        //   const beneficiaryAfterBalance = new BN(
+        //     await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
+        //   );
+
+        //   const dividendAfterBalance = new BN(
+        //     await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
+        //   );
+
+        //   const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
+        //   const dividendAmount = new BN(expectEvent.getParameter(event, 'dividendAmount'));
+
+        //   expect(beneficiaryAmount).to.be.bignumber.equal(
+        //     beneficiaryAfterBalance.sub(beneficiaryBeforeBalance)
+        //   );
+
+        //   expect(dividendAmount).to.be.bignumber.equal(
+        //     dividendAfterBalance.sub(dividendBeforeBalance)
+        //   );
+        // });
       });
     });
   });
 }
 
 module.exports = {
-  shouldBehaveLikeBondingCurve
+  shouldBehaveLikeBondingCurveControlled
 };

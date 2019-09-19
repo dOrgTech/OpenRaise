@@ -13,6 +13,11 @@ const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
 const BondedToken = Contracts.getFromLocal('BondedToken');
 const RewardsDistributor = Contracts.getFromLocal('RewardsDistributor');
 
+//Controlled
+const BondingCurveController = Contracts.getFromLocal('BondingCurveController');
+const BondingCurveControlled = Contracts.getFromLocal('BondingCurveControlled');
+const BondingCurveControlledFactory = Contracts.getFromLocal('BondingCurveControlledFactory');
+
 const CONTRACT_ABIS = {
   BondingCurve,
   BondingCurveFactory,
@@ -20,7 +25,10 @@ const CONTRACT_ABIS = {
   StaticCurveLogic,
   BondedToken,
   BancorCurveService,
-  RewardsDistributor
+  RewardsDistributor,
+  BondingCurveController,
+  BondingCurveControlled,
+  BondingCurveControlledFactory
 };
 
 const CONTRACT_NAMES = {
@@ -30,7 +38,10 @@ const CONTRACT_NAMES = {
   StaticCurveLogic: 'StaticCurveLogic',
   BondedToken: 'BondedToken',
   BancorCurveService: 'BancorCurveService',
-  RewardsDistributor: 'RewardsDistributor'
+  RewardsDistributor: 'RewardsDistributor',
+  BondingCurveController: 'BondingCurveController',
+  BondingCurveControlled: 'BondingCurveControlled',
+  BondingCurveControlledFactory: 'BondingCurveControlledFactory'
 };
 
 const PACKAGE_NAMES = {
@@ -164,6 +175,31 @@ async function deployStandaloneERC20(myProject, initArgs) {
   //   });
 }
 
+async function deployBondingCurveController(myProject) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(BondingCurveController);
+  return instance;
+}
+
+async function deployBondingCurveControlled(myProject, initArgs) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(BondingCurveControlled, {
+    initArgs
+  });
+  return instance;
+}
+
+async function deployBondingCurveControllerFactory(myProject, initArgs) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(BondingCurveControlledFactory, {
+    initArgs
+  });
+  return instance;
+}
+
 async function deployRewardsDistributor(myProject, initArgs) {
   ZWeb3.initialize(web3.currentProvider);
 
@@ -208,6 +244,9 @@ module.exports = {
   createBondingCurve,
   deployBondingCurve,
   deployBondingCurveFactory,
+  deployBondingCurveController,
+  deployBondingCurveControlled,
+  deployBondingCurveControllerFactory,
   deployBondedToken,
   deployStandaloneERC20,
   deployRewardsDistributor,

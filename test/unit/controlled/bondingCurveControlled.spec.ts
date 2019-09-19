@@ -1,25 +1,25 @@
 // Import all required modules from openzeppelin-test-helpers
 const {BN, constants, expectRevert} = require('openzeppelin-test-helpers');
 
-const expectEvent = require('../expectEvent');
+const expectEvent = require('../../expectEvent');
 
 // Import preferred chai flavor: both expect and should are supported
 const expect = require('chai').expect;
 const should = require('chai').should();
 
-const deploy = require('../../index.js');
+const deploy = require('../../../index.js');
 
-const {bondedTokenValues, paymentTokenValues} = require('../constants/tokenValues');
-const contractConstants = require('../constants/contractConstants.js');
+const {bondedTokenValues, paymentTokenValues} = require('../../constants/tokenValues');
+const contractConstants = require('../../constants/contractConstants.js');
 
 const {
   shouldBehaveLikeBondingCurveControlled
-} = require('../behaviors/BondingCurveControlled.behavior.ts');
+} = require('../../behaviors/BondingCurveControlled.behavior.ts');
 /*
   Uses StaticCurveLogic for simpler tests.
 */
 
-contract('Bonding Curve', async accounts => {
+contract('Bonding Curve Controlled', async accounts => {
   const adminAccount = accounts[0];
   const curveOwner = accounts[1];
   const tokenMinter = accounts[2];
@@ -37,7 +37,7 @@ contract('Bonding Curve', async accounts => {
     bondedTokenSymbol: 'BND'
   };
 
-  context('Bonding Curve - Average Paramters, StaticCurveLogic', async () => {
+  context('Bonding Curve Controlled - Average Paramters, StaticCurveLogic', async () => {
     await shouldBehaveLikeBondingCurveControlled(
       {
         adminAccount,
