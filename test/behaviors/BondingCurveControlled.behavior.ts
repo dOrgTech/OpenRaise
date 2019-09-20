@@ -108,9 +108,7 @@ async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
         sellCurve.address
       );
       expect(
-        await bondingCurve.methods
-          .isController(bondingCurveController.address)
-          .call({from: miscUser})
+        await bondingCurve.methods.isSigner(bondingCurveController.address).call({from: miscUser})
       ).to.be.equal(true);
       expect(
         new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))

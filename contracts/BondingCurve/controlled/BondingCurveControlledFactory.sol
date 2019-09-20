@@ -5,7 +5,7 @@ import "@openzeppelin/upgrades/contracts/upgradeability/AdminUpgradeabilityProxy
 import "@openzeppelin/upgrades/contracts/application/App.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/StandaloneERC20.sol";
-import "../BondingCurve.sol";
+import "./BondingCurveControlled.sol";
 import "../curve/BancorCurveLogic.sol";
 import "../curve/BancorCurveService.sol";
 import "../curve/StaticCurveLogic.sol";
@@ -94,15 +94,7 @@ contract BondingCurveControlledFactory is Initializable {
             RewardsDistributor(proxies[4]),
             IERC20(tempCollateral[0])
         );
-        BondingCurve(proxies[3]).initialize(
-            owner,
-            beneficiary,
-            IERC20(collateralToken),
-            BondedToken(proxies[2]),
-            ICurveLogic(proxies[0]),
-            ICurveLogic(proxies[1]),
-            splitOnPay
-        );
+
         RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         emit BondingCurveDeployed(
@@ -112,6 +104,17 @@ contract BondingCurveControlledFactory is Initializable {
             proxies[1],
             proxies[4],
             owner
+        );
+
+        BondingCurveControlled(proxies[3]).initialize(
+            owner,
+            beneficiary,
+            msg.sender,
+            IERC20(collateralToken),
+            BondedToken(proxies[2]),
+            ICurveLogic(proxies[0]),
+            ICurveLogic(proxies[1]),
+            splitOnPay
         );
     }
 
@@ -153,15 +156,7 @@ contract BondingCurveControlledFactory is Initializable {
             RewardsDistributor(proxies[4]),
             IERC20(tempCollateral[0])
         );
-        BondingCurve(proxies[3]).initialize(
-            owner,
-            beneficiary,
-            IERC20(collateralToken),
-            BondedToken(proxies[2]),
-            ICurveLogic(proxies[0]),
-            ICurveLogic(proxies[1]),
-            splitOnPay
-        );
+
         RewardsDistributor(proxies[4]).initialize(proxies[2]);
 
         emit BondingCurveDeployed(
@@ -172,6 +167,18 @@ contract BondingCurveControlledFactory is Initializable {
             proxies[4],
             owner
         );
+
+        BondingCurveControlled(proxies[3]).initialize(
+            owner,
+            beneficiary,
+            msg.sender,
+            IERC20(collateralToken),
+            BondedToken(proxies[2]),
+            ICurveLogic(proxies[0]),
+            ICurveLogic(proxies[1]),
+            splitOnPay
+        );
+
     }
 
     function getImplementations()

@@ -3,15 +3,15 @@ pragma solidity ^0.5.7;
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/roles/SignerRole.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "../access/ControllerRole.sol";
 import "../interface/ICurveLogic.sol";
 import "../token/BondedToken.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
+contract BondingCurveControlled is Initializable, Ownable, SignerRole {
     using SafeMath for uint256;
 
     IERC20 internal _collateralToken;
@@ -84,7 +84,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
         require(splitOnPay <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
 
         Ownable.initialize(owner);
-        ControllerRole.initialize(curveController);
+        SignerRole.initialize(curveController);
 
         _beneficiary = beneficiary;
         emit BeneficiarySet(_beneficiary);
@@ -121,7 +121,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
     /// @param recipient    Address to send the new bondedTokens to
     function buy(address sender, uint256 numTokens, uint256 maxPrice, address recipient)
         public
-        onlyController
+        onlySigner
     {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
@@ -157,7 +157,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
     /// @param recipient    Address to send collateralTokens to
     function sell(address sender, uint256 numTokens, uint256 minPrice, address recipient)
         public
-        onlyController
+        onlySigner
     {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
         require(_bondedToken.balanceOf(sender) >= numTokens, INSUFFICENT_TOKENS);
@@ -176,7 +176,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
     /// @notice             Pay the DAO in the specified payment token. They will be distributed between the DAO beneficiary and bonded token holders
     /// @dev                Does not currently support arbitrary token payments
     /// @param amount       The number of tokens to pay the DAO
-    function pay(address sender, uint256 amount) public onlyController {
+    function pay(address sender, uint256 amount) public onlySigner {
         require(amount > MICRO_PAYMENT_THRESHOLD, NO_MICRO_PAYMENTS);
 
         IERC20 paymentToken = _collateralToken;
@@ -212,7 +212,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
 
     /// @notice Set beneficiary to a new address
     /// @param beneficiary       New beneficiary
-    function setBeneficiary(address sender, address beneficiary) public onlyController {
+    function setBeneficiary(address sender, address beneficiary) public onlySigner {
         require(owner() == sender);
 
         _beneficiary = beneficiary;
@@ -221,7 +221,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
 
     /// @notice Set buy curve to a new address
     /// @param buyCurve       New buy curve
-    function setBuyCurve(address sender, ICurveLogic buyCurve) public onlyController {
+    function setBuyCurve(address sender, ICurveLogic buyCurve) public onlySigner {
         require(owner() == sender);
 
         _buyCurve = buyCurve;
@@ -230,7 +230,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
 
     /// @notice Set sell curve to a new address
     /// @param sellCurve       New sell curve
-    function setSellCurve(address sender, ICurveLogic sellCurve) public onlyController {
+    function setSellCurve(address sender, ICurveLogic sellCurve) public onlySigner {
         require(owner() == sender);
 
         _sellCurve = sellCurve;
@@ -239,7 +239,7 @@ contract BondingCurveControlled is Initializable, Ownable, ControllerRole {
 
     /// @notice Set split on pay to new value
     /// @param splitOnPay       New split on pay value
-    function setSplitOnPay(address sender, uint256 splitOnPay) public onlyController {
+    function setSplitOnPay(address sender, uint256 splitOnPay) public onlySigner {
         require(owner() == sender);
 
         _splitOnPay = splitOnPay;

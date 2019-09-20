@@ -60,7 +60,10 @@ contract('BondingCurveControlledFactory', accounts => {
       deploy.CONTRACT_NAMES.BancorCurveLogic
     );
     bondedTokenImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondedToken);
-    bondingCurveImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondingCurve);
+    bondingCurveImpl = await deploy.getImplementation(
+      project,
+      deploy.CONTRACT_NAMES.BondingCurveControlled
+    );
     rewardsDistributorImpl = await deploy.getImplementation(
       project,
       deploy.CONTRACT_NAMES.RewardsDistributor
@@ -248,6 +251,10 @@ contract('BondingCurveControlledFactory', accounts => {
         expect(
           new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
         ).to.be.bignumber.equal(deployParams.splitOnPay);
+
+        expect(
+          new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
+        ).to.be.bignumber.equal(deployParams.splitOnPay);
       });
     });
   });
@@ -402,9 +409,9 @@ contract('BondingCurveControlledFactory', accounts => {
         expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
           sellCurve.options.address
         );
-        expect(
-          new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
-        ).to.be.bignumber.equal(deployParams.splitOnPay);
+        expect(await bondingCurve.methods.isSigner(curveOwner).call({from: miscUser})).to.be.equal(
+          true
+        );
       });
     });
   });
