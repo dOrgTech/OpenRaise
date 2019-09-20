@@ -409,9 +409,6 @@ contract('BondingCurveControlledFactory', accounts => {
         expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
           sellCurve.options.address
         );
-        expect(await bondingCurve.methods.isSigner(curveOwner).call({from: miscUser})).to.be.equal(
-          true
-        );
       });
     });
   });
