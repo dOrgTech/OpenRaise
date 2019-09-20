@@ -10,7 +10,6 @@ require('../setup');
 const deploy = require('../../index.js');
 
 const {paymentTokenValues, bondedTokenValues} = require('../constants/tokenValues');
-const {shouldBehaveLikeERC20Burnable} = require('../behaviors/ERC20Burnable.behavior');
 
 var TEN18 = new BN(String(10 ** 18));
 var PPB = new BN(String(10 ** 9));
@@ -105,7 +104,25 @@ contract('BondedToken', accounts => {
   });
 
   describe('Burn', async function() {
-    // await shouldBehaveLikeERC20Burnable(bondedToken, controller, initialBalance, userAccounts);
+    const recipient = userAccounts[2];
+    const mintAmount = new BN('100').mul(TEN18);
+
+    beforeEach(async () => {
+      //Mint bonded tokens for user
+      await bondedToken.methods.mint(recipient, mintAmount.toString()).send({from: controller});
+    });
+
+    it('should allow minter to burn tokens', async function() {
+      tx = await bondedToken.methods
+        .burn(recipient, mintAmount.toString())
+        .send({from: controller});
+    });
+
+    it('should not allow non-minter to burn tokens', async function() {
+      await expectRevert.unspecified(
+        bondedToken.methods.burn(recipient, mintAmount.toString()).send({from: recipient})
+      );
+    });
   });
 
   describe('Rewards', async () => {
@@ -144,6 +161,32 @@ contract('BondedToken', accounts => {
             .call({from: controller})
         );
       });
+
+      describe('Burn without rewards distributor', async function() {
+        const recipient = userAccounts[2];
+        const mintAmount = new BN('100').mul(TEN18);
+
+        beforeEach(async () => {
+          //Mint bonded tokens for user
+          await bondedTokenNoRewards.methods
+            .mint(recipient, mintAmount.toString())
+            .send({from: controller});
+        });
+
+        it('should allow minter to burn tokens', async function() {
+          tx = await bondedTokenNoRewards.methods
+            .burn(recipient, mintAmount.toString())
+            .send({from: controller});
+        });
+
+        it('should not allow non-minter to burn tokens', async function() {
+          await expectRevert.unspecified(
+            bondedTokenNoRewards.methods
+              .burn(recipient, mintAmount.toString())
+              .send({from: recipient})
+          );
+        });
+      });
     });
 
     describe('Dividend Token not set', async () => {
@@ -176,65 +219,93 @@ contract('BondedToken', accounts => {
     describe('Rewards Distribution', async () => {
       beforeEach(async function() {
         //Create stake for user
-
         await bondedToken.methods
           .mint(recipient, amountDeposit.toString())
           .send({from: controller});
-
-        //Distribute reward to stakers
-        await paymentToken.methods
-          .approve(bondedToken.address, amountDistribute.toString())
-          .send({from: controller});
-
-        await bondedToken.methods
-          .distribute(controller, amountDistribute.toString())
-          .send({from: controller});
       });
 
-      it('should not allow distribution of zero tokens', async () => {
-        await expectRevert.unspecified(
-          bondedToken.methods.distribute(controller, '0').send({from: controller})
-        );
+      describe('Pre-approval / distribution', async () => {
+        it('should not allow token transfer with inadequate token balance', async () => {
+          const distributor = userAccounts[2];
+
+          await expectRevert.unspecified(
+            bondedToken.methods
+              .distribute(distributor, amountDistribute.toString())
+              .send({from: distributor})
+          );
+        });
+
+        it('should not allow token transfer with inadequate token approval', async () => {
+          const distributor = userAccounts[2];
+
+          await paymentToken.methods
+            .mint(distributor, amountDistribute.toString())
+            .send({from: controller});
+
+          await expectRevert.unspecified(
+            bondedToken.methods
+              .distribute(distributor, amountDistribute.toString())
+              .send({from: distributor})
+          );
+        });
       });
 
-      it('should register correct reward withdrawal value', async () => {
-        const expectedReward = '19900000000000';
-        expect(await bondedToken.methods.getReward(recipient).call({from: controller})).to.be.equal(
-          expectedReward
-        );
-      });
+      describe('Post-approval / distribution', async () => {
+        beforeEach(async () => {
+          //Distribute reward to stakers
+          await paymentToken.methods
+            .approve(bondedToken.address, amountDistribute.toString())
+            .send({from: controller});
 
-      it('should not allocate any reward to user without stake', async () => {
-        expect(
-          await bondedToken.methods.getReward(userAccounts[2]).call({from: recipient})
-        ).to.be.equal('0');
-      });
+          await bondedToken.methods
+            .distribute(controller, amountDistribute.toString())
+            .send({from: controller});
+        });
 
-      it('should allow valid reward withdrawal', async () => {
-        let balances = {
-          before: null,
-          after: null,
-          expectedReward: null
-        };
+        it('should not allow distribution of zero tokens', async () => {
+          await expectRevert.unspecified(
+            bondedToken.methods.distribute(controller, 0).send({from: controller})
+          );
+        });
 
-        balances.before = new BN(
-          await paymentToken.methods.balanceOf(recipient).call({from: recipient})
-        );
-        balances.expectedReward = new BN(
-          await bondedToken.methods.getReward(recipient).call({from: recipient})
-        );
+        it('should register correct reward withdrawal value', async () => {
+          const expectedReward = '19900000000000';
+          expect(
+            await bondedToken.methods.getReward(recipient).call({from: controller})
+          ).to.be.equal(expectedReward);
+        });
 
-        tx = await bondedToken.methods.withdrawReward().send({from: recipient});
+        it('should not allocate any reward to user without stake', async () => {
+          expect(
+            await bondedToken.methods.getReward(userAccounts[2]).call({from: recipient})
+          ).to.be.equal('0');
+        });
 
-        balances.after = new BN(
-          await paymentToken.methods.balanceOf(recipient).call({from: recipient})
-        );
+        it('should allow valid reward withdrawal', async () => {
+          let balances = {
+            before: null,
+            after: null,
+            expectedReward: null
+          };
 
-        expect(balances.after).to.be.bignumber.equal(balances.before.add(balances.expectedReward));
+          balances.before = new BN(
+            await paymentToken.methods.balanceOf(recipient).call({from: recipient})
+          );
+          balances.expectedReward = new BN(
+            await bondedToken.methods.getReward(recipient).call({from: recipient})
+          );
+
+          tx = await bondedToken.methods.withdrawReward().send({from: recipient});
+
+          balances.after = new BN(
+            await paymentToken.methods.balanceOf(recipient).call({from: recipient})
+          );
+
+          expect(balances.after).to.be.bignumber.equal(
+            balances.before.add(balances.expectedReward)
+          );
+        });
       });
     });
   });
-
-  //   it('should forbid non-minter to mint tokens', async function() {});
-  //   it('should forbid non-minter to burn tokens', async function() {});
 });
