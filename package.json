@@ -10,6 +10,7 @@
     "truffle-config.js"
   ],
   "scripts": {
+    "push": "oz publish --network development && oz push --network development",
     "test": "oz publish --network development && oz push --network development && truffle test",
     "compile": "truffle compile --all",
     "build": "rimraf build && truffle compile",
