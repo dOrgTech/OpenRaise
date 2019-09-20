@@ -12,10 +12,8 @@ import "../dividend/RewardsDistributor.sol";
  * @dev A standard ERC20, using Detailed & Mintable featurs. Accepts a single minter, which should be the BondingCurve. The minter also has exclusive burning rights.
  */
 contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
-
-    RewardsDistributor _rewardsDistributor;
-
-    IERC20 _dividendToken;
+    RewardsDistributor internal _rewardsDistributor;
+    IERC20 internal _dividendToken;
 
     /// @dev Initialize contract
     /// @param name ERC20 token name
@@ -89,12 +87,8 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
      * @dev Withdraw accumulated reward for the sender address.
      */
     function withdrawReward() public returns (uint256) {
-        if (address(_rewardsDistributor) == address(0)) {
-            return 0;
-        }
-        if (address(_dividendToken) == address(0)) {
-            return 0;
-        }
+        require(address(_rewardsDistributor) != address(0), "Rewards distributor not set");
+        require(address(_dividendToken) != address(0), "Dividend token not set");
 
         address payable _staker = msg.sender;
         uint256 _amount = _rewardsDistributor.withdrawReward(_staker);
@@ -102,15 +96,12 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
         return _amount;
     }
 
-
     /**
      * @dev Reads current accumulated reward for address.
      * @param staker The address to query the reward balance for.
      */
     function getReward(address staker) public view returns (uint256 tokens) {
-        if (address(_rewardsDistributor) == address(0)) {
-            return 0;
-        }
+        require(address(_rewardsDistributor) != address(0), "Rewards distributor not set");
         return _rewardsDistributor.getReward(staker);
     }
 
@@ -118,17 +109,9 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
      * Claim and allocate provided dividend tokens to all balances greater than ELIGIBLE_UNIT.
      */
     function distribute(address from, uint256 value) public returns (bool) {
-        if (address(_rewardsDistributor) == address(0)) {
-            return false;
-        }
-
-        if (address(_dividendToken) == address(0)) {
-            return false;
-        }
-
-        if (value == 0) {
-            return false;
-        }
+        require(address(_rewardsDistributor) != address(0), "Rewards distributor not set");
+        require(address(_dividendToken) != address(0), "Dividend token not set");
+        require(value >= 0, "Cannot distribute 0 tokens");
 
         require(
             _dividendToken.transferFrom(from, address(this), value),
@@ -138,6 +121,14 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
         _rewardsDistributor.distribute(from, value);
 
         return true;
+    }
+
+    function getRewardsDistributor() external view returns (RewardsDistributor) {
+        return _rewardsDistributor;
+    }
+
+    function getDividendToken() external view returns (IERC20) {
+        return _dividendToken;
     }
 
 }
