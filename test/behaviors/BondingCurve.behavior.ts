@@ -9,6 +9,8 @@ const should = require('chai').should();
 const deploy = require('../../index.js');
 const contractConstants = require('../constants/contractConstants.js');
 
+const TEN18 = new BN(String(10 ** 18));
+
 async function shouldBehaveLikeBondingCurve(context, parameters) {
   const {adminAccount, curveOwner, tokenMinter, userAccounts, miscUser} = context;
   let {deployParams, bondedTokenValues, paymentTokenValues} = parameters;
@@ -56,9 +58,9 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       paymentToken.address
     ]);
 
-    await rewardsDistributor.methods.transferOwnership(
-      bondedToken.address
-    ).send({from: curveOwner});
+    await rewardsDistributor.methods
+      .transferOwnership(bondedToken.address)
+      .send({from: curveOwner});
 
     buyCurve = await deploy.deployStaticCurveLogic(project, [
       deployParams.buyCurveParams.toString()
@@ -649,8 +651,8 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
     describe('Payments', async () => {
       const nonOwner = userAccounts[0];
 
-      const userBalances = new BN(100000);
-      const paymentAmount = new BN(10000);
+      const userBalances = new BN('100').mul(TEN18);
+      const paymentAmount = new BN('10').mul(TEN18);
 
       beforeEach(async () => {
         await paymentToken.methods.mint(curveOwner, userBalances.toString()).send({

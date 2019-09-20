@@ -111,7 +111,10 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
     function distribute(address from, uint256 value) public returns (bool) {
         require(address(_rewardsDistributor) != address(0), "Rewards distributor not set");
         require(address(_dividendToken) != address(0), "Dividend token not set");
-        require(value >= 0, "Cannot distribute 0 tokens");
+
+        if (value == 0) {
+            return false;
+        }
 
         require(
             _dividendToken.transferFrom(from, address(this), value),

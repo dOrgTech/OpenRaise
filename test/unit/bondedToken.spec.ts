@@ -262,10 +262,8 @@ contract('BondedToken', accounts => {
             .send({from: controller});
         });
 
-        it('should not allow distribution of zero tokens', async () => {
-          await expectRevert.unspecified(
-            bondedToken.methods.distribute(controller, 0).send({from: controller})
-          );
+        it('should  allow distribution of zero tokens', async () => {
+          await bondedToken.methods.distribute(controller, 0).send({from: controller});
         });
 
         it('should register correct reward withdrawal value', async () => {

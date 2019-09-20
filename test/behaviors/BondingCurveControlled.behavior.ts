@@ -9,6 +9,7 @@ const should = require('chai').should();
 const deploy = require('../../index.js');
 const contractConstants = require('../constants/contractConstants.js');
 
+const TEN18 = new BN(String(10 ** 18));
 const BondingCurveControlled = artifacts.require('BondingCurveControlled');
 
 async function shouldBehaveLikeBondingCurveControlled(context, parameters) {
