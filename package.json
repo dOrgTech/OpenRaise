@@ -57,6 +57,7 @@
     "rimraf": "^2.6.3",
     "solhint": "^2.1.0",
     "solhint-plugin-prettier": "0.0.3",
-    "solidity-coverage": "^0.6.4"
+    "solidity-coverage": "^0.6.4",
+    "truffle": "^5.0.38"
   }
 }
