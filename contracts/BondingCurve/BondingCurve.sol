@@ -3,6 +3,7 @@ pragma solidity ^0.5.7;
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/lifecycle/Pausable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./interface/ICurveLogic.sol";
 import "./token/BondedToken.sol";
@@ -10,7 +11,7 @@ import "./token/BondedToken.sol";
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurve is Initializable, Ownable {
+contract BondingCurve is Initializable, Ownable, Pausable {
     using SafeMath for uint256;
 
     IERC20 internal _collateralToken;
@@ -85,6 +86,7 @@ contract BondingCurve is Initializable, Ownable {
         _isValidreservePercentage(dividendPercentage);
 
         Ownable.initialize(owner);
+        Pausable.initialize(owner);
 
         _beneficiary = beneficiary;
 
@@ -126,7 +128,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @param numTokens    The number of bondedTokens to buy
     /// @param maxPrice     Maximum total price allowable to pay in collateralTokens. If zero, any price is allowed.
     /// @param recipient    Address to send the new bondedTokens to
-    function buy(uint256 numTokens, uint256 maxPrice, address recipient) public {
+    function buy(uint256 numTokens, uint256 maxPrice, address recipient) public whenNotPaused {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
         uint256 buyPrice = priceToBuy(numTokens);
@@ -154,7 +156,7 @@ contract BondingCurve is Initializable, Ownable {
     /// @param numTokens    The number of bondedTokens to sell
     /// @param minPrice     Minimum total price allowable to receive in collateralTokens
     /// @param recipient    Address to send collateralTokens to
-    function sell(uint256 numTokens, uint256 minPrice, address recipient) public {
+    function sell(uint256 numTokens, uint256 minPrice, address recipient) public whenNotPaused {
         require(numTokens > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
         require(_bondedToken.balanceOf(msg.sender) >= numTokens, INSUFFICENT_TOKENS);
 

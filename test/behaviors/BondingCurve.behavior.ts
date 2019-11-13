@@ -321,6 +321,24 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         });
       });
 
+      it('should not allow owner to buy when paused', async function() {
+        await bondingCurve.methods.pause().send({from: curveOwner});
+        await expectRevert.unspecified(
+          bondingCurve.methods.buy(numTokens.toString(), maxBuyPrice.toString(), buyer).send({
+            from: curveOwner
+          })
+        );
+      });
+
+      it('should not allow user to buy when paused', async function() {
+        await bondingCurve.methods.pause().send({from: curveOwner});
+        await expectRevert.unspecified(
+          bondingCurve.methods.buy(numTokens.toString(), maxBuyPrice.toString(), buyer).send({
+            from: buyer
+          })
+        );
+      });
+
       it('should mint bondedTokens correctly on buy', async function() {
         const beforeBalance = new BN(
           await bondedToken.methods.balanceOf(buyer).call({from: miscUser})
@@ -508,6 +526,24 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         await bondingCurve.methods.buy(numTokens.toString(), maxBuyPrice.toString(), buyer).send({
           from: buyer
         });
+      });
+
+      it('should not allow owner to sell when paused', async function() {
+        await bondingCurve.methods.pause().send({from: curveOwner});
+        await expectRevert.unspecified(
+          bondingCurve.methods.sell(numTokens.toString(), minSellPrice.toString(), buyer).send({
+            from: curveOwner
+          })
+        );
+      });
+
+      it('should not allow user to sell when paused', async function() {
+        await bondingCurve.methods.pause().send({from: curveOwner});
+        await expectRevert.unspecified(
+          bondingCurve.methods.sell(numTokens.toString(), minSellPrice.toString(), buyer).send({
+            from: buyer
+          })
+        );
       });
 
       it('should allow user with bondedTokens to sell all bondedTokens', async function() {

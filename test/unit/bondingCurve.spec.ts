@@ -1,6 +1,5 @@
 // Import all required modules from openzeppelin-test-helpers
 const {BN, constants, expectRevert} = require('openzeppelin-test-helpers');
-
 const expectEvent = require('../expectEvent');
 
 // Import preferred chai flavor: both expect and should are supported
