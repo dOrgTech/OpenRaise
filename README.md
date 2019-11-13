@@ -50,6 +50,7 @@ This type of fundraising might allow for more flexibility, accountability, and a
 # Implementation
 
 Our initial bonding curve implementation supports:
+
 - Bancor-based curves.
 - Dividend distributions for bonded token holders.
 - A front-running guard via user-specified min and max prices.
@@ -61,19 +62,19 @@ Our initial bonding curve implementation supports:
 - **collateralToken**: Token accepted as collateral by the curve. (e.g. WETH or DAI)
 - **reserve**: Balance of collateralTokens that the curve holds. The reserve is used to pay bondedToken holders when they want to liquidate and sell their tokens back to the curve.
 - **beneficiary**: Entity that receives funding from the purchase of bondedTokens. This would typically be the DAO Avatar.
-- **splitOnBuy**: Percentage of incoming collateralTokens distributed to beneficiary on buy(). This is implicitly set by the spread between the buy and sell curves at a given point. The remaining portion is added to the reserve.
-- **splitOnPay**: Percentage of incoming collateralTokens distributed to beneficiary on pay(). This is an explicit parameter, with the remainder being distributed among current bondedToken holders.
+- **reservePercentage**: Percentage of incoming collateralTokens sent to reserve on buy(). The remainder is sent to beneficiary.
+- **dividendPercentage**: Percentage of incoming collateralTokens distributed to bondedToken holders on pay(). The remainder is sent to beneficiary.
 
 ### Key Actions
 
 The following chart describes the actions users can take to interact with the Bonding Curve:
 
-| Action           | Actor                        | Analogy      | Actor sends..    | bondedToken are..                | collateralTokens are..                                                  | bondedToken price.. |
-| ---------------- | ---------------------------- | ------------ | ---------------- | -------------------------------- | ----------------------------------------------------------------------- | ------------------- |
-| Buy()            | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender                 | split between reserve and beneficiary based on splitOnBuy %             | increases           |
-| BeneficiaryBuy() | _beneficiary_                | "Investment" | collateral token | minted to sender (_beneficiary_) | fully deposited in reserve (none sent to _beneficiary_)                 | increases           |
-| Sell()           | Anyone                       | "Divestment" | bonded token     | burned                           | transferred to specified recipient                                      | decreases           |
-| Pay()            | Anyone                       | "Revenue"    | collateral token | not changed                      | split between bondedToken holders and beneficiary based on splitOnPay % | remains the same    |
+| Action           | Actor                        | Analogy      | Actor sends..    | bondedToken are..                | collateralTokens are..                                                          | bondedToken price.. |
+| ---------------- | ---------------------------- | ------------ | ---------------- | -------------------------------- | ------------------------------------------------------------------------------- | ------------------- |
+| Buy()            | Anyone, _except beneficiary_ | "Investment" | collateral token | minted to sender                 | split between reserve and beneficiary based on reservePercentage %              | increases           |
+| BeneficiaryBuy() | _beneficiary_                | "Investment" | collateral token | minted to sender (_beneficiary_) | fully deposited in reserve (none sent to _beneficiary_)                         | increases           |
+| Sell()           | Anyone                       | "Divestment" | bonded token     | burned                           | transferred to specified recipient                                              | decreases           |
+| Pay()            | Anyone                       | "Revenue"    | collateral token | not changed                      | split between bondedToken holders and beneficiary based on dividendPercentage % | remains the same    |
 
 #### Buy Flow
 
@@ -98,6 +99,7 @@ Bonding Curves are composed of several contracts, though the factory abstracts t
 ## Usage
 
 ### Bonding Curve
+
 The primary point of external interaction with the curve - this is where users can buy & sell bondedTokens, and where the curve recieves revenue.
 
 [**`priceToBuy`**](./contracts/BondingCurve/BondingCurve.sol): Determine the current price in collateralTokens to buy a given number of bondedTokens.
@@ -138,7 +140,7 @@ function sell(
 ) public
 ```
 
-[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bondedToken holders according to the splitOnPay parameter;
+[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bondedToken holders according to the dividendPercentage parameter;
 
 ```
 function pay(
@@ -147,6 +149,7 @@ function pay(
 ```
 
 ### Dividend Pool
+
 Users interact with this contract to claim their dividend allocations.
 
 [**`withdraw`**](./contracts/BondingCurve/BondingCurve.sol): Withdraw collateralToken dividends sender is entitled to for a given period, in blocks.
@@ -166,7 +169,7 @@ function withdraw(
 
 - **Payments directly to DAO Avatar can circumvent dividends** - It's possible for actors to bypass the bonding curve and send payments directly to the DAO Avatar. If customers pay the DAO directly rather than sending payment with the pay() function to the bonding curve, then the DAO would receive 100% of the payment, effectively cutting out token holders from receiving their portion.
 
-  - For instance, DutchX fees might initially be configured to hit the pay() function on the bonding curve, resulting in continuous cash-flows to both token-holders (in the form of claimable dividends) and the DAO according to **splitOnPay**. However, the DAO might vote to re-route the fees directly to itself, avoiding the pay split with token holders.
+  - For instance, DutchX fees might initially be configured to hit the pay() function on the bonding curve, resulting in continuous cash-flows to both token-holders (in the form of claimable dividends) and the DAO according to **dividendPercentage**. However, the DAO might vote to re-route the fees directly to itself, avoiding the pay split with token holders.
 
   - We believe that the chances of such a coordinated attack will remain extremely low – as long as the prospects for continued funding are valued more than the present level of cash-flows. If the DAO was detected trying to "cheat" its token-holders in this way, we would expect a chain reaction of sell-offs and little to no prospect for future buys. Thus, the DAO would short-sightedly lose all ability to fundraise and would need to rely solely on its existing sources of revenue.
 
@@ -176,7 +179,7 @@ function withdraw(
 
   - The potential for a DAO user uploading a malicious root (say, one that entitles them to all the dividends) should be largely mitigated by the consensus layer of the DAO, which should have an incentive to maintain the value of their bonded token rather than steal one payment periods worth of funds from holders. Staking & slashing mechanics could also be formalized for root proposers.
 
-   - Our interface will allow easy verification of the validity of a proposed merkle root by bonded token holders and DAO members.
+  - Our interface will allow easy verification of the validity of a proposed merkle root by bonded token holders and DAO members.
 
   - However, this mechanic is still theoretically vulnerable to exploits - say, if the DAO recieves a large windfall payment during a claim period. This is an area of active discussion.
 

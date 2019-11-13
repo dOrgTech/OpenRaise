@@ -5,14 +5,9 @@ const {ZERO_ADDRESS} = constants;
 require('../setup');
 
 const expectEvent = require('../expectEvent');
-
-// Import preferred chai flavor: both expect and should are supported
 const {expect} = require('chai');
-
 const {ZWeb3} = require('@openzeppelin/upgrades');
-
 const deploy = require('../../index.js');
-
 const {paymentTokenValues} = require('../constants/tokenValues');
 
 contract('BondingCurveFactory', accounts => {
@@ -40,9 +35,9 @@ contract('BondingCurveFactory', accounts => {
     owner: curveOwner,
     beneficiary: curveOwner,
     buyCurveParams: new BN(100000000),
-    sellCurveParams: new BN(10000000),
     collateralToken: null,
-    splitOnPay: new BN(50),
+    reservePercentage: new BN(50),
+    dividendPercentage: new BN(50),
     bondedTokenName: 'BondedToken',
     bondedTokenSymbol: 'BND'
   };
@@ -80,7 +75,10 @@ contract('BondingCurveFactory', accounts => {
     );
     bondedTokenImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondedToken);
     bondingCurveImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondingCurve);
-    rewardsDistributorImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.RewardsDistributor);
+    rewardsDistributorImpl = await deploy.getImplementation(
+      project,
+      deploy.CONTRACT_NAMES.RewardsDistributor
+    );
 
     factory = await deploy.deployBondingCurveFactory(project, [
       staticCurveLogicImpl,
@@ -113,8 +111,8 @@ contract('BondingCurveFactory', accounts => {
           deployParams.beneficiary,
           deployParams.collateralToken,
           deployParams.buyCurveParams.toString(),
-          deployParams.sellCurveParams.toString(),
-          deployParams.splitOnPay.toString(),
+          deployParams.reservePercentage.toString(),
+          deployParams.dividendPercentage.toString(),
           deployParams.bondedTokenName,
           deployParams.bondedTokenSymbol
         )
@@ -132,7 +130,6 @@ contract('BondingCurveFactory', accounts => {
       let bondingCurve;
       let bondedToken;
       let buyCurve;
-      let sellCurve;
       let rewardsDistributor;
 
       beforeEach(async function() {
@@ -143,7 +140,6 @@ contract('BondingCurveFactory', accounts => {
         bondingCurve = deployedContracts.bondingCurve;
         bondedToken = deployedContracts.bondedToken;
         buyCurve = deployedContracts.buyCurve;
-        sellCurve = deployedContracts.sellCurve;
         rewardsDistributor = deployedContracts.rewardsDistributor;
       });
 
@@ -158,7 +154,6 @@ contract('BondingCurveFactory', accounts => {
           nonContractCode
         );
         expect(await web3.eth.getCode(buyCurve.options.address)).to.not.be.equal(nonContractCode);
-        expect(await web3.eth.getCode(sellCurve.options.address)).to.not.be.equal(nonContractCode);
         expect(await web3.eth.getCode(rewardsDistributor.options.address)).to.not.be.equal(
           nonContractCode
         );
@@ -173,20 +168,6 @@ contract('BondingCurveFactory', accounts => {
           .call({from: miscUser});
 
         expect(new BN(result)).to.be.bignumber.equal(expectedPrice);
-      });
-
-      it('should correctly initialize sell curve parameters', async function() {
-        const tokenAmount = new BN(1000);
-        const expectedReward = new BN(10000);
-
-        //TODO: Check reserve ratio when switching to bancor
-        expect(
-          new BN(
-            await sellCurve.methods
-              .calcMintPrice(0, 0, tokenAmount.toString())
-              .call({from: miscUser})
-          )
-        ).to.be.bignumber.equal(expectedReward);
       });
 
       it('should correctly initialize bonded token parameters', async function() {
@@ -226,12 +207,12 @@ contract('BondingCurveFactory', accounts => {
         expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
           buyCurve.options.address
         );
-        expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
-          sellCurve.options.address
-        );
         expect(
-          new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
-        ).to.be.bignumber.equal(deployParams.splitOnPay);
+          new BN(await bondingCurve.methods.reservePercentage().call({from: miscUser}))
+        ).to.be.bignumber.equal(deployParams.reservePercentage);
+        expect(
+          new BN(await bondingCurve.methods.dividendPercentage().call({from: miscUser}))
+        ).to.be.bignumber.equal(deployParams.dividendPercentage);
       });
     });
   });
@@ -254,8 +235,8 @@ contract('BondingCurveFactory', accounts => {
           deployParams.beneficiary,
           deployParams.collateralToken,
           bancorTestValues.connectorWeight.toString(),
-          bancorTestValues.connectorWeight.toString(),
-          deployParams.splitOnPay.toString(),
+          deployParams.reservePercentage.toString(),
+          deployParams.dividendPercentage.toString(),
           deployParams.bondedTokenName,
           deployParams.bondedTokenSymbol
         )
@@ -273,7 +254,6 @@ contract('BondingCurveFactory', accounts => {
       let bondingCurve;
       let bondedToken;
       let buyCurve;
-      let sellCurve;
       let rewardsDistributor;
 
       beforeEach(async function() {
@@ -284,7 +264,6 @@ contract('BondingCurveFactory', accounts => {
         bondingCurve = deployedContracts.bondingCurve;
         bondedToken = deployedContracts.bondedToken;
         buyCurve = deployedContracts.buyCurve;
-        sellCurve = deployedContracts.sellCurve;
         rewardsDistributor = deployedContracts.rewardsDistributor;
       });
 
@@ -299,7 +278,6 @@ contract('BondingCurveFactory', accounts => {
           nonContractCode
         );
         expect(await web3.eth.getCode(buyCurve.options.address)).to.not.be.equal(nonContractCode);
-        expect(await web3.eth.getCode(sellCurve.options.address)).to.not.be.equal(nonContractCode);
         expect(await web3.eth.getCode(rewardsDistributor.options.address)).to.not.be.equal(
           nonContractCode
         );
@@ -310,21 +288,6 @@ contract('BondingCurveFactory', accounts => {
         expect(
           new BN(
             await buyCurve.methods
-              .calcMintPrice(
-                bancorTestValues.supply.toString(),
-                bancorTestValues.connectorBalance.toString(),
-                bancorTestValues.depositAmount.toString()
-              )
-              .call({from: miscUser})
-          )
-        ).to.be.bignumber.equal(bancorTestValues.expectedResult);
-      });
-
-      it('should correctly initialize sell curve parameters', async function() {
-        //TODO: Check reserve ratio when switching to bancor
-        expect(
-          new BN(
-            await sellCurve.methods
               .calcMintPrice(
                 bancorTestValues.supply.toString(),
                 bancorTestValues.connectorBalance.toString(),
@@ -372,12 +335,12 @@ contract('BondingCurveFactory', accounts => {
         expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
           buyCurve.options.address
         );
-        expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
-          sellCurve.options.address
-        );
         expect(
-          new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
-        ).to.be.bignumber.equal(deployParams.splitOnPay);
+          new BN(await bondingCurve.methods.reservePercentage().call({from: miscUser}))
+        ).to.be.bignumber.equal(deployParams.reservePercentage);
+        expect(
+          new BN(await bondingCurve.methods.dividendPercentage().call({from: miscUser}))
+        ).to.be.bignumber.equal(deployParams.dividendPercentage);
       });
     });
   });
@@ -388,7 +351,6 @@ async function getContractsFromDeployedEvent(event) {
     bondingCurve: undefined,
     bondedToken: undefined,
     buyCurve: undefined,
-    sellCurve: undefined,
     rewardsDistributor: undefined
   };
 
@@ -403,10 +365,6 @@ async function getContractsFromDeployedEvent(event) {
   contracts.buyCurve = await ZWeb3.contract(
     await deploy.getAbi(deploy.CONTRACT_NAMES.StaticCurveLogic),
     await expectEvent.getParameter(event, 'buyCurve')
-  );
-  contracts.sellCurve = await ZWeb3.contract(
-    await deploy.getAbi(deploy.CONTRACT_NAMES.StaticCurveLogic),
-    await expectEvent.getParameter(event, 'sellCurve')
   );
   contracts.rewardsDistributor = await ZWeb3.contract(
     await deploy.getAbi(deploy.CONTRACT_NAMES.RewardsDistributor),

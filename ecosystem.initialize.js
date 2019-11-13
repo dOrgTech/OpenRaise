@@ -91,10 +91,10 @@ module.exports = async () => {
     console.log(`${contractNames.BancorCurveService} to initialize:`, bancorCurveServiceAddress);
     console.log(`${contractNames.BondingCurveFactory} to initialize:`, bondingCurveFactoryAddress);
 
-    let initializeTx = await initializeBancorCurveService(bancorCurveServiceAddress);
-    console.log(`${contractNames.BancorCurveService} initialization tx:`, initializeTx.tx);
+    // let initializeTx = await initializeBancorCurveService(bancorCurveServiceAddress);
+    // console.log(`${contractNames.BancorCurveService} initialization tx:`, initializeTx.tx);
 
-    initializeTx = await initializeBondingCurveFactory(bondingCurveFactoryAddress);
+    let initializeTx = await initializeBondingCurveFactory(bondingCurveFactoryAddress);
     console.log(`${contractNames.BondingCurveFactory} initialization tx:`, initializeTx.tx);
   } catch (e) {
     console.error(e);

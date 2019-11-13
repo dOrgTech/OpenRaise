@@ -17,11 +17,11 @@ contract BondingCurve is Initializable, Ownable {
     BondedToken internal _bondedToken;
 
     ICurveLogic internal _buyCurve;
-    ICurveLogic internal _sellCurve;
     address internal _beneficiary;
 
     uint256 internal _reserveBalance;
-    uint256 internal _splitOnPay;
+    uint256 internal _reservePercentage;
+    uint256 internal _dividendPercentage;
 
     uint256 private constant MAX_PERCENTAGE = 100;
     uint256 private constant MICRO_PAYMENT_THRESHOLD = 100;
@@ -34,8 +34,9 @@ contract BondingCurve is Initializable, Ownable {
     string internal constant PRICE_BELOW_MIN = "Current price is below minimum specified";
     string internal constant REQUIRE_NON_ZERO_NUM_TOKENS = "Must specify a non-zero amount of bondedTokens";
     string internal constant SELL_CURVE_LARGER = "Buy curve value must be greater than Sell curve value";
-    string internal constant SPLIT_ON_PAY_INVALID = "splitOnPay must be a valid percentage";
-    string internal constant SPLIT_ON_PAY_MATH_ERROR = "splitOnPay splits returned a greater token value than input value";
+    string internal constant SPLIT_ON_PAY_INVALID = "dividendPercentage must be a valid percentage";
+    string internal constant SPLIT_ON_BUY_INVALID = "reservePercentage must be a valid percentage";
+    string internal constant SPLIT_ON_PAY_MATH_ERROR = "dividendPercentage splits returned a greater token value than input value";
     string internal constant NO_MICRO_PAYMENTS = "Payment amount must be greater than 100 'units' for calculations to work correctly";
     string internal constant TOKEN_BURN_FAILED = "bondedToken burn failed";
     string internal constant TRANSFER_TO_RECIPIENT_FAILED = "Transfer to recipient failed";
@@ -43,7 +44,8 @@ contract BondingCurve is Initializable, Ownable {
     event BeneficiarySet(address beneficiary);
     event BuyCurveSet(address buyCurve);
     event SellCurveSet(address sellCurve);
-    event SplitOnPaySet(uint256 splitOnPay);
+    event DividendPercentageSet(uint256 dividendPercentage);
+    event ReservePercentageSet(uint256 reservePercentage);
 
     event Buy(
         address indexed buyer,
@@ -68,36 +70,43 @@ contract BondingCurve is Initializable, Ownable {
     /// @param collateralToken Token accepted as collateral by the curve. (e.g. WETH or DAI)
     /// @param bondedToken Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
     /// @param buyCurve Curve logic for buy curve.
-    /// @param sellCurve Curve logic for sell curve.
-    /// @param splitOnPay Percentage of incoming collateralTokens distributed to beneficiary on pay(). The remainder being distributed among current bondedToken holders. Divided by precision value.
+    /// @param reservePercentage Percentage of incoming collateralTokens distributed to beneficiary on buys. (The remainder is sent to reserve for sells)
+    /// @param dividendPercentage Percentage of incoming collateralTokens distributed to beneficiary on payments. The remainder being distributed among current bondedToken holders. Divided by precision value.
     function initialize(
         address owner,
         address beneficiary,
         IERC20 collateralToken,
         BondedToken bondedToken,
         ICurveLogic buyCurve,
-        ICurveLogic sellCurve,
-        uint256 splitOnPay
+        uint256 reservePercentage,
+        uint256 dividendPercentage
     ) public initializer {
-        require(splitOnPay <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
+        _isValiddividendPercentage(reservePercentage);
+        _isValidreservePercentage(dividendPercentage);
 
         Ownable.initialize(owner);
 
         _beneficiary = beneficiary;
-        emit BeneficiarySet(_beneficiary);
 
         _buyCurve = buyCurve;
-        _sellCurve = sellCurve;
         _bondedToken = bondedToken;
         _collateralToken = collateralToken;
 
-        _splitOnPay = splitOnPay;
+        _reservePercentage = reservePercentage;
+        _dividendPercentage = dividendPercentage;
 
         emit BuyCurveSet(address(_buyCurve));
-        emit SellCurveSet(address(_sellCurve));
-        emit SplitOnPaySet(_splitOnPay);
-        emit SplitOnPaySet(splitOnPay);
+        emit BeneficiarySet(_beneficiary);
+        emit ReservePercentageSet(_reservePercentage);
+        emit DividendPercentageSet(_dividendPercentage);
+    }
 
+    function _isValidreservePercentage(uint256 reservePercentage) internal view {
+        require(reservePercentage <= MAX_PERCENTAGE, SPLIT_ON_BUY_INVALID);
+    }
+
+    function _isValiddividendPercentage(uint256 dividendPercentage) internal view {
+        require(dividendPercentage <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
     }
 
     /// @notice             Get the price in ether to mint tokens
@@ -109,7 +118,8 @@ contract BondingCurve is Initializable, Ownable {
     /// @notice             Get the reward in ether to burn tokens
     /// @param numTokens    The number of tokens to calculate reward for
     function rewardForSell(uint256 numTokens) public view returns (uint256) {
-        return _sellCurve.calcBurnReward(_bondedToken.totalSupply(), _reserveBalance, numTokens);
+        uint256 buyPrice = priceToBuy(numTokens);
+        return (buyPrice.mul(_reservePercentage)).div(MAX_PERCENTAGE);
     }
 
     /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
@@ -125,15 +135,10 @@ contract BondingCurve is Initializable, Ownable {
             require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
         }
 
-        uint256 sellPrice = rewardForSell(numTokens);
-
-        require(buyPrice > sellPrice, SELL_CURVE_LARGER);
-
-        uint256 tokensToBeneficiary = buyPrice.sub(sellPrice);
-        uint256 tokensToReserve = sellPrice;
+        uint256 tokensToReserve = rewardForSell(numTokens);
+        uint256 tokensToBeneficiary = buyPrice.sub(tokensToReserve);
 
         _reserveBalance = _reserveBalance.add(tokensToReserve);
-
         _bondedToken.mint(recipient, numTokens);
 
         require(
@@ -175,8 +180,8 @@ contract BondingCurve is Initializable, Ownable {
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
 
-        tokensToBeneficiary = (amount.mul(_splitOnPay)).div(MAX_PERCENTAGE);
-        tokensToDividendHolders = amount.sub(tokensToBeneficiary);
+        tokensToDividendHolders = (amount.mul(_dividendPercentage)).div(MAX_PERCENTAGE);
+        tokensToBeneficiary = amount.sub(tokensToDividendHolders);
 
         // incoming funds
         require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
@@ -215,18 +220,20 @@ contract BondingCurve is Initializable, Ownable {
         emit BuyCurveSet(address(_buyCurve));
     }
 
-    /// @notice Set sell curve to a new address
-    /// @param sellCurve       New sell curve
-    function setSellCurve(ICurveLogic sellCurve) public onlyOwner {
-        _sellCurve = sellCurve;
-        emit SellCurveSet(address(_sellCurve));
+    /// @notice Set split on buy to new value
+    /// @param reservePercentage   New split on buy value
+    function setReservePercentage(uint256 reservePercentage) public onlyOwner {
+        _isValidreservePercentage(reservePercentage);
+        _reservePercentage = reservePercentage;
+        emit ReservePercentageSet(_reservePercentage);
     }
 
     /// @notice Set split on pay to new value
-    /// @param splitOnPay       New split on pay value
-    function setSplitOnPay(uint256 splitOnPay) public onlyOwner {
-        _splitOnPay = splitOnPay;
-        emit SplitOnPaySet(_splitOnPay);
+    /// @param dividendPercentage       New split on pay value
+    function setDividendPercentage(uint256 dividendPercentage) public onlyOwner {
+        _isValiddividendPercentage(dividendPercentage);
+        _dividendPercentage = dividendPercentage;
+        emit DividendPercentageSet(_dividendPercentage);
     }
 
     /*
@@ -248,11 +255,6 @@ contract BondingCurve is Initializable, Ownable {
         return _buyCurve;
     }
 
-    /// @notice Get sell curve contract
-    function sellCurve() public view returns (ICurveLogic) {
-        return _sellCurve;
-    }
-
     /// @notice Get beneficiary
     function beneficiary() public view returns (address) {
         return _beneficiary;
@@ -263,9 +265,14 @@ contract BondingCurve is Initializable, Ownable {
         return _reserveBalance;
     }
 
+    /// @notice Get split on buy parameter
+    function reservePercentage() public view returns (uint256) {
+        return _reservePercentage;
+    }
+
     /// @notice Get split on pay parameter
-    function splitOnPay() public view returns (uint256) {
-        return _splitOnPay;
+    function dividendPercentage() public view returns (uint256) {
+        return _dividendPercentage;
     }
 
     /// @notice Get minimum value accepted for payments

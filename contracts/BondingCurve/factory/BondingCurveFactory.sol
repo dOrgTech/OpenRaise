@@ -33,7 +33,6 @@ contract BondingCurveFactory is Initializable {
         address indexed bondingCurve,
         address indexed bondedToken,
         address buyCurve,
-        address sellCurve,
         address rewardsDistributor,
         address indexed sender
     );
@@ -56,7 +55,7 @@ contract BondingCurveFactory is Initializable {
 
     function _createProxy(address implementation, address admin, bytes memory data)
         internal
-        returns (address proxy)
+        returns (address)
     {
         AdminUpgradeabilityProxy proxy = new AdminUpgradeabilityProxy(implementation, admin, data);
         emit ProxyCreated(address(proxy));
@@ -68,52 +67,43 @@ contract BondingCurveFactory is Initializable {
         address beneficiary,
         address collateralToken,
         uint256 buyCurveParams,
-        uint256 sellCurveParams,
-        uint256 splitOnPay,
+        uint256 reservePercentage,
+        uint256 dividendPercentage,
         string calldata bondedTokenName,
         string calldata bondedTokenSymbol
     ) external {
-        address[] memory proxies = new address[](5);
+        address[] memory proxies = new address[](4);
         address[] memory tempCollateral = new address[](1);
 
         // Hack to avoid "Stack Too Deep" error
         tempCollateral[0] = collateralToken;
 
         proxies[0] = _createProxy(_staticCurveLogicImpl, address(0), "");
-        proxies[1] = _createProxy(_staticCurveLogicImpl, address(0), "");
-        proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
-        proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
-        proxies[4] = _createProxy(_rewardsDistributorImpl, address(0), "");
+        proxies[1] = _createProxy(_bondedTokenImpl, address(0), "");
+        proxies[2] = _createProxy(_bondingCurveImpl, address(0), "");
+        proxies[3] = _createProxy(_rewardsDistributorImpl, address(0), "");
 
         StaticCurveLogic(proxies[0]).initialize(buyCurveParams);
-        StaticCurveLogic(proxies[1]).initialize(sellCurveParams);
-        BondedToken(proxies[2]).initialize(
+        BondedToken(proxies[1]).initialize(
             bondedTokenName,
             bondedTokenSymbol,
             18,
-            proxies[3],  // minter is the BondingCurve
-            RewardsDistributor(proxies[4]),
+            proxies[2], // minter is the BondingCurve
+            RewardsDistributor(proxies[3]),
             IERC20(tempCollateral[0])
         );
-        BondingCurve(proxies[3]).initialize(
+        BondingCurve(proxies[2]).initialize(
             owner,
             beneficiary,
             IERC20(collateralToken),
-            BondedToken(proxies[2]),
+            BondedToken(proxies[1]),
             ICurveLogic(proxies[0]),
-            ICurveLogic(proxies[1]),
-            splitOnPay
+            reservePercentage,
+            dividendPercentage
         );
-        RewardsDistributor(proxies[4]).initialize(proxies[2]);
+        RewardsDistributor(proxies[3]).initialize(proxies[1]);
 
-        emit BondingCurveDeployed(
-            proxies[3],
-            proxies[2],
-            proxies[0],
-            proxies[1],
-            proxies[4],
-            msg.sender
-        );
+        emit BondingCurveDeployed(proxies[2], proxies[1], proxies[0], proxies[3], msg.sender);
     }
 
     function deployBancor(
@@ -121,58 +111,47 @@ contract BondingCurveFactory is Initializable {
         address beneficiary,
         address collateralToken,
         uint32 buyCurveParams,
-        uint32 sellCurveParams,
-        uint256 splitOnPay,
+        uint256 reservePercentage,
+        uint256 dividendPercentage,
         string calldata bondedTokenName,
         string calldata bondedTokenSymbol
     ) external {
-        address[] memory proxies = new address[](5);
+        address[] memory proxies = new address[](4);
         address[] memory tempCollateral = new address[](1);
 
         // Hack to avoid "Stack Too Deep" error
         tempCollateral[0] = collateralToken;
 
         proxies[0] = _createProxy(_bancorCurveLogicImpl, address(0), "");
-        proxies[1] = _createProxy(_bancorCurveLogicImpl, address(0), "");
-        proxies[2] = _createProxy(_bondedTokenImpl, address(0), "");
-        proxies[3] = _createProxy(_bondingCurveImpl, address(0), "");
-        proxies[4] = _createProxy(_rewardsDistributorImpl, address(0), "");
+        proxies[1] = _createProxy(_bondedTokenImpl, address(0), "");
+        proxies[2] = _createProxy(_bondingCurveImpl, address(0), "");
+        proxies[3] = _createProxy(_rewardsDistributorImpl, address(0), "");
 
         BancorCurveLogic(proxies[0]).initialize(
             BancorCurveService(_bancorCurveServiceImpl),
             buyCurveParams
         );
-        BancorCurveLogic(proxies[1]).initialize(
-            BancorCurveService(_bancorCurveServiceImpl),
-            sellCurveParams
-        );
-        BondedToken(proxies[2]).initialize(
+
+        BondedToken(proxies[1]).initialize(
             bondedTokenName,
             bondedTokenSymbol,
             18,
-            proxies[3],  // minter is the BondingCurve
-            RewardsDistributor(proxies[4]),
+            proxies[2], // minter is the BondingCurve
+            RewardsDistributor(proxies[3]),
             IERC20(tempCollateral[0])
         );
-        BondingCurve(proxies[3]).initialize(
+        BondingCurve(proxies[2]).initialize(
             owner,
             beneficiary,
             IERC20(collateralToken),
-            BondedToken(proxies[2]),
+            BondedToken(proxies[1]),
             ICurveLogic(proxies[0]),
-            ICurveLogic(proxies[1]),
-            splitOnPay
+            reservePercentage,
+            dividendPercentage
         );
-        RewardsDistributor(proxies[4]).initialize(proxies[2]);
+        RewardsDistributor(proxies[3]).initialize(proxies[1]);
 
-        emit BondingCurveDeployed(
-            proxies[3],
-            proxies[2],
-            proxies[0],
-            proxies[1],
-            proxies[4],
-            msg.sender
-        );
+        emit BondingCurveDeployed(proxies[2], proxies[1], proxies[0], proxies[3], msg.sender);
     }
 
     function getImplementations()

@@ -21,7 +21,6 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
   let bondedToken;
   let bondingCurve;
   let buyCurve;
-  let sellCurve;
 
   //   // Deploy bondingCurve proxy w/o initialization (check service for example)
   //   // Call initialize and expect revert
@@ -56,16 +55,12 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       paymentToken.address
     ]);
 
-    await rewardsDistributor.methods.transferOwnership(
-      bondedToken.address
-    ).send({from: curveOwner});
+    await rewardsDistributor.methods
+      .transferOwnership(bondedToken.address)
+      .send({from: curveOwner});
 
     buyCurve = await deploy.deployStaticCurveLogic(project, [
       deployParams.buyCurveParams.toString()
-    ]);
-
-    sellCurve = await deploy.deployStaticCurveLogic(project, [
-      deployParams.sellCurveParams.toString()
     ]);
 
     bondingCurve = await deploy.deployBondingCurve(project, [
@@ -74,8 +69,8 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       paymentToken.address,
       bondedToken.address,
       buyCurve.address,
-      sellCurve.address,
-      deployParams.splitOnPay.toString()
+      deployParams.reservePercentage.toString(),
+      deployParams.dividendPercentage.toString()
     ]);
 
     await bondedToken.methods.addMinter(bondingCurve.address).send({from: tokenMinter});
@@ -97,20 +92,20 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
         buyCurve.address
       );
-      expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
-        sellCurve.address
-      );
       expect(
-        new BN(await bondingCurve.methods.splitOnPay().call({from: miscUser}))
-      ).to.be.bignumber.equal(deployParams.splitOnPay);
+        new BN(await bondingCurve.methods.reservePercentage().call({from: miscUser}))
+      ).to.be.bignumber.equal(deployParams.reservePercentage);
+      expect(
+        new BN(await bondingCurve.methods.dividendPercentage().call({from: miscUser}))
+      ).to.be.bignumber.equal(deployParams.dividendPercentage);
       expect(await bondingCurve.methods.reserveBalance().call({from: miscUser})).to.be.equal('0');
       expect(await bondingCurve.methods.getPaymentThreshold().call({from: miscUser})).to.be.equal(
         '100'
       );
     });
 
-    it('should fail on invalid splitOnPay', async () => {
-      const invalidSplitOnPay = new BN(101);
+    it('should fail on invalid dividendPercentage', async () => {
+      const invalidDividendPercentage = new BN(101);
 
       await expectRevert.unspecified(
         deploy.deployBondingCurve(project, [
@@ -119,8 +114,8 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
           paymentToken.address,
           bondedToken.address,
           buyCurve.address,
-          sellCurve.address,
-          invalidSplitOnPay.toString()
+          deployParams.reservePercentage.toString(),
+          invalidDividendPercentage.toString()
         ])
       );
     });
@@ -202,37 +197,43 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       );
     });
 
-    it('should allow owner to set new sell curve', async function() {
-      tx = await bondingCurve.methods.setSellCurve(constants.ZERO_ADDRESS).send({
+    it('should allow owner to set new reserve percentage', async function() {
+      const newReservePercentage = '20';
+
+      tx = await bondingCurve.methods.setReservePercentage(newReservePercentage).send({
         from: curveOwner
       });
-      expect(await bondingCurve.methods.sellCurve().call({from: miscUser})).to.be.equal(
-        constants.ZERO_ADDRESS
+      expect(await bondingCurve.methods.reservePercentage().call({from: miscUser})).to.be.equal(
+        newReservePercentage
       );
     });
 
-    it('should not allow non-owner to set new sell curve', async function() {
+    it('should not allow non-owner to set new reserve percentage', async function() {
+      const newReservePercentage = '20';
+
       await expectRevert.unspecified(
-        bondingCurve.methods.setSellCurve(constants.ZERO_ADDRESS).send({
+        bondingCurve.methods.setReservePercentage(newReservePercentage).send({
           from: miscUser
         })
       );
     });
 
-    it('should allow owner to set new split on pay', async function() {
-      const newSplitOnPay = '20';
+    it('should allow owner to set new dividend percentage', async function() {
+      const newDividendPercentage = '20';
 
-      tx = await bondingCurve.methods.setSplitOnPay(newSplitOnPay).send({
+      tx = await bondingCurve.methods.setDividendPercentage(newDividendPercentage).send({
         from: curveOwner
       });
-      expect(await bondingCurve.methods.splitOnPay().call({from: miscUser})).to.be.equal(
-        newSplitOnPay
+      expect(await bondingCurve.methods.dividendPercentage().call({from: miscUser})).to.be.equal(
+        newDividendPercentage
       );
     });
 
-    it('should not allow non-owner to set new split on pay', async function() {
+    it('should not allow non-owner to set new dividend percentage', async function() {
+      const newDividendPercentage = '20';
+
       await expectRevert.unspecified(
-        bondingCurve.methods.setSplitOnPay(constants.ZERO_ADDRESS).send({
+        bondingCurve.methods.setDividendPercentage(newDividendPercentage).send({
           from: miscUser
         })
       );
@@ -250,9 +251,9 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
     const expectedBuyPrice = numTokens
       .mul(deployParams.buyCurveParams)
       .div(contractConstants.bondingCurve.tokenRatioPrecision);
-    const expectedSellReward = numTokens
-      .mul(deployParams.sellCurveParams)
-      .div(contractConstants.bondingCurve.tokenRatioPrecision);
+    const expectedSellReward = expectedBuyPrice
+      .mul(deployParams.reservePercentage)
+      .div(new BN(100));
     const maxBuyPrice = new BN(0); //We don't want a max price unless we're specifically testing that
     const minSellPrice = new BN(0); //We don't want a min price unless we're specifically testing that
 
@@ -302,18 +303,6 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
           bondingCurve.methods.buy(numTokens.toString(), '1', buyer).send({
             from: buyer
           })
-        );
-      });
-
-      it('should not allow to buy if sell curve value is higher than buy curve value', async function() {
-        // Reverse buy and sell curves
-        await bondingCurve.methods.setSellCurve(buyCurve.address).send({from: curveOwner});
-        await bondingCurve.methods.setBuyCurve(sellCurve.address).send({from: curveOwner});
-
-        await expectRevert.unspecified(
-          bondingCurve.methods
-            .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
-            .send({from: buyer})
         );
       });
     });
@@ -706,9 +695,9 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
 
       describe('Beneficiary / Dividend Split', async () => {
         const maxPercentage = new BN(100);
-        const dividendSplit = maxPercentage.sub(deployParams.splitOnPay);
+        const dividendSplit = maxPercentage.sub(deployParams.dividendPercentage);
         const expectedBeneficiaryAmount = paymentAmount
-          .mul(deployParams.splitOnPay)
+          .mul(deployParams.dividendPercentage)
           .div(maxPercentage);
         const expectedDividendAmount = paymentAmount.mul(dividendSplit).div(maxPercentage);
 
