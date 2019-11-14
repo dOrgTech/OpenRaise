@@ -2,19 +2,21 @@
 global.artifacts = artifacts;
 global.web3 = web3;
 
-const {Contracts, SimpleProject, ZWeb3, AppProject, Package} = require('@openzeppelin/upgrades');
+const { Contracts, SimpleProject, ZWeb3, AppProject, Package } = require('@openzeppelin/upgrades');
 
 const StaticCurveLogic = Contracts.getFromLocal('StaticCurveLogic');
 const BancorFormula = Contracts.getFromLocal('BancorFormula');
 const BancorCurveLogic = Contracts.getFromLocal('BancorCurveLogic');
 const BancorCurveService = Contracts.getFromLocal('BancorCurveService');
 const BondingCurve = Contracts.getFromLocal('BondingCurve');
+const BondingCurveEther = Contracts.getFromLocal('BondingCurveEther');
 const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
 const BondedToken = Contracts.getFromLocal('BondedToken');
 const RewardsDistributor = Contracts.getFromLocal('RewardsDistributor');
 
 const CONTRACT_ABIS = {
   BondingCurve,
+  BondingCurveEther,
   BondingCurveFactory,
   BancorCurveLogic,
   StaticCurveLogic,
@@ -25,16 +27,13 @@ const CONTRACT_ABIS = {
 
 const CONTRACT_NAMES = {
   BondingCurve: 'BondingCurve',
+  BondingCurveEther: 'BondingCurveEther',
   BondingCurveFactory: 'BondingCurveFactory',
   BancorCurveLogic: 'BancorCurveLogic',
   StaticCurveLogic: 'StaticCurveLogic',
   BondedToken: 'BondedToken',
   BancorCurveService: 'BancorCurveService',
   RewardsDistributor: 'RewardsDistributor'
-};
-
-const PACKAGE_NAMES = {
-  self: 'example-openzeppelin-upgrades-simple'
 };
 
 async function setupApp(txParams) {
@@ -49,6 +48,7 @@ async function setupApp(txParams) {
 
   // Add all implementations
   await appProject.setImplementation(BondingCurve, CONTRACT_NAMES.BondingCurve);
+  await appProject.setImplementation(BondingCurveEther, CONTRACT_NAMES.BondingCurveEther);
   await appProject.setImplementation(BondingCurveFactory, CONTRACT_NAMES.BondingCurveFactory);
   await appProject.setImplementation(BancorCurveLogic, CONTRACT_NAMES.BancorCurveLogic);
   await appProject.setImplementation(StaticCurveLogic, CONTRACT_NAMES.StaticCurveLogic);
@@ -82,7 +82,7 @@ async function deployBancorFormula(myProject) {
   const [creatorAddress, initializerAddress] = await ZWeb3.accounts();
 
   const instance = await myProject.createProxy(BancorFormula);
-  await instance.methods.initialize().send({from: initializerAddress});
+  await instance.methods.initialize().send({ from: initializerAddress });
   return instance;
 }
 
@@ -91,7 +91,7 @@ async function deployBancorCurveService(myProject) {
   const [creatorAddress, initializerAddress] = await ZWeb3.accounts();
 
   const instance = await myProject.createProxy(BancorCurveService);
-  await instance.methods.initialize().send({from: initializerAddress});
+  await instance.methods.initialize().send({ from: initializerAddress });
   return instance;
 }
 
@@ -104,17 +104,19 @@ async function deployBancorCurveLogic(myProject, initArgs) {
   return instance;
 }
 
-async function createBondingCurve(myProject) {
-  ZWeb3.initialize(web3.currentProvider);
-
-  const instance = await myProject.createProxy(BondingCurve);
-  return instance;
-}
-
 async function deployBondingCurve(myProject, initArgs) {
   ZWeb3.initialize(web3.currentProvider);
 
   const instance = await myProject.createProxy(BondingCurve, {
+    initArgs
+  });
+  return instance;
+}
+
+async function deployBondingCurveEther(myProject, initArgs) {
+  ZWeb3.initialize(web3.currentProvider);
+
+  const instance = await myProject.createProxy(BondingCurveEther, {
     initArgs
   });
   return instance;
@@ -205,8 +207,8 @@ module.exports = {
   deployBancorFormula,
   deployBancorCurveService,
   deployBancorCurveLogic,
-  createBondingCurve,
   deployBondingCurve,
+  deployBondingCurveEther,
   deployBondingCurveFactory,
   deployBondedToken,
   deployStandaloneERC20,
