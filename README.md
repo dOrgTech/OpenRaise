@@ -138,7 +138,7 @@ function sell(
 ) public
 ```
 
-[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bondedToken holders according to the splitOnPay parameter;
+[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue sent using this method is distributed between the beneficiary and the bondedToken holders according to the splitOnPay parameter;
 
 ```
 function pay(
