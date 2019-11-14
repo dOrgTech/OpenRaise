@@ -5,7 +5,6 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
-
 /**
  * @title RewardsDistributor - Distribute pro rata rewards (dividends)
  * @author Bogdan Batog (https://batog.info)
