@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 /// @title  Curve - A specific curve implementation used by a BondingCurvedToken.
 contract ICurveLogic {
-
+    
     /// @dev                    Get the price to mint tokens
     /// @param totalSupply      The existing number of curve tokens
     /// @param amount           The number of curve tokens to mint

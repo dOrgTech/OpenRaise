@@ -6,10 +6,13 @@ import "@openzeppelin/upgrades/contracts/upgradeability/AdminUpgradeabilityProxy
 import "@openzeppelin/upgrades/contracts/application/App.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/StandaloneERC20.sol";
-import "contracts/BondingCurve/BondingCurve.sol";
-import "contracts/BondingCurve/curve/StaticCurveLogic.sol";
-import "contracts/BondingCurve/curve/BancorCurveLogic.sol";
-import "contracts/BondingCurve/curve/BancorCurveService.sol";
+import "../BondingCurve.sol";
+import "../curve/BancorCurveLogic.sol";
+import "../curve/BancorCurveService.sol";
+import "../curve/StaticCurveLogic.sol";
+import "../dividend/RewardsDistributor.sol";
+import "../token/BondedToken.sol";
+import "../interface/ICurveLogic.sol";
 
 /**
  * @title Combined Factory
