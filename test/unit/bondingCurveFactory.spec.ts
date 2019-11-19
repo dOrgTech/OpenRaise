@@ -79,6 +79,13 @@ contract('BondingCurveFactory', accounts => {
       project,
       deploy.CONTRACT_NAMES.RewardsDistributor
     );
+    bancorCurveLogicImpl = await deploy.getImplementation(
+      project,
+      deploy.CONTRACT_NAMES.BancorCurveLogic
+    );
+    bondedTokenImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondedToken);
+    bondingCurveImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondingCurve);
+    dividendPoolImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.DividendPool);
 
     factory = await deploy.deployBondingCurveFactory(project, [
       staticCurveLogicImpl,

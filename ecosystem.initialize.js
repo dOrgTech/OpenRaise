@@ -1,37 +1,39 @@
 /* eslint-disable no-console */
-require('dotenv').config();
+require("dotenv").config();
 
-const fs = require('fs');
+const fs = require("fs");
 
-const App = artifacts.require('App');
+const App = artifacts.require("App");
 
 const contractNames = {
-  StaticCurveLogic: 'StaticCurveLogic',
-  BancorCurveLogic: 'BancorCurveLogic',
-  BondedToken: 'BondedToken',
-  RewardsDistributor: 'RewardsDistributor',
-  BondingCurve: 'BondingCurve',
-  BondingCurveFactory: 'BondingCurveFactory',
-  BancorCurveService: 'BancorCurveService'
+  StaticCurveLogic: "StaticCurveLogic",
+  BancorCurveLogic: "BancorCurveLogic",
+  BondedToken: "BondedToken",
+  RewardsDistributor: "RewardsDistributor",
+  BondingCurve: "BondingCurve",
+  BondingCurveFactory: "BondingCurveFactory",
+  BancorCurveService: "BancorCurveService"
 };
 
-const BancorCurveService = artifacts.require('BancorCurveService');
-const BondingCurveFactory = artifacts.require('BondingCurveFactory');
+const BancorCurveService = artifacts.require("BancorCurveService");
+const BondingCurveFactory = artifacts.require("BondingCurveFactory");
 
-const truffleConfig = require('./truffle-config.js');
+const truffleConfig = require("./truffle-config.js");
 
-const BC_DAO_PACKAGE = '@dorg/bc-dao';
+const BC_DAO_PACKAGE = "@dorg/bc-dao";
 
 function activeNetwork() {
-  const networkIndex = process.argv.lastIndexOf('--network');
+  const networkIndex = process.argv.lastIndexOf("--network");
   if (networkIndex < 2) {
-    return 'development';
+    return "development";
   }
   return process.argv[networkIndex + 1];
 }
 
 function activeNetworkName() {
-  return activeNetwork() === 'development' ? `dev-${App.network_id}` : activeNetwork();
+  return activeNetwork() === "development"
+    ? `dev-${App.network_id}`
+    : activeNetwork();
 }
 
 /*
@@ -59,7 +61,7 @@ function getLatestProxy(contractName) {
 function helpers() {
   return {
     constants: {
-      ZERO_ADDRESS: '0x0000000000000000000000000000000000000000'
+      ZERO_ADDRESS: "0x0000000000000000000000000000000000000000"
     }
   };
 }
@@ -84,18 +86,33 @@ async function initializeBondingCurveFactory(contractAddress) {
 }
 
 module.exports = async () => {
-  const {constants} = helpers();
+  const { constants } = helpers();
   try {
-    const bancorCurveServiceAddress = getLatestProxy(contractNames.BancorCurveService).address;
-    const bondingCurveFactoryAddress = getLatestProxy(contractNames.BondingCurveFactory).address;
-    console.log(`${contractNames.BancorCurveService} to initialize:`, bancorCurveServiceAddress);
-    console.log(`${contractNames.BondingCurveFactory} to initialize:`, bondingCurveFactoryAddress);
+    const bancorCurveServiceAddress = getLatestProxy(
+      contractNames.BancorCurveService
+    ).address;
+    const bondingCurveFactoryAddress = getLatestProxy(
+      contractNames.BondingCurveFactory
+    ).address;
+    console.log(
+      `${contractNames.BancorCurveService} to initialize:`,
+      bancorCurveServiceAddress
+    );
+    console.log(
+      `${contractNames.BondingCurveFactory} to initialize:`,
+      bondingCurveFactoryAddress
+    );
 
     // let initializeTx = await initializeBancorCurveService(bancorCurveServiceAddress);
     // console.log(`${contractNames.BancorCurveService} initialization tx:`, initializeTx.tx);
 
-    let initializeTx = await initializeBondingCurveFactory(bondingCurveFactoryAddress);
-    console.log(`${contractNames.BondingCurveFactory} initialization tx:`, initializeTx.tx);
+    let initializeTx = await initializeBondingCurveFactory(
+      bondingCurveFactoryAddress
+    );
+    console.log(
+      `${contractNames.BondingCurveFactory} initialization tx:`,
+      initializeTx.tx
+    );
   } catch (e) {
     console.error(e);
   }

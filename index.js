@@ -2,16 +2,22 @@
 global.artifacts = artifacts;
 global.web3 = web3;
 
-const {Contracts, SimpleProject, ZWeb3, AppProject, Package} = require('@openzeppelin/upgrades');
+const {
+  Contracts,
+  SimpleProject,
+  ZWeb3,
+  AppProject,
+  Package
+} = require("@openzeppelin/upgrades");
 
-const StaticCurveLogic = Contracts.getFromLocal('StaticCurveLogic');
-const BancorFormula = Contracts.getFromLocal('BancorFormula');
-const BancorCurveLogic = Contracts.getFromLocal('BancorCurveLogic');
-const BancorCurveService = Contracts.getFromLocal('BancorCurveService');
-const BondingCurve = Contracts.getFromLocal('BondingCurve');
-const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
-const BondedToken = Contracts.getFromLocal('BondedToken');
-const RewardsDistributor = Contracts.getFromLocal('RewardsDistributor');
+const StaticCurveLogic = Contracts.getFromLocal("StaticCurveLogic");
+const BancorFormula = Contracts.getFromLocal("BancorFormula");
+const BancorCurveLogic = Contracts.getFromLocal("BancorCurveLogic");
+const BancorCurveService = Contracts.getFromLocal("BancorCurveService");
+const BondingCurve = Contracts.getFromLocal("BondingCurve");
+const BondingCurveFactory = Contracts.getFromLocal("BondingCurveFactory");
+const BondedToken = Contracts.getFromLocal("BondedToken");
+const RewardsDistributor = Contracts.getFromLocal("RewardsDistributor");
 
 const CONTRACT_ABIS = {
   BondingCurve,
@@ -24,24 +30,24 @@ const CONTRACT_ABIS = {
 };
 
 const CONTRACT_NAMES = {
-  BondingCurve: 'BondingCurve',
-  BondingCurveFactory: 'BondingCurveFactory',
-  BancorCurveLogic: 'BancorCurveLogic',
-  StaticCurveLogic: 'StaticCurveLogic',
-  BondedToken: 'BondedToken',
-  BancorCurveService: 'BancorCurveService',
-  RewardsDistributor: 'RewardsDistributor'
+  BondingCurve: "BondingCurve",
+  BondingCurveFactory: "BondingCurveFactory",
+  BancorCurveLogic: "BancorCurveLogic",
+  StaticCurveLogic: "StaticCurveLogic",
+  BondedToken: "BondedToken",
+  BancorCurveService: "BancorCurveService",
+  RewardsDistributor: "RewardsDistributor"
 };
 
 const PACKAGE_NAMES = {
-  self: 'example-openzeppelin-upgrades-simple'
+  self: "example-openzeppelin-upgrades-simple"
 };
 
 async function setupApp(txParams) {
   // On-chain, single entry point of the entire application.
-  const initialVersion = '2.5.2';
+  const initialVersion = "2.5.2";
   const appProject = await AppProject.fetchOrDeploy(
-    'example-openzeppelin-upgrades-simple',
+    "example-openzeppelin-upgrades-simple",
     initialVersion,
     txParams,
     {}
@@ -49,12 +55,27 @@ async function setupApp(txParams) {
 
   // Add all implementations
   await appProject.setImplementation(BondingCurve, CONTRACT_NAMES.BondingCurve);
-  await appProject.setImplementation(BondingCurveFactory, CONTRACT_NAMES.BondingCurveFactory);
-  await appProject.setImplementation(BancorCurveLogic, CONTRACT_NAMES.BancorCurveLogic);
-  await appProject.setImplementation(StaticCurveLogic, CONTRACT_NAMES.StaticCurveLogic);
+  await appProject.setImplementation(
+    BondingCurveFactory,
+    CONTRACT_NAMES.BondingCurveFactory
+  );
+  await appProject.setImplementation(
+    BancorCurveLogic,
+    CONTRACT_NAMES.BancorCurveLogic
+  );
+  await appProject.setImplementation(
+    StaticCurveLogic,
+    CONTRACT_NAMES.StaticCurveLogic
+  );
   await appProject.setImplementation(BondedToken, CONTRACT_NAMES.BondedToken);
-  await appProject.setImplementation(BancorCurveService, CONTRACT_NAMES.BancorCurveService);
-  await appProject.setImplementation(RewardsDistributor, CONTRACT_NAMES.RewardsDistributor);
+  await appProject.setImplementation(
+    BancorCurveService,
+    CONTRACT_NAMES.BancorCurveService
+  );
+  await appProject.setImplementation(
+    RewardsDistributor,
+    CONTRACT_NAMES.RewardsDistributor
+  );
 
   return appProject;
 }
@@ -62,7 +83,7 @@ async function setupApp(txParams) {
 async function deployProject() {
   ZWeb3.initialize(web3.currentProvider);
   const [creatorAddress, initializerAddress] = await ZWeb3.accounts();
-  const myProject = new SimpleProject('MyProject', null, {
+  const myProject = new SimpleProject("MyProject", null, {
     from: creatorAddress
   });
 
@@ -82,7 +103,7 @@ async function deployBancorFormula(myProject) {
   const [creatorAddress, initializerAddress] = await ZWeb3.accounts();
 
   const instance = await myProject.createProxy(BancorFormula);
-  await instance.methods.initialize().send({from: initializerAddress});
+  await instance.methods.initialize().send({ from: initializerAddress });
   return instance;
 }
 
@@ -91,7 +112,7 @@ async function deployBancorCurveService(myProject) {
   const [creatorAddress, initializerAddress] = await ZWeb3.accounts();
 
   const instance = await myProject.createProxy(BancorCurveService);
-  await instance.methods.initialize().send({from: initializerAddress});
+  await instance.methods.initialize().send({ from: initializerAddress });
   return instance;
 }
 
@@ -192,7 +213,7 @@ module.exports = function(callback) {
 
 // Logging
 function log() {
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== "test") {
     console.log.apply(this, arguments);
   }
 }

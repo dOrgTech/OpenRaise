@@ -12,7 +12,6 @@ import "../dividend/RewardsDistributor.sol";
  * @dev A standard ERC20, using Detailed & Mintable featurs. Accepts a single minter, which should be the BondingCurve. The minter also has exclusive burning rights.
  */
 contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
-
     RewardsDistributor _rewardsDistributor;
 
     IERC20 _dividendToken;
@@ -101,7 +100,6 @@ contract BondedToken is Initializable, ERC20Detailed, ERC20Mintable {
         _dividendToken.transfer(_staker, _amount);
         return _amount;
     }
-
 
     /**
      * @dev Reads current accumulated reward for address.

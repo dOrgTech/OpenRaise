@@ -181,6 +181,7 @@ contract BondingCurve is Initializable, Ownable, Pausable {
 
         uint256 tokensToBeneficiary;
         uint256 tokensToDividendHolders;
+        uint256 remainderTokens;
 
         tokensToDividendHolders = (amount.mul(_dividendPercentage)).div(MAX_PERCENTAGE);
         tokensToBeneficiary = amount.sub(tokensToDividendHolders);
