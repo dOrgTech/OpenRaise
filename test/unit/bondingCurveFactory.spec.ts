@@ -44,7 +44,7 @@ contract('BondingCurveFactory', accounts => {
 
   beforeEach(async function() {
     project = await deploy.setupApp({adminAccount});
-
+    console.log(1);
     // TODO: replace this with an ERC20Mintable!
     paymentToken = await deploy.deployBondedToken(project, [
       paymentTokenValues.parameters.name,
@@ -54,6 +54,8 @@ contract('BondingCurveFactory', accounts => {
       ZERO_ADDRESS,
       ZERO_ADDRESS
     ]);
+
+    console.log(2);
 
     const paymentTokenInitialBalance = new BN(web3.utils.toWei('60000', 'ether'));
 
@@ -79,13 +81,6 @@ contract('BondingCurveFactory', accounts => {
       project,
       deploy.CONTRACT_NAMES.RewardsDistributor
     );
-    bancorCurveLogicImpl = await deploy.getImplementation(
-      project,
-      deploy.CONTRACT_NAMES.BancorCurveLogic
-    );
-    bondedTokenImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondedToken);
-    bondingCurveImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.BondingCurve);
-    dividendPoolImpl = await deploy.getImplementation(project, deploy.CONTRACT_NAMES.DividendPool);
 
     factory = await deploy.deployBondingCurveFactory(project, [
       staticCurveLogicImpl,
