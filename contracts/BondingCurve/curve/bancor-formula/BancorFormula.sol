@@ -2,7 +2,7 @@ pragma solidity >= 0.4.22 <6.0.0;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "./Power.sol";
+import "contracts/BondingCurve/curve/bancor-formula/Power.sol";
 
 /**
  * @title Bancor formula by Bancor
