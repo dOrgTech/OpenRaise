@@ -18,10 +18,8 @@ contract("StaticCurveLogic", accounts => {
   let result;
   let project;
 
-  const creator = accounts[0];
-  const initializer = accounts[1];
 
-  const TEN = new BN(10);
+  const initializer = accounts[1];
 
   // Ratio of send tokens to minted tokens = tokenRatio / PRECISION
   const precision = new BN(1000000);

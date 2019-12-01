@@ -8,6 +8,8 @@ const expect = require('chai').expect;
 const should = require('chai').should();
 const deploy = require('../../index.js');
 const contractConstants = require('../constants/contractConstants.js');
+const {defaultTestConfig} = require('../helpers/ecosystemConfigs');
+const {str, bn} = require("../helpers/utils");
 
 async function shouldBehaveLikeBondingCurve(context, parameters) {
   const {adminAccount, curveOwner, tokenMinter, userAccounts, miscUser} = context;
@@ -78,31 +80,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
   });
 
   describe('Initialization', async () => {
-    it('should have properly initialized parameters', async function() {
-      expect(await bondingCurve.methods.owner().call({from: miscUser})).to.be.equal(curveOwner);
-      expect(await bondingCurve.methods.beneficiary().call({from: miscUser})).to.be.equal(
-        curveOwner
-      );
-      expect(await bondingCurve.methods.collateralToken().call({from: miscUser})).to.be.equal(
-        paymentToken.address
-      );
-      expect(await bondingCurve.methods.bondedToken().call({from: miscUser})).to.be.equal(
-        bondedToken.address
-      );
-      expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
-        buyCurve.address
-      );
-      expect(
-        new BN(await bondingCurve.methods.reservePercentage().call({from: miscUser}))
-      ).to.be.bignumber.equal(deployParams.reservePercentage);
-      expect(
-        new BN(await bondingCurve.methods.dividendPercentage().call({from: miscUser}))
-      ).to.be.bignumber.equal(deployParams.dividendPercentage);
-      expect(await bondingCurve.methods.reserveBalance().call({from: miscUser})).to.be.equal('0');
-      expect(await bondingCurve.methods.getPaymentThreshold().call({from: miscUser})).to.be.equal(
-        '100'
-      );
-    });
+
 
     it('should fail on invalid dividendPercentage', async () => {
       const invalidDividendPercentage = new BN(101);
@@ -117,125 +95,6 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
           deployParams.reservePercentage.toString(),
           invalidDividendPercentage.toString()
         ])
-      );
-    });
-  });
-
-  describe('Curve Admin', async () => {
-    it('should allow owner to set new beneficiary', async function() {
-      tx = await bondingCurve.methods.setBeneficiary(userAccounts[0]).send({
-        from: curveOwner
-      });
-      expect(await bondingCurve.methods.beneficiary().call({from: miscUser})).to.be.equal(
-        userAccounts[0]
-      );
-    });
-
-    it('should not allow non-owner to set new beneficiary', async function() {
-      await expectRevert.unspecified(
-        bondingCurve.methods.setBeneficiary(constants.ZERO_ADDRESS).send({
-          from: miscUser
-        })
-      );
-    });
-
-    it('should allow owner to set new owner', async function() {
-      const oldOwner = curveOwner;
-      const newOwner = userAccounts[0];
-
-      tx = await bondingCurve.methods.transferOwnership(newOwner).send({from: oldOwner});
-
-      expect(await bondingCurve.methods.owner().call({from: newOwner})).to.be.equal(newOwner);
-    });
-
-    it('should not allow non-owner to set new owner', async function() {
-      const nonOwner = userAccounts[0];
-      const newOwner = userAccounts[1];
-
-      await expectRevert.unspecified(
-        bondingCurve.methods.transferOwnership(newOwner).send({
-          from: nonOwner
-        })
-      );
-    });
-
-    it('should not allow old owner to set new beneficiary after ownership transfer', async function() {
-      const oldOwner = curveOwner;
-      const oldBeneficiary = curveOwner;
-      const newOwner = userAccounts[0];
-      const newBeneficiary = userAccounts[1];
-
-      tx = await bondingCurve.methods.transferOwnership(newOwner).send({
-        from: oldOwner
-      });
-
-      result = await bondingCurve.methods.beneficiary().call({from: miscUser});
-      expect(result).to.be.equal(oldBeneficiary);
-
-      await bondingCurve.methods.setBeneficiary(newBeneficiary).send({
-        from: newOwner
-      });
-
-      result = await bondingCurve.methods.beneficiary().call({from: miscUser});
-      expect(result).to.be.equal(newBeneficiary);
-    });
-
-    it('should allow owner to set new buy curve', async function() {
-      tx = await bondingCurve.methods.setBuyCurve(constants.ZERO_ADDRESS).send({
-        from: curveOwner
-      });
-      expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
-        constants.ZERO_ADDRESS
-      );
-    });
-
-    it('should not allow non-owner to set new buy curve', async function() {
-      await expectRevert.unspecified(
-        bondingCurve.methods.setBuyCurve(constants.ZERO_ADDRESS).send({
-          from: miscUser
-        })
-      );
-    });
-
-    it('should allow owner to set new reserve percentage', async function() {
-      const newReservePercentage = '20';
-
-      tx = await bondingCurve.methods.setReservePercentage(newReservePercentage).send({
-        from: curveOwner
-      });
-      expect(await bondingCurve.methods.reservePercentage().call({from: miscUser})).to.be.equal(
-        newReservePercentage
-      );
-    });
-
-    it('should not allow non-owner to set new reserve percentage', async function() {
-      const newReservePercentage = '20';
-
-      await expectRevert.unspecified(
-        bondingCurve.methods.setReservePercentage(newReservePercentage).send({
-          from: miscUser
-        })
-      );
-    });
-
-    it('should allow owner to set new dividend percentage', async function() {
-      const newDividendPercentage = '20';
-
-      tx = await bondingCurve.methods.setDividendPercentage(newDividendPercentage).send({
-        from: curveOwner
-      });
-      expect(await bondingCurve.methods.dividendPercentage().call({from: miscUser})).to.be.equal(
-        newDividendPercentage
-      );
-    });
-
-    it('should not allow non-owner to set new dividend percentage', async function() {
-      const newDividendPercentage = '20';
-
-      await expectRevert.unspecified(
-        bondingCurve.methods.setDividendPercentage(newDividendPercentage).send({
-          from: miscUser
-        })
       );
     });
   });
@@ -668,134 +527,6 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
               from: buyer
             })
         );
-      });
-    });
-
-    describe('Payments', async () => {
-      const nonOwner = userAccounts[0];
-
-      const userBalances = new BN(100000);
-      const paymentAmount = new BN(10000);
-
-      beforeEach(async () => {
-        await paymentToken.methods.mint(curveOwner, userBalances.toString()).send({
-          from: tokenMinter
-        });
-        await paymentToken.methods.mint(nonOwner, userBalances.toString()).send({
-          from: tokenMinter
-        });
-        await paymentToken.methods.approve(bondingCurve.address, paymentAmount.toString()).send({
-          from: curveOwner
-        });
-        await paymentToken.methods.approve(bondingCurve.address, paymentAmount.toString()).send({
-          from: nonOwner
-        });
-      });
-
-      it('should not allow payments of amount 0', async function() {
-        await expectRevert.unspecified(bondingCurve.methods.pay(0).send({from: curveOwner}));
-      });
-
-      it('should register payments', async function() {
-        tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({from: nonOwner});
-
-        expectEvent.inLogs(tx.events, 'Pay', {
-          from: nonOwner,
-          token: paymentToken.address,
-          amount: paymentAmount.toString()
-        });
-
-        tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({from: curveOwner});
-
-        expectEvent.inLogs(tx.events, 'Pay', {
-          from: curveOwner,
-          token: paymentToken.address,
-          amount: paymentAmount.toString()
-        });
-      });
-
-      it('should not allow pay with greater amount than senders balance', async function() {
-        const exceededBalance = userBalances.add(userBalances);
-
-        await expectRevert.unspecified(
-          bondingCurve.methods.pay(exceededBalance.toString()).send({
-            from: nonOwner
-          })
-        );
-        await expectRevert.unspecified(
-          bondingCurve.methods.pay(exceededBalance.toString()).send({
-            from: curveOwner
-          })
-        );
-      });
-
-      describe('Beneficiary / Dividend Split', async () => {
-        const maxPercentage = new BN(100);
-        const dividendSplit = maxPercentage.sub(deployParams.dividendPercentage);
-        const expectedBeneficiaryAmount = paymentAmount
-          .mul(deployParams.dividendPercentage)
-          .div(maxPercentage);
-        const expectedDividendAmount = paymentAmount.mul(dividendSplit).div(maxPercentage);
-
-        it('should register correct split between beneficiary and dividend pool from non-curve owner', async function() {
-          tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({from: nonOwner});
-
-          expectEvent.inLogs(tx.events, 'Pay', {
-            from: nonOwner,
-            token: paymentToken.address,
-            amount: paymentAmount.toString(),
-            beneficiaryAmount: expectedBeneficiaryAmount.toString(),
-            dividendAmount: expectedDividendAmount.toString()
-          });
-        });
-
-        it('should register correct split between beneficiary and dividend pool from curve owner', async function() {
-          tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({
-            from: curveOwner
-          });
-
-          expectEvent.inLogs(tx.events, 'Pay', {
-            from: curveOwner,
-            token: paymentToken.address,
-            amount: paymentAmount.toString(),
-            beneficiaryAmount: expectedBeneficiaryAmount.toString(),
-            dividendAmount: expectedDividendAmount.toString()
-          });
-        });
-
-        // it('should transfer correct token amounts between beneficiary and dividend pool', async function() {
-        //   const beneficiaryBeforeBalance = new BN(
-        //     await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
-        //   );
-
-        //   const dividendBeforeBalance = new BN(
-        //     await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
-        //   );
-
-        //   tx = await bondingCurve.methods.pay(paymentAmount.toString()).send({
-        //     from: nonOwner
-        //   });
-        //   const event = expectEvent.inLogs(tx.events, 'Pay');
-
-        //   const beneficiaryAfterBalance = new BN(
-        //     await paymentToken.methods.balanceOf(curveOwner).call({from: miscUser})
-        //   );
-
-        //   const dividendAfterBalance = new BN(
-        //     await paymentToken.methods.balanceOf(dividendPool.address).call({from: miscUser})
-        //   );
-
-        //   const beneficiaryAmount = new BN(expectEvent.getParameter(event, 'beneficiaryAmount'));
-        //   const dividendAmount = new BN(expectEvent.getParameter(event, 'dividendAmount'));
-
-        //   expect(beneficiaryAmount).to.be.bignumber.equal(
-        //     beneficiaryAfterBalance.sub(beneficiaryBeforeBalance)
-        //   );
-
-        //   expect(dividendAmount).to.be.bignumber.equal(
-        //     dividendAfterBalance.sub(dividendBeforeBalance)
-        //   );
-        // });
       });
     });
   });
