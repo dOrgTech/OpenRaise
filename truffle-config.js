@@ -74,5 +74,8 @@ module.exports = {
         runs: 200
       }
     }
+  },
+  mocha: {
+    reporter: 'eth-gas-reporter',
   }
 };
