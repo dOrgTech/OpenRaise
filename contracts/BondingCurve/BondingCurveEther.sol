@@ -48,14 +48,12 @@ contract BondingCurveEther is Initializable, BondingCurveBase {
     require(msg.value == maxPrice, INCORRECT_ETHER_SENT);
 
     uint256 buyPrice = priceToBuy(amount);
-
-    if (maxPrice != 0) {
-      require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
-    }
+    require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
 
     uint256 etherToReserve = rewardForSell(amount);
     uint256 etherToBeneficiary = buyPrice.sub(etherToReserve);
-    uint256 remainder = msg.value.sub(etherToReserve).sub(etherToBeneficiary);
+
+    uint256 remainder = maxPrice.sub(etherToReserve).sub(etherToBeneficiary);
 
     _reserveBalance = _reserveBalance.add(etherToReserve);
     _bondedToken.mint(recipient, amount);

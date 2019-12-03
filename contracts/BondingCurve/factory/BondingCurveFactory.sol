@@ -7,6 +7,7 @@ import "@openzeppelin/upgrades/contracts/application/App.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/StandaloneERC20.sol";
 import "contracts/BondingCurve/BondingCurve.sol";
+import "contracts/BondingCurve/BondingCurveEther.sol";
 import "contracts/BondingCurve/curve/BancorCurveLogic.sol";
 import "contracts/BondingCurve/curve/BancorCurveService.sol";
 import "contracts/BondingCurve/curve/StaticCurveLogic.sol";
@@ -82,7 +83,44 @@ contract BondingCurveFactory is Initializable {
         return _createProxy(_rewardsDistributorImpl, address(0), "");
     }
 
-    function deployStatic(
+    function deployStaticEther(
+        address owner,
+        address beneficiary,
+        uint256 buyCurveParams,
+        uint256 reservePercentage,
+        uint256 dividendPercentage,
+        string calldata bondedTokenName,
+        string calldata bondedTokenSymbol
+    ) external {
+        address[] memory proxies = new address[](4);
+
+        proxies[0] = _deployStaticCurveLogic();
+        proxies[1] = _deployBondedToken();
+        proxies[2] = _deployBondingCurve();
+        proxies[3] = _deployRewardsDistributor();
+
+        StaticCurveLogic(proxies[0]).initialize(buyCurveParams);
+        BondedToken(proxies[1]).initialize(
+            bondedTokenName,
+            bondedTokenSymbol,
+            18,
+            proxies[2], // minter is the BondingCurve
+            RewardsDistributor(proxies[3])
+        );
+        BondingCurveEther(proxies[2]).initialize(
+            owner,
+            beneficiary,
+            BondedToken(proxies[1]),
+            ICurveLogic(proxies[0]),
+            reservePercentage,
+            dividendPercentage
+        );
+        RewardsDistributor(proxies[3]).initialize(proxies[1]);
+
+        emit BondingCurveDeployed(proxies[2], proxies[1], proxies[0], proxies[3], msg.sender);
+    }
+
+    function deployStaticERC20(
         address owner,
         address beneficiary,
         address collateralToken,
@@ -126,7 +164,7 @@ contract BondingCurveFactory is Initializable {
         emit BondingCurveDeployed(proxies[2], proxies[1], proxies[0], proxies[3], msg.sender);
     }
 
-    function deployBancor(
+    function deployBancorERC20(
         address owner,
         address beneficiary,
         address collateralToken,
@@ -160,7 +198,8 @@ contract BondingCurveFactory is Initializable {
             RewardsDistributor(proxies[3]),
             IERC20(tempCollateral[0])
         );
-        BondingCurve(proxies[2]).initialize(
+
+    BondingCurve(proxies[2]).initialize(
             owner,
             beneficiary,
             IERC20(collateralToken),
