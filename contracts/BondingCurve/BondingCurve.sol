@@ -111,7 +111,7 @@ contract BondingCurve is Initializable, Ownable, Pausable {
         require(dividendPercentage <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
     }
 
-    /// @notice             Get the price in ether to mint tokens
+    /// @notice             Get the price in collateral tokens to mint bonded tokens
     /// @param numTokens    The number of tokens to calculate price for
     function priceToBuy(uint256 numTokens) public view returns (uint256) {
         return _buyCurve.calcMintPrice(_bondedToken.totalSupply(), _reserveBalance, numTokens);
