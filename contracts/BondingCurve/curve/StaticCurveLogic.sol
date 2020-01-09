@@ -2,7 +2,7 @@ pragma solidity ^0.5.7;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "../interface/ICurveLogic.sol";
+import "contracts/BondingCurve/interface/ICurveLogic.sol";
 
 /**
  * @title Static Curve Logic

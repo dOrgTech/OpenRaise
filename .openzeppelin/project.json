@@ -18,7 +18,11 @@
     "manager": "openzeppelin",
     "solcVersion": "0.5.10",
     "compilerSettings": {
-      "optimizer": {}
+      "optimizer": {
+        "enabled": false,
+        "runs": "200"
+      }
     }
-  }
+  },
+  "telemetryOptIn": false
 }

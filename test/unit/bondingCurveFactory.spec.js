@@ -89,12 +89,12 @@ contract('BondingCurveFactory', accounts => {
         expect(result.bancorCurveServiceImpl).to.be.equal(bancorCurveService.address);
     });
 
-    describe('Deploy StaticCurveLogic version', async () => {
+    describe('Deploy: StaticCurveLogic + ERC20 Collateral', async () => {
         let deployTx;
 
         beforeEach(async function () {
             deployTx = await factory.methods
-                .deployStatic(
+                .deployStaticERC20(
                     curveOwner,
                     curveOwner,
                     paymentToken.address,
@@ -205,7 +205,119 @@ contract('BondingCurveFactory', accounts => {
         });
     });
 
-    describe('Deploy BancorCurveLogic version', async () => {
+    describe('Deploy: StaticCurveLogic + Ether Collateral', async () => {
+        let deployTx;
+
+        beforeEach(async function () {
+            deployTx = await factory.methods
+                .deployStaticEther(
+                    curveOwner,
+                    curveOwner,
+                    str(curveLogicParams.tokenRatio),
+                    str(curveParams.reservePercentage),
+                    str(curveParams.dividendPercentage),
+                    bondedTokenParams.name,
+                    bondedTokenParams.symbol
+                )
+                .send({from: curveOwner});
+        });
+
+        it('should emit deployed event', async () => {
+            const gasCost = deployTx.gasUsed;
+            console.log('Deploy Cost', gasCost);
+
+            expectEvent.inLogs(deployTx.events, 'BondingCurveDeployed');
+        });
+
+        describe('Deploy', () => {
+            let bondingCurve;
+            let bondedToken;
+            let buyCurve;
+            let rewardsDistributor;
+
+            beforeEach(async function () {
+                const createdEvent = expectEvent.inLogs(deployTx.events, 'BondingCurveDeployed');
+
+                const deployedContracts = await getContractsFromDeployedEvent(createdEvent);
+
+                bondingCurve = deployedContracts.bondingCurve;
+                bondedToken = deployedContracts.bondedToken;
+                buyCurve = deployedContracts.buyCurve;
+                rewardsDistributor = deployedContracts.rewardsDistributor;
+            });
+
+            it('should deploy contracts on deploy', async function () {
+                //Just verify that code exists at the address
+                let nonContractCode = '0x';
+
+                expect(await web3.eth.getCode(bondingCurve.options.address)).to.not.be.equal(
+                    nonContractCode
+                );
+                expect(await web3.eth.getCode(bondedToken.options.address)).to.not.be.equal(
+                    nonContractCode
+                );
+                expect(await web3.eth.getCode(buyCurve.options.address)).to.not.be.equal(nonContractCode);
+                expect(await web3.eth.getCode(rewardsDistributor.options.address)).to.not.be.equal(
+                    nonContractCode
+                );
+            });
+
+            it('should correctly initialize buy curve parameters', async function () {
+                const tokenAmount = bn(1000);
+                const expectedPrice = bn(100000);
+
+                result = await buyCurve.methods
+                    .calcMintPrice(0, 0, tokenAmount.toString())
+                    .call({from: miscUser});
+
+                expect(bn(result)).to.be.bignumber.equal(expectedPrice);
+            });
+
+            it('should correctly initialize bonded token parameters', async function () {
+                expect(await bondedToken.methods.name().call({from: miscUser})).to.be.equal(
+                    bondedTokenParams.name
+                );
+                expect(await bondedToken.methods.symbol().call({from: miscUser})).to.be.equal(
+                    bondedTokenParams.symbol
+                );
+                expect(
+                    bn(await bondedToken.methods.decimals().call({from: miscUser}))
+                ).to.be.bignumber.equal(bn(18));
+                expect(
+                    bn(await bondedToken.methods.totalSupply().call({from: miscUser}))
+                ).to.be.bignumber.equal(bn(0));
+            });
+
+            it('should correctly initialize reward distributor parameters', async function () {
+                expect(await rewardsDistributor.methods.owner().call({from: miscUser})).to.be.equal(
+                    bondedToken.options.address
+                );
+            });
+
+            it('should correctly initialize bonding curve parameters', async function () {
+                expect(await bondingCurve.methods.owner().call({from: miscUser})).to.be.equal(
+                    curveOwner
+                );
+                expect(await bondingCurve.methods.beneficiary().call({from: miscUser})).to.be.equal(
+                    curveOwner
+                );
+                expect(await bondingCurve.methods.bondedToken().call({from: miscUser})).to.be.equal(
+                    bondedToken.options.address
+                );
+                expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
+                    buyCurve.options.address
+                );
+                expect(
+                    bn(await bondingCurve.methods.reservePercentage().call({from: miscUser}))
+                ).to.be.bignumber.equal(curveParams.reservePercentage);
+                expect(
+                    bn(await bondingCurve.methods.dividendPercentage().call({from: miscUser}))
+                ).to.be.bignumber.equal(curveParams.dividendPercentage);
+            });
+        });
+    });
+
+    describe('Deploy BancorCurveLogic + ERC20 Collateral', async () => {
         let deployTx;
 
         let bancorTestValues = {
@@ -218,7 +330,7 @@ contract('BondingCurveFactory', accounts => {
 
         beforeEach(async function () {
             deployTx = await factory.methods
-                .deployBancor(
+                .deployBancorERC20(
                     curveOwner,
                     curveOwner,
                     paymentToken.options.address,

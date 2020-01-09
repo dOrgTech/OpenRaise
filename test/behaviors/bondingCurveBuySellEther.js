@@ -6,14 +6,14 @@ const BondedToken = artifacts.require("BondedToken.sol");
 const expectEvent = require('../expectEvent');
 
 const {CurveEcosystem} = require("../helpers/CurveEcosystem");
-const {str, bn} = require("../helpers/utils");
+const {str, bn, wad, MAX_UINT, WAD} = require("../helpers/utils");
 
 // Import preferred chai flavor: both expect and should are supported
 const {expect} = require('chai');
 const {defaultTestConfig} = require('../helpers/ecosystemConfigs');
 const contractConstants = require('../constants/contractConstants');
 
-const bondingCurveBuySellTests = async (suiteName, config) => {
+const bondingCurveBuySellEtherTests = async (suiteName, config) => {
     contract('Bonding Curve Admin', async accounts => {
         const adminAccount = accounts[0];
         const curveOwner = accounts[1];
@@ -39,7 +39,7 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
         const expectedSellReward = expectedBuyPrice
             .mul(config.deployParams.curveParams.reservePercentage)
             .div(bn(100));
-        const maxBuyPrice = bn(0); //We don't want a max price unless we're specifically testing that
+        const maxBuyPrice = WAD; //We don't want a max price unless we're specifically testing that
         const minSellPrice = bn(0); //We don't want a min price unless we're specifically testing that
         describe('Helper', async () => {
             it('should show buy price correctly', async function () {
@@ -47,7 +47,6 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
 
                 let result = await bondingCurve.priceToBuy(numTokens, {from: buyer});
-
                 expect(new BN(result)).to.be.bignumber.equal(expectedBuyPrice);
             });
 
@@ -55,9 +54,7 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
 
-                let result = await bondingCurve
-                    .rewardForSell(numTokens, {from: buyer});
-
+                let result = await bondingCurve.rewardForSell(numTokens, {from: buyer});
                 expect(new BN(result)).to.be.bignumber.equal(expectedSellReward);
             });
 
@@ -86,17 +83,16 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
 
                 await expectRevert.unspecified(
-                    bondingCurve.buy(0, maxBuyPrice, buyer, {from: buyer})
+                    bondingCurve.buy(0, maxBuyPrice, buyer, {from: buyer, value: 0})
                 );
             });
 
-            it('should not allow user without collateralTokens approved to buy bondedTokens', async function () {
+            it('should not allow user without ether sent to buy bondedTokens', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
-                const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
+                const {bondingCurve} = await eco.init(web3);
 
                 await expectRevert.unspecified(
-                    bondingCurve
-                        .buy(numTokens, maxBuyPrice, buyer, {from: buyer})
+                    bondingCurve.buy(numTokens, maxBuyPrice, buyer, {from: buyer, value: 0})
                 );
             });
 
@@ -105,10 +101,11 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
 
                 await expectRevert.unspecified(
-                    bondingCurve.buy(numTokens, '1', buyer, {
-                        from: buyer
-                    })
+                    bondingCurve.buy(numTokens, '1', buyer, {from: buyer, value: WAD})
                 );
+            });
+
+            it('should not allow buy if incorrect ether sent given specified max price', async function () {
             });
         });
 
@@ -122,7 +119,8 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
                 await bondingCurve.pause({from: curveOwner});
                 await expectRevert.unspecified(
                     bondingCurve.buy(numTokens, maxBuyPrice, buyer, {
-                        from: curveOwner
+                        from: curveOwner,
+                        value: maxBuyPrice
                     })
                 );
             });
@@ -130,91 +128,41 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
             it('should not allow user to buy when paused', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
 
                 await bondingCurve.pause({from: curveOwner});
                 await expectRevert.unspecified(
                     bondingCurve.buy(numTokens, maxBuyPrice, buyer, {
-                        from: buyer
+                        from: buyer,
+                        value: maxBuyPrice
                     })
                 );
             });
 
-            it('should mint bondedTokens correctly on buy', async function () {
+            it('should have all correct side effects on successful buy', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
 
-                const beforeBalance = new BN(
-                    await bondedToken.balanceOf(buyer, {from: buyer})
-                );
+                const beforeBalances = eco.getBalances([buyer]);
 
                 let tx = await bondingCurve
                     .buy(numTokens, maxBuyPrice, buyer, {
-                        from: buyer
+                        from: buyer,
+                        value: maxBuyPrice
                     });
 
-                const afterBalance = new BN(
-                    await bondedToken.balanceOf(buyer, {from: buyer})
-                );
-
-                expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(numTokens));
-            });
-
-            it('should transfer collateral tokens from buyer correctly on buy', async function () {
-                const eco = new CurveEcosystem(accountsConfig, config);
-                const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
-
-                const beforeBalance = new BN(
-                    await paymentToken.balanceOf(buyer, {from: buyer})
-                );
-
-                let tx = await bondingCurve
-                    .buy(numTokens, maxBuyPrice, buyer, {
-                        from: buyer
-                    });
-
-                const afterBalance = new BN(
-                    await paymentToken.balanceOf(buyer, {from: buyer})
-                );
-
-                expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(expectedBuyPrice));
-            });
-
-            it('should transfer collateral tokens to reserve correctly on buy', async function () {
-                const eco = new CurveEcosystem(accountsConfig, config);
-                const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
-
-                const beforeBalance = new BN(
-                    await paymentToken.balanceOf(bondingCurve.address, {from: buyer})
-                );
-
-                let tx = await bondingCurve
-                    .buy(numTokens, maxBuyPrice, buyer, {
-                        from: buyer
-                    });
-
-
-                const afterBalance = new BN(
-                    await paymentToken.balanceOf(bondingCurve.address, {from: buyer})
-                );
-
+                const afterBalances = eco.getBalances([buyer]);
                 const reserveAmount = tx.logs[0].args.reserveAmount;
 
-                expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(reserveAmount));
+                expect(afterBalances[buyer].bondedToken).to.be.bignumber.equal(beforeBalances[buyer].bondedToken.add(numTokens), 'should mint bondedTokens correctly on buy');
+
+                expect(afterBalances.bondingCurve.ether).to.be.bignumber.equal(beforeBalances.bondingCurve.ether.add(reserveAmount), 'should transfer ether to reserve correctly on buy');
+
+                expect(afterBalances[buyer].ether).to.be.bignumber.equal(beforeBalances[buyer].ether.sub(expectedBuyPrice), 'should transfer proper ether amount from buyer on buy');
             });
 
             it('should record reserve balance correctly on buy', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
 
                 const beforeBalance = new BN(
                     await paymentToken.balanceOf(bondingCurve.address, {from: buyer})
@@ -222,7 +170,8 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
 
                 let tx = await bondingCurve
                     .buy(numTokens, maxBuyPrice, buyer, {
-                        from: buyer
+                        from: buyer,
+                        value: maxBuyPrice
                     });
 
                 const reserveBalance = new BN(
@@ -237,8 +186,7 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
             it('should transfer collateral tokens to beneficiary correctly on buy', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
+
                 const beneficiary = await bondingCurve.beneficiary();
                 const beforeBalance = new BN(
                     await paymentToken.balanceOf(beneficiary, {from: buyer})
@@ -246,7 +194,8 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
 
                 let tx = await bondingCurve
                     .buy(numTokens, maxBuyPrice, buyer, {
-                        from: buyer
+                        from: buyer,
+                        value: maxBuyPrice
                     });
 
                 const event = expectEvent.inLogs(tx.events, 'Buy');
@@ -263,12 +212,11 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
             it('should register buy event on buy', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
 
                 let tx = await bondingCurve
                     .buy(numTokens, maxBuyPrice, buyer, {
-                        from: buyer
+                        from: buyer,
+                        value: maxBuyPrice
                     });
                 //Verify events
                 expectEvent.inLogs(tx.events, 'Buy', {
@@ -281,12 +229,11 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
             it('should allow buy if current price is below max price specified', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
 
                 let tx = await bondingCurve
                     .buy(numTokens, '1000000000000000000000000', buyer, {
-                        from: buyer
+                        from: buyer,
+                        value: maxBuyPrice
                     });
                 //Verify events
                 expectEvent.inLogs(tx.events, 'Buy', {
@@ -299,12 +246,11 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
             it('should allow user to buy for a different recipient', async function () {
                 const eco = new CurveEcosystem(accountsConfig, config);
                 const {bondingCurve, paymentToken, bondedToken, buyCurve} = await eco.init(web3);
-                await eco.bulkMint(paymentToken, tokenMinter, [curveOwner, buyer], userBalances);
-                await eco.bulkApprove(paymentToken, bondingCurve.address, [curveOwner, buyer], approvalAmount);
 
                 let tx = await bondingCurve
                     .buy(numTokens, maxBuyPrice, userAccounts[1], {
-                        from: buyer
+                        from: buyer,
+                        value: maxBuyPrice
                     });
                 //Verify events
                 expectEvent.inLogs(tx.events, 'Buy', {
@@ -555,6 +501,6 @@ const bondingCurveBuySellTests = async (suiteName, config) => {
 }
 
 module.exports = {
-    bondingCurveBuySellTests
+    bondingCurveBuySellEtherTests
 }
 

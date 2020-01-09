@@ -91,7 +91,7 @@ const bondingCurveAdminTests = async (suiteName, config) => {
                     from: oldOwner
                 });
 
-                result = await bondingCurve.beneficiary({from: miscUser});
+                let result = await bondingCurve.beneficiary({from: miscUser});
                 expect(result).to.be.equal(oldBeneficiary);
 
                 await bondingCurve.setBeneficiary(newBeneficiary, {

@@ -10,16 +10,17 @@ import "contracts/BondingCurve/interface/IBondingCurve.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
-/// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurve is Initializable, BondingCurveBase {
+/// @notice Uses Ether as reserve currency
+contract BondingCurveEther is Initializable, BondingCurveBase {
   using SafeMath for uint256;
 
-  IERC20 internal _collateralToken;
+  string internal constant INSUFFICENT_ETHER = "Insufficent Ether";
+  string internal constant INCORRECT_ETHER_SENT = "Incorrect Ether value sent";
+  string internal constant MATH_ERROR_SPLITTING_COLLATERAL = "Calculated Split Invalid";
 
   /// @dev Initialize contract
   /// @param owner Contract owner, can conduct administrative functions.
   /// @param beneficiary Recieves a proportion of incoming tokens on buy() and pay() operations.
-  /// @param collateralToken Token accepted as collateral by the curve. (e.g. WETH or DAI)
   /// @param bondedToken Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
   /// @param buyCurve Curve logic for buy curve.
   /// @param reservePercentage Percentage of incoming collateralTokens distributed to beneficiary on buys. (The remainder is sent to reserve for sells)
@@ -27,7 +28,6 @@ contract BondingCurve is Initializable, BondingCurveBase {
   function initialize(
     address owner,
     address beneficiary,
-    IERC20 collateralToken,
     BondedToken bondedToken,
     ICurveLogic buyCurve,
     uint256 reservePercentage,
@@ -41,37 +41,32 @@ contract BondingCurve is Initializable, BondingCurveBase {
       reservePercentage,
       dividendPercentage
     );
-    _collateralToken = collateralToken;
   }
 
-  function buy(uint256 amount, uint256 maxPrice, address recipient) public whenNotPaused {
+  function buy(uint256 amount, uint256 maxPrice, address recipient) public payable whenNotPaused {
     require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
+    require(msg.value == maxPrice, INCORRECT_ETHER_SENT);
 
     uint256 buyPrice = priceToBuy(amount);
+    require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
 
-    if (maxPrice != 0) {
-      require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
-    }
+    uint256 etherToReserve = rewardForSell(amount);
+    uint256 etherToBeneficiary = buyPrice.sub(etherToReserve);
 
-    uint256 tokensToReserve = rewardForSell(amount);
-    uint256 tokensToBeneficiary = buyPrice.sub(tokensToReserve);
+    uint256 remainder = maxPrice.sub(etherToReserve).sub(etherToBeneficiary);
 
-    _reserveBalance = _reserveBalance.add(tokensToReserve);
+    _reserveBalance = _reserveBalance.add(etherToReserve);
     _bondedToken.mint(recipient, amount);
 
-    require(
-      _collateralToken.transferFrom(msg.sender, address(this), buyPrice),
-      TRANSFER_FROM_FAILED
-    );
-    _collateralToken.transfer(_beneficiary, tokensToBeneficiary);
+    address(uint160(_beneficiary)).transfer(etherToBeneficiary);
 
-    emit Buy(msg.sender, recipient, amount, buyPrice, tokensToReserve, tokensToBeneficiary);
+    if (remainder > 0) {
+      msg.sender.transfer(remainder);
+    }
+
+    emit Buy(msg.sender, recipient, amount, buyPrice, etherToReserve, etherToBeneficiary);
   }
 
-  /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
-  /// @param amount       The number of bondedTokens to sell
-  /// @param minReturn    Minimum total price allowable to receive in collateralTokens
-  /// @param recipient    Address to send the new bondedTokens to
   function sell(uint256 amount, uint256 minReturn, address recipient) public whenNotPaused {
     require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
     require(_bondedToken.balanceOf(msg.sender) >= amount, INSUFFICENT_TOKENS);
@@ -80,49 +75,33 @@ contract BondingCurve is Initializable, BondingCurveBase {
     require(burnReward >= minReturn, PRICE_BELOW_MIN);
 
     _reserveBalance = _reserveBalance.sub(burnReward);
+    address(uint160(recipient)).transfer(burnReward);
 
     _bondedToken.burn(msg.sender, amount);
-    _collateralToken.transfer(recipient, burnReward);
 
     emit Sell(msg.sender, recipient, amount, burnReward);
   }
 
-  /// @notice             Pay the DAO in the specified payment token. They will be distributed between the DAO beneficiary and bonded token holders
-  /// @dev                Does not currently support arbitrary token payments
-  /// @param amount       The number of tokens to pay the DAO
-  function pay(uint256 amount) public {
+  function pay(uint256 amount) public payable {
     require(amount > MICRO_PAYMENT_THRESHOLD, NO_MICRO_PAYMENTS);
+    require(msg.value == amount, INCORRECT_ETHER_SENT);
 
-    IERC20 paymentToken = _collateralToken;
-
-    uint256 tokensToDividendHolders = (amount.mul(_dividendPercentage)).div(MAX_PERCENTAGE);
-    uint256 tokensToBeneficiary = amount.sub(tokensToDividendHolders);
-
-    // incoming funds
-    require(paymentToken.transferFrom(msg.sender, address(this), amount), TRANSFER_FROM_FAILED);
+    uint256 amountToDividendHolders = (amount.mul(_dividendPercentage)).div(MAX_PERCENTAGE);
+    uint256 amountToBeneficiary = amount.sub(amountToDividendHolders);
 
     // outgoing funds to Beneficiary
-    paymentToken.transfer(_beneficiary, tokensToBeneficiary);
+
+    address(uint160(_beneficiary)).transfer(amountToBeneficiary);
 
     // outgoing funds to token holders as dividends (stored by BondedToken)
-    paymentToken.approve(address(_bondedToken), tokensToDividendHolders);
-    _bondedToken.distribute(address(this), tokensToDividendHolders);
+    _bondedToken.distribute(address(this), amountToDividendHolders);
 
-    emit Pay(
-      msg.sender,
-      address(paymentToken),
-      amount,
-      tokensToBeneficiary,
-      tokensToDividendHolders
-    );
+    emit Pay(msg.sender, address(0), amount, amountToBeneficiary, amountToDividendHolders);
   }
 
-  /*
-        Getter Functions
-    */
+  // // Interpret fallback as payment
+  // function () public payable {
+  //     pay(msg.value);
+  // }
 
-  /// @notice Get reserve token contract
-  function collateralToken() public view returns (IERC20) {
-    return _collateralToken;
-  }
 }
