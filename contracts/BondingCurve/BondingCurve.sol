@@ -41,7 +41,6 @@ contract BondingCurve is Initializable, BondingCurveBase {
       reservePercentage,
       dividendPercentage
     );
-
     _collateralToken = collateralToken;
   }
 
