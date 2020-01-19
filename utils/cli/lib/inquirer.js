@@ -1,19 +1,5 @@
 const inquirer = require('inquirer');
-
-const actions = {
-  DEPLOY_ECOSYSTEM: 'Deploy Ecosystem',
-  DEPLOY_CURVE: 'Deploy Curve'
-};
-
-const curveTypes = {
-  STATIC: 'Static',
-  BANCOR: 'Bancor'
-};
-
-const collateralType = {
-  ETH: 'ETH',
-  ERC20: 'ERC20'
-};
+const {Actions, CurveTypes, CollateralTypes} = require('./enums');
 
 module.exports = {
   askMenuAction: () => {
@@ -22,8 +8,8 @@ module.exports = {
         type: 'list',
         name: 'action',
         message: 'Action:',
-        choices: [actions.DEPLOY_ECOSYSTEM, actions.DEPLOY_CURVE],
-        default: actions.DEPLOY_ECOSYSTEM
+        choices: [Actions.DEPLOY_ECOSYSTEM, Actions.DEPLOY_CURVE],
+        default: Actions.DEPLOY_ECOSYSTEM
       }
     ];
     return inquirer.prompt(questions);
@@ -34,19 +20,17 @@ module.exports = {
         type: 'list',
         name: 'curveType',
         message: 'Curve Logic',
-        choices: [curveTypes.STATIC, curveTypes.BANCOR],
-        default: curveTypes.STATIC
+        choices: [CurveTypes.STATIC, CurveTypes.BANCOR],
+        default: CurveTypes.STATIC
       },
       {
         type: 'list',
         name: 'collateral',
         message: 'Collateral Type',
-        choices: [collateralType.ETH, collateralType.ERC20],
-        default: collateralType.ETH
+        choices: [CollateralTypes.ETH, CollateralTypes.ERC20],
+        default: CollateralTypes.ETH
       }
     ];
     return inquirer.prompt(questions);
-  },
-  actions,
-  curveTypes
+  }
 };
