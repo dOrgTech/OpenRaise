@@ -3,7 +3,7 @@
 [Extended Notes and other implementations](https://docs.google.com/document/d/1fBoe1enG_M7ReIycURh_uH6k9mmGz_Sp07j19mCcKCo/edit#)
 
 ### Purpose
-*To present a summary state of affairs of bonding curves and select the most interesting existing model(s) and implementation(s) to move forward with the BC-DAO project.*
+*To present a summary state of affairs of bonding curves and select the most interesting existing model(s) and implementation(s) to move forward with the Open Raise project.*
 
 We also want to take into consideration that:
 

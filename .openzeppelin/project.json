@@ -1,6 +1,6 @@
 {
   "manifestVersion": "2.2",
-  "name": "@dOrg/OpenRaise",
+  "name": "@dorgtech/open-raise",
   "version": "0.0.1-alpha",
   "publish": false,
   "contracts": {
