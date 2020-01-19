@@ -6,8 +6,9 @@ We use [ZeppelinOS](https://docs.zeppelinos.org/docs/start.html) to develop, dep
 
 ### Setup
 
-1. Run `npm install` to install all zeppelinOS related dependencies
-2. Run `ganache-cli` (or `ganache-cli --deterministic`) to run a local blockchain
+1. Use the proper version of node (see .nvmrc)
+2. Run `yarn` to install all zeppelinOS related dependencies
+3. Run `ganache-cli` (or `ganache-cli --deterministic`) to run a local blockchain
 
 ### Deploy to ganache `development` network
 
@@ -18,7 +19,7 @@ For background: read [Publishing an EVM package](https://docs.zeppelinos.org/doc
 
 ### Running tests
 
-1. `npm run test`. Also runs `zos push` (Dan: does it upgrade contracts as well?)
+1. `yarn test`. Also runs `zos push` (Dan: does it upgrade contracts as well?)
 
 ### Upgrading contracts
 

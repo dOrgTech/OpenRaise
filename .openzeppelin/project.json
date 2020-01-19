@@ -1,5 +1,8 @@
 {
   "manifestVersion": "2.2",
+  "name": "@dorgtech/open-raise",
+  "version": "0.0.1-alpha",
+  "publish": false,
   "contracts": {
     "StaticCurveLogic": "StaticCurveLogic",
     "BancorCurveLogic": "BancorCurveLogic",
@@ -12,8 +15,6 @@
   "dependencies": {
     "@openzeppelin/contracts-ethereum-package": "^2.2.3"
   },
-  "name": "@dorg/bc-dao",
-  "version": "0.0.1-alpha",
   "compiler": {
     "manager": "openzeppelin",
     "solcVersion": "0.5.10",
