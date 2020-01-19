@@ -1,4 +1,4 @@
-const {CurveLogicType, CollateralType} = require("../helpers/CurveEcosystemConfig");
+const {CurveLogicType, TokenType} = require("../helpers/CurveEcosystemConfig");
 const {bn} = require("./utils");
 const {constants} = require('openzeppelin-test-helpers');
 const {ZERO_ADDRESS} = constants;
@@ -81,11 +81,11 @@ class CurveEcosystem {
 
     async init(web3) {
         const {collateralType, curveLogicType} = this.config.deployParams;
-        if (collateralType === CollateralType.ETHER) {
+        if (collateralType === TokenType.ETHER) {
             return await this.initEther();
         }
 
-        if (collateralType === CollateralType.ERC20) {
+        if (collateralType === TokenType.ERC20) {
             return await this.initERC20(web3);
         }
     }
@@ -201,7 +201,7 @@ class CurveEcosystem {
         bals.ether = bn(await web3.eth.getBalance(address));
         bals.bondedToken = bn(await bondedToken.balanceOf(address));
 
-        if (this.config.collateralType === CollateralType.ERC20) {
+        if (this.config.collateralType === TokenType.ERC20) {
             const {paymentToken} = this.contracts;
             bals.paymentToken = bn(await paymentToken.balanceOf(address));
         }
