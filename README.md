@@ -1,8 +1,8 @@
 `NOTE: Do not use these contracts in production! All contracts in this repository are currently in alpha stage unless stated otherwise.`
 
-BC-DAO is evolving scope into OpenRaise - check out our new overview and roadmap [here](./docs/Basics.md).
+# Fundraising Module For DAO
 
-# Fundraising Module For DAOs
+BC-DAO is evolving scope into OpenRaise! Check out our new overview and roadmap [here](./docs/Basics.md).
 
 BC-DAO is a fundraising module for projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon dela Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
 
@@ -37,17 +37,7 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 ## Dividend Tracking
 
-- Scalable dividends purely on-chain is a challenge due to computation and storage costs. We've designed a Merkle-tree based payment pool based on the [Cardstack implementation](https://github.com/cardstack/merkle-tree-payment-pool) that uses Merkle proofs to enable highly scalable dividend distributions with minimal on-chain cost.
-
-- From a user's perspective, the mechanism functions in a conceptually similar way to stock dividends. For each **claim period** (the duration of which can be specified by the DAO), a snapshot of bonded token balances is taken and users can withdraw dividends proportional to their holdings at that time.
-
-- For each claim period, a new merkle root is calculated by a DAO member client side with [our library](https://github.com/statesauce/merkle-tree-payment-pool) [(utilizing merkletreejs)](https://github.com/miguelmota/merkletreejs) and uploaded as a proposal to the DAO. The full information is stored on IPFS. Once the DAO ratifies this proposal, the member who generated the merkle root is compensated for their efforts and token holders are able to withdraw for the period.
-
-![](./diagrams/out/bonding_curve_merkle_flow.png)
-
-- For a discussion of the potential vulnerabilities of this approach and their mitigation, please see the 'Current Limitations' section.
-
-- We have an alternative potential dividend implementation based on the [MiniMe Token](https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol) for a simpler approach that requires significantly more on-chain computation.
+- We allow for scalable, purely on-chain tracking of dividends. [More information here](./docs/DividendToken).
 
 # Implementation
 
@@ -150,19 +140,6 @@ function pay(
 ) public
 ```
 
-### Dividend Pool
-
-Users interact with this contract to claim their dividend allocations.
-
-[**`withdraw`**](./contracts/BondingCurve/BondingCurve.sol): Withdraw collateralToken dividends sender is entitled to for a given period, in blocks.
-
-```
-function withdraw(
- uint start,
- uint end
-) public
-```
-
 ## Current Limitations
 
 - **Dividends are only distributed on pay()** - Without hooks on ERC20 transfers, we can't execute distribution logic when ERC20 tokens are transferred to the BondingCurve via the standard transfer() method. Ideally, we could allow 'native' ERC20 payments to function just as pay() does.
@@ -176,14 +153,6 @@ function withdraw(
   - We believe that the chances of such a coordinated attack will remain extremely low – as long as the prospects for continued funding are valued more than the present level of cash-flows. If the DAO was detected trying to "cheat" its token-holders in this way, we would expect a chain reaction of sell-offs and little to no prospect for future buys. Thus, the DAO would short-sightedly lose all ability to fundraise and would need to rely solely on its existing sources of revenue.
 
   - We have an open discussion on this issue [here](https://github.com/dOrgTech/BC-DAO/issues/4).
-
-- **An incorrect Merkle root in the Dividend Pool can result in misallocated dividends**
-
-  - The potential for a DAO user uploading a malicious root (say, one that entitles them to all the dividends) should be largely mitigated by the consensus layer of the DAO, which should have an incentive to maintain the value of their bonded token rather than steal one payment periods worth of funds from holders. Staking & slashing mechanics could also be formalized for root proposers.
-
-  - Our interface will allow easy verification of the validity of a proposed merkle root by bonded token holders and DAO members.
-
-  - However, this mechanic is still theoretically vulnerable to exploits - say, if the DAO recieves a large windfall payment during a claim period. This is an area of active discussion.
 
 ## Future Plans
 
