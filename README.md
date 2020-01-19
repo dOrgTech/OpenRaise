@@ -2,9 +2,9 @@
 
 # Fundraising Module For DAOs
 
-BC-DAO is a fundraising module for projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon dela Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
+Open Raise is a fundraising module for projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon dela Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
 
-Tokens issued via BC-DAO can offer rights in the DAO, such as **dividends** on future revenue or **governance rights** through token locking.
+Tokens issued via Open Raise can offer rights in the DAO, such as **dividends** on future revenue or **governance rights** through token locking.
 
 This type of fundraising might allow for more flexibility, accountability, and alignment of incentives than alternative methods (such as ICOs or private fundraising).
 
@@ -173,7 +173,7 @@ function withdraw(
 
   - We believe that the chances of such a coordinated attack will remain extremely low – as long as the prospects for continued funding are valued more than the present level of cash-flows. If the DAO was detected trying to "cheat" its token-holders in this way, we would expect a chain reaction of sell-offs and little to no prospect for future buys. Thus, the DAO would short-sightedly lose all ability to fundraise and would need to rely solely on its existing sources of revenue.
 
-  - We have an open discussion on this issue [here](https://github.com/dOrgTech/BC-DAO/issues/4).
+  - We have an open discussion on this issue [here](https://github.com/dOrgTech/OpenRaise/issues/4).
 
 - **An incorrect Merkle root in the Dividend Pool can result in misallocated dividends**
 

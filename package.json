@@ -1,7 +1,7 @@
 {
-  "name": "@dorg/bc-dao",
+  "name": "@dorgtech/open-raise",
   "version": "0.0.1-alpha",
-  "description": "Bonding Curves for DAOs",
+  "description": "Open Raise is a Toolkit for accountable on-chain fundraising",
   "files": [
     "contracts/",
     "build/contracts/",
@@ -24,13 +24,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dOrgTech/BC-DAO"
+    "url": "git+https://github.com/dOrgTech/OpenRaise"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/dOrgTech/BC-DAO/issues"
+    "url": "https://github.com/dOrgTech/OpenRaise/issues"
   },
-  "homepage": "https://github.com/dOrgTech/BC-DAO#readme",
+  "homepage": "https://github.com/dOrgTech/OpenRaise#readme",
   "dependencies": {
     "@babel/polyfill": "7.4.4",
     "@babel/register": "7.5.5",

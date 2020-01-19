@@ -20,7 +20,7 @@ const BondingCurveFactory = artifacts.require("BondingCurveFactory");
 
 const truffleConfig = require("./truffle-config.js");
 
-const BC_DAO_PACKAGE = "@dorg/bc-dao";
+const OZ_PACKAGE = "@dorgtech/open-raise";
 
 function activeNetwork() {
   const networkIndex = process.argv.lastIndexOf("--network");
@@ -51,7 +51,7 @@ function getAppAddress() {
 
 function getLatestProxy(contractName) {
   const ozNetworkConfig = getOZNetworkConfig(activeNetworkName());
-  const proxies = ozNetworkConfig.proxies[`${BC_DAO_PACKAGE}/${contractName}`];
+  const proxies = ozNetworkConfig.proxies[`${OZ_PACKAGE}/${contractName}`];
   if (!proxies || proxies.length <= 1) {
     throw Error(`No deployed proxies of contract ${contractName} found`);
   }
