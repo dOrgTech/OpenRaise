@@ -44,9 +44,15 @@ contract BondingCurve is Initializable, BondingCurveBase {
     _collateralToken = collateralToken;
   }
 
-  function buy(uint256 amount, uint256 maxPrice, address recipient) public whenNotPaused {
+  function buy(
+    uint256 amount,
+    uint256 maxPrice,
+    address recipient
+  ) public whenNotPaused returns (
+    uint256 collateralSent
+  ) {
 
-    uint256 (buyPrice, toReserve, toBeneficiary) = _preBuy(amount, maxPrice);
+    (uint256 buyPrice, uint256 toReserve, uint256 toBeneficiary) = _preBuy(amount, maxPrice);
 
     require(
       _collateralToken.transferFrom(msg.sender, address(this), buyPrice),
@@ -55,13 +61,20 @@ contract BondingCurve is Initializable, BondingCurveBase {
     _collateralToken.transfer(_beneficiary, toBeneficiary);
 
     _postBuy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
+    return buyPrice;
   }
 
   /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
   /// @param amount       The number of bondedTokens to sell
   /// @param minReturn    Minimum total price allowable to receive in collateralTokens
   /// @param recipient    Address to send the new bondedTokens to
-  function sell(uint256 amount, uint256 minReturn, address recipient) public whenNotPaused {
+  function sell(
+    uint256 amount,
+    uint256 minReturn,
+    address recipient
+  ) public whenNotPaused returns (
+    uint256 collateralReceived
+  ) {
     require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
     require(_bondedToken.balanceOf(msg.sender) >= amount, INSUFFICENT_TOKENS);
 
@@ -74,6 +87,7 @@ contract BondingCurve is Initializable, BondingCurveBase {
     _collateralToken.transfer(recipient, burnReward);
 
     emit Sell(msg.sender, recipient, amount, burnReward);
+    return burnReward;
   }
 
   /// @notice             Pay the DAO in the specified payment token. They will be distributed between the DAO beneficiary and bonded token holders

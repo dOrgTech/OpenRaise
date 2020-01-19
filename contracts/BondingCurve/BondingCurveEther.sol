@@ -43,10 +43,16 @@ contract BondingCurveEther is Initializable, BondingCurveBase {
     );
   }
 
-  function buy(uint256 amount, uint256 maxPrice, address recipient) public payable whenNotPaused {
+  function buy(
+    uint256 amount,
+    uint256 maxPrice,
+    address recipient
+  ) public payable whenNotPaused returns (
+    uint256 collateralSent
+  ) {
     require(maxPrice != 0 && msg.value == maxPrice, INCORRECT_ETHER_SENT);
 
-    uint256 (buyPrice, toReserve, toBeneficiary) = _preBuy(amount, maxPrice);
+    (uint256 buyPrice, uint256 toReserve, uint256 toBeneficiary) = _preBuy(amount, maxPrice);
 
     address(uint160(_beneficiary)).transfer(toBeneficiary);
 
@@ -57,9 +63,16 @@ contract BondingCurveEther is Initializable, BondingCurveBase {
     }
 
     _postBuy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
+    return buyPrice;
   }
 
-  function sell(uint256 amount, uint256 minReturn, address recipient) public whenNotPaused {
+  function sell(
+    uint256 amount,
+    uint256 minReturn,
+    address recipient
+  ) public whenNotPaused returns (
+    uint256 collateralReceived
+  ) {
     require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
     require(_bondedToken.balanceOf(msg.sender) >= amount, INSUFFICENT_TOKENS);
 
@@ -72,6 +85,7 @@ contract BondingCurveEther is Initializable, BondingCurveBase {
     _bondedToken.burn(msg.sender, amount);
 
     emit Sell(msg.sender, recipient, amount, burnReward);
+    return burnReward;
   }
 
   function pay(uint256 amount) public payable {
