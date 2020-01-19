@@ -45,29 +45,18 @@ contract BondingCurveEther is Initializable, BondingCurveBase {
 
   function buy(uint256 amount, uint256 maxPrice, address recipient) public payable whenNotPaused {
     require(maxPrice != 0 && msg.value == maxPrice, INCORRECT_ETHER_SENT);
-    require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
-    uint256 buyPrice = priceToBuy(amount);
-
-    if (maxPrice != 0) {
-      require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
-    }
-
-    uint256 toReserve = rewardForSell(amount);
-    uint256 toBeneficiary = buyPrice.sub(toReserve);
-
-    uint256 remainder = maxPrice.sub(toReserve).sub(toBeneficiary);
-
-    _reserveBalance = _reserveBalance.add(toReserve);
-    _bondedToken.mint(recipient, amount);
+    uint256 (buyPrice, toReserve, toBeneficiary) = _preBuy(amount, maxPrice);
 
     address(uint160(_beneficiary)).transfer(toBeneficiary);
 
-    if (remainder > 0) {
-      msg.sender.transfer(remainder);
+    uint256 refund = maxPrice.sub(toReserve).sub(toBeneficiary);
+
+    if (refund > 0) {
+      msg.sender.transfer(refund);
     }
 
-    emit Buy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
+    _postBuy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
   }
 
   function sell(uint256 amount, uint256 minReturn, address recipient) public whenNotPaused {

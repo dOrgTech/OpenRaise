@@ -45,19 +45,8 @@ contract BondingCurve is Initializable, BondingCurveBase {
   }
 
   function buy(uint256 amount, uint256 maxPrice, address recipient) public whenNotPaused {
-    require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
-    uint256 buyPrice = priceToBuy(amount);
-
-    if (maxPrice != 0) {
-      require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
-    }
-
-    uint256 toReserve = rewardForSell(amount);
-    uint256 toBeneficiary = buyPrice.sub(toReserve);
-
-    _reserveBalance = _reserveBalance.add(toReserve);
-    _bondedToken.mint(recipient, amount);
+    uint256 (buyPrice, toReserve, toBeneficiary) = _preBuy(amount, maxPrice);
 
     require(
       _collateralToken.transferFrom(msg.sender, address(this), buyPrice),
@@ -65,7 +54,7 @@ contract BondingCurve is Initializable, BondingCurveBase {
     );
     _collateralToken.transfer(_beneficiary, toBeneficiary);
 
-    emit Buy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
+    _postBuy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
   }
 
   /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
