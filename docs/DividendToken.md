@@ -1,5 +1,7 @@
 # Dividend Bearing Tokens
 
+Dividend tokens distributed pro-rata dividends among token holders in real time. Token holders can claim what they are entitled to at any time. When tokens are traded, the new owner gets rights to future claims.
+
 ## Current Limitations
 
 - **Dividends are only distributed on pay()** - Without hooks on ERC20 transfers, we can't execute distribution logic when ERC20 tokens are transferred to the BondingCurve via the standard transfer() method. Ideally, we could allow 'native' ERC20 payments to function just as pay() does.
