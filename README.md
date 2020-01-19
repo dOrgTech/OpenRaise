@@ -1,5 +1,7 @@
 `NOTE: Do not use these contracts in production! All contracts in this repository are currently in alpha stage unless stated otherwise.`
 
+BC-DAO is evolving scope into OpenRaise - check out our new overview and roadmap [here](./docs/Basics.md).
+
 # Fundraising Module For DAOs
 
 BC-DAO is a fundraising module for projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon dela Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
