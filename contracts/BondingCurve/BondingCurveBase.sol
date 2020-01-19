@@ -12,7 +12,7 @@ import "contracts/BondingCurve/interface/ICurveLogic.sol";
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurveBase is Initializable, Ownable, Pausable {
+contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     using SafeMath for uint256;
 
     BondedToken internal _bondedToken;
@@ -120,6 +120,30 @@ contract BondingCurveBase is Initializable, Ownable, Pausable {
         uint256 buyPrice = priceToBuy(numTokens);
         return (buyPrice.mul(_reservePercentage)).div(MAX_PERCENTAGE);
     }
+
+    /*
+        Abstract Functions
+    */
+
+    /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
+    /// @param numTokens    The number of bondedTokens to buy
+    /// @param maxPrice     Maximum total price allowable to pay in collateralTokens
+    /// @param recipient    Address to send the new bondedTokens to
+    function buy(
+        uint256 numTokens,
+        uint256 maxPrice,
+        address recipient
+    ) public returns(uint256 collateralSent);
+
+    /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
+    /// @param numTokens    The number of bondedTokens to sell
+    /// @param minPrice     Minimum total price allowable to receive in collateralTokens
+    /// @param recipient    Address to send the new bondedTokens to
+    function sell(
+        uint256 numTokens,
+        uint256 minPrice,
+        address recipient
+    ) public returns(uint256 collateralReceived);
 
     /*
         Admin Functions
