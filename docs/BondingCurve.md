@@ -12,22 +12,22 @@ This type of fundraising might allow for more flexibility, accountability, and a
 - The **bonding curve** is an automated market maker contract that mints tokens to buyers at an algorithmically determined price. The automated market maker allows users to buy or sell tokens at any time for known prices with minimal slippage.
 - When a user **buys** bonded tokens: Collateral tokens are split between the beneficiary treasury (to fund the organization) and the reserve (to facilitate liquidity for sells). The buyer receives bonded tokens based on the current price.
 
-![](./diagrams/out/bonding_curve_buy_flow.png)
+![](./docs/diagrams/out/bonding_curve_buy_flow.png)
 
 - When a user **sells** bonded tokens: The bonded tokens are burned and the seller receives collateral tokens based on the current price.
 
-![](./diagrams/out/bonding_curve_sell_flow.png)
+![](./docs/diagrams/out/bonding_curve_sell_flow.png)
 
 - When the beneficiary earns **revenue:** the income is split between direct income to the beneficiary treasury and **dividends** for the bonded token holders.
 
-![](./diagrams/out/bonding_curve_pay_flow.png)
+![](./docs/diagrams/out/bonding_curve_pay_flow.png)
 
 ## Curve Economics
 
 - The specifics of curve design are an area of active research. A common general principle is to reward earlier contributors without inflating the buy price so high that it disincentives later participation.
 
 - Our current curve implementation is based on **bancor formula**, which allows for a wide variety of potential curves with simple parameters.
-  ![](./diagrams/out/bancor_curve_examples.png)
+  ![](./docs/diagrams/out/bancor_curve_examples.png)
 
 [Bancor Whitepaper](https://storage.googleapis.com/website-bancor/2018/04/01ba8253-bancor_protocol_whitepaper_en.pdf)
 
@@ -62,11 +62,11 @@ The following chart describes the actions users can take to interact with the Bo
 
 #### Buy Flow
 
-![Architecture Diagram](./diagrams/out/bonding_curve_architecture_buy.png)
+![Architecture Diagram](./docs/diagrams/out/bonding_curve_architecture_buy.png)
 
 #### Payment Flow
 
-![Architecture Diagram](./diagrams/out/bonding_curve_architecture_pay.png)
+![Architecture Diagram](./docs/diagrams/out/bonding_curve_architecture_pay.png)
 
 ## Setup
 
