@@ -9,6 +9,13 @@ const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
 const BondedToken = Contracts.getFromLocal('BondedToken');
 const RewardsDistributor = Contracts.getFromLocal('RewardsDistributor');
 
+//TODO: Have these automatically set based on network chosen
+//Standard network defaults
+Contracts.setArtifactsDefaults({
+  gas: 6721975,
+  gasPrice: 100000000000
+});
+
 const CONTRACT_ABIS = {
   BondingCurve,
   BondingCurveFactory,
@@ -45,6 +52,7 @@ class Deployer {
   async setupApp(txParams) {
     // On-chain, single entry point of the entire application.
     const initialVersion = '2.5.2';
+    ZWeb3.initialize(this.web3.currentProvider);
     this.appProject = await AppProject.fetchOrDeploy(
       'example-openzeppelin-upgrades-simple',
       initialVersion,
@@ -92,7 +100,9 @@ class Deployer {
 
   async deployBancorCurveService() {
     ZWeb3.initialize(this.web3.currentProvider);
+    console.log(21);
     const [creatorAddress, initializerAddress] = await ZWeb3.accounts();
+    console.log(22);
 
     const instance = await this.project.createProxy(BancorCurveService);
     await instance.methods.initialize().send({from: initializerAddress});
