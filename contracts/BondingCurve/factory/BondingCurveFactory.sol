@@ -21,6 +21,9 @@ import "contracts/BondingCurve/interface/ICurveLogic.sol";
  * This was developed to simplify the deployment process for DAOs
  */
 contract BondingCurveFactory is Initializable {
+    enum CurveTypes {Static, Bancor}
+    enum CollateralTypes {ERC20, Ether}
+
     address internal _staticCurveLogicImpl;
     address internal _bancorCurveLogicImpl;
     address internal _bondedTokenImpl;
@@ -43,6 +46,7 @@ contract BondingCurveFactory is Initializable {
         address bancorCurveLogicImpl,
         address bondedTokenImpl,
         address bondingCurveImpl,
+        address bondingCurveEtherImpl,
         address bancorCurveServiceImpl,
         address rewardsDistributorImpl
     ) public initializer {
@@ -50,13 +54,14 @@ contract BondingCurveFactory is Initializable {
         _bancorCurveLogicImpl = bancorCurveLogicImpl;
         _bondedTokenImpl = bondedTokenImpl;
         _bondingCurveImpl = bondingCurveImpl;
+        _bondingCurveEtherImpl = bondingCurveEtherImpl;
         _rewardsDistributorImpl = rewardsDistributorImpl;
         _bancorCurveServiceImpl = bancorCurveServiceImpl;
     }
 
     function _createProxy(address implementation, address admin, bytes memory data)
-    internal
-    returns (address)
+        internal
+        returns (address)
     {
         AdminUpgradeabilityProxy proxy = new AdminUpgradeabilityProxy(implementation, admin, data);
         emit ProxyCreated(address(proxy));
@@ -79,8 +84,92 @@ contract BondingCurveFactory is Initializable {
         return _createProxy(_bondingCurveImpl, address(0), "");
     }
 
+    function _deployBondingCurveEther() internal returns (address) {
+        return _createProxy(_bondingCurveEtherImpl, address(0), "");
+    }
+
     function _deployRewardsDistributor() internal returns (address) {
         return _createProxy(_rewardsDistributorImpl, address(0), "");
+    }
+
+    /* 
+    Params
+    [0]: collateralType
+    [1]: curveLogicType
+    [2]: Fundraiser Features
+    [3]: Token Features
+
+    tokenParams
+    [0]: bondedTokenName
+    [1]: bondedTokenSymbol
+    */
+    function deploy(
+        uint8[] memory params,
+        address[] memory addresses,
+        uint256[] memory curveParams,
+        string[] memory tokenParams
+    ) {
+        address[] memory proxies = new address[](4);
+
+        // Curve Logic
+        if (params[1] == CurveTypes.Static) {
+            proxies[0] = _deployStaticCurveLogic();
+            StaticCurveLogic(proxies[0]).initialize(curveParams[0]);
+        } else if (params[1] == CurveTypes.Bancor) {
+            proxies[0] = _deployBancorCurveLogic();
+            BancorCurveLogic(proxies[0]).initialize(
+                BancorCurveService(_bancorCurveServiceImpl),
+                curveParams[0]
+            );
+        } else {
+            revert("Invalid curve type specified");
+        }
+
+        proxies[1] = _deployBondedToken();
+        proxies[3] = _deployRewardsDistributor();
+
+        // Bonding Curve
+        if (params[0] == CollateralTypes.ERC20) {
+            proxies[2] = _deployBondingCurve();
+        } else if (params[0] == CollateralTypes.Ether) {
+            proxies[2] = _deployBondingCurveEther();
+        } else {
+            revert("Invalid curve type specified");
+        }
+
+        BondedToken(proxies[1]).initialize(
+            tokenParams[0],
+            tokenParams[1],
+            18,
+            proxies[2], // minter is the BondingCurve
+            RewardsDistributor(proxies[3])
+        );
+
+        // Bonding Curve
+        if (params[0] == CollateralTypes.ERC20) {
+            BondingCurve(proxies[2]).initialize(
+                owner,
+                beneficiary,
+                IERC20(collateralToken),
+                BondedToken(proxies[1]),
+                ICurveLogic(proxies[0]),
+                reservePercentage,
+                dividendPercentage
+            );
+        } else if (params[0] == CollateralTypes.Ether) {
+            BondingCurveEther(proxies[2]).initialize(
+                owner,
+                beneficiary,
+                BondedToken(proxies[1]),
+                ICurveLogic(proxies[0]),
+                reservePercentage,
+                dividendPercentage
+            );
+        } else {
+            revert("Invalid curve type specified");
+        }
+
+        RewardsDistributor(proxies[3]).initialize(proxies[1]);
     }
 
     function deployStaticEther(
@@ -150,6 +239,7 @@ contract BondingCurveFactory is Initializable {
             RewardsDistributor(proxies[3]),
             IERC20(tempCollateral[0])
         );
+
         BondingCurve(proxies[2]).initialize(
             owner,
             beneficiary,
@@ -199,7 +289,7 @@ contract BondingCurveFactory is Initializable {
             IERC20(tempCollateral[0])
         );
 
-    BondingCurve(proxies[2]).initialize(
+        BondingCurve(proxies[2]).initialize(
             owner,
             beneficiary,
             IERC20(collateralToken),
