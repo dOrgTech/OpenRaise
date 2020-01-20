@@ -6,12 +6,12 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/lifecycle/Pausable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "contracts/BondingCurve/BondingCurveBase.sol";
-import "contracts/BondingCurve/interface/IBondingCurve.sol";
+import "contracts/BondingCurve/interface/IBondingCurveERC20.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurve is Initializable, BondingCurveBase {
+contract BondingCurve is Initializable, BondingCurveBase, IBondingCurveERC20 {
   using SafeMath for uint256;
 
   IERC20 internal _collateralToken;

@@ -6,12 +6,12 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/lifecycle/Pausable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "contracts/BondingCurve/BondingCurveBase.sol";
-import "contracts/BondingCurve/interface/IBondingCurve.sol";
+import "contracts/BondingCurve/interface/IBondingCurveEther.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses Ether as reserve currency
-contract BondingCurveEther is Initializable, BondingCurveBase {
+contract BondingCurveEther is Initializable, BondingCurveBase, IBondingCurveEther {
   using SafeMath for uint256;
 
   string internal constant INSUFFICENT_ETHER = "Insufficent Ether";

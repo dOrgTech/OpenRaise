@@ -125,16 +125,6 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
         Abstract Functions
     */
 
-    /// @dev                Buy a given number of bondedTokens with a number of collateralTokens determined by the current rate from the buy curve.
-    /// @param numTokens    The number of bondedTokens to buy
-    /// @param maxPrice     Maximum total price allowable to pay in collateralTokens
-    /// @param recipient    Address to send the new bondedTokens to
-    function buy(
-        uint256 numTokens,
-        uint256 maxPrice,
-        address recipient
-    ) public returns(uint256 collateralSent);
-
     /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
     /// @param numTokens    The number of bondedTokens to sell
     /// @param minPrice     Minimum total price allowable to receive in collateralTokens
