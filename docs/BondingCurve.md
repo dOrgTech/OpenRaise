@@ -1,8 +1,8 @@
 # Bonding Curve Fundraising
 
-The bonding curve fundraising module enables projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon dela Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
+The bonding curve fundraising module enables projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon de la Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
 
-Tokens issued via bonding curves can offer rights in the organization, such as **dividends** on future revenue or **governance rights** through token locking.
+Tokens issued via bonding curves can offer rights in the organization, such as **dividends** on future revenue or **governance rights**.
 
 This type of fundraising might allow for more flexibility, accountability, and alignment of incentives than alternative methods (such as ICOs or private fundraising).
 
@@ -10,7 +10,7 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 - Anyone can deposit a specified collateral token (such as DAI) to purchase bonded tokens.
 - The **bonding curve** is an automated market maker contract that mints tokens to buyers at an algorithmically determined price. The automated market maker allows users to buy or sell tokens at any time for known prices with minimal slippage.
-- When a user **buys** bonded tokens: Collateral tokens are split between the beneficiary treasury (to fund the organization) and the reserve (to facilitate liquidity for sells). The buyer receives bonded tokens based on the current price.
+- When a user **buys** bonded tokens with collateral tokens: The collateral tokens are split between the beneficiary treasury (to fund the organization) and the reserve (to facilitate liquidity for sells). The buyer receives bonded tokens based on the current price.
 
 ![](./diagrams/out/bonding_curve_buy_flow.png)
 
@@ -24,9 +24,9 @@ This type of fundraising might allow for more flexibility, accountability, and a
 
 ## Curve Economics
 
-- The specifics of curve design are an area of active research. A common general principle is to reward earlier contributors without inflating the buy price so high that it disincentives later participation.
+- The specifics of curve design are an area of active research. A common general principle is to reward earlier contributors without inflating the buy price so high that it disincentivizes later participation.
 
-- Our current curve implementation is based on **bancor formula**, which allows for a wide variety of potential curves with simple parameters.
+- Our current curve implementation is based on the **bancor formula**, which allows for a wide variety of potential curves with simple parameters.
   ![](./diagrams/out/bancor_curve_examples.png)
 
 [Bancor Whitepaper](https://storage.googleapis.com/website-bancor/2018/04/01ba8253-bancor_protocol_whitepaper_en.pdf)
@@ -43,7 +43,7 @@ Our initial bonding curve implementation supports:
 
 - **bondingCurve**: The ‘avatar’ of the bonding curve. It serves as the external interface to interact with the curve, with automated market maker and dividend tracking functions.
 - **bondedToken**: Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
-- **collateralToken**: Token accepted as collateral by the curve. (e.g. WETH or DAI)
+- **collateralToken**: Token accepted as collateral by the curve. (e.g. ETH or DAI)
 - **reserve**: Balance of collateralTokens that the curve holds. The reserve is used to pay bondedToken holders when they want to liquidate and sell their tokens back to the curve.
 - **beneficiary**: Entity that receives funding from the purchase of bondedTokens.
 - **reservePercentage**: Percentage of incoming collateralTokens sent to reserve on buy(). The remainder is sent to beneficiary.
@@ -124,7 +124,7 @@ function sell(
 ) public
 ```
 
-[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the beneficiary in collateralTokens. Revenue send in this method is distributed between the beneficiary and the bondedToken holders according to the dividendPercentage parameter;
+[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the beneficiary in collateralTokens. Revenue sent in this method is distributed between the beneficiary and the bondedToken holders according to the dividendPercentage parameter;
 
 ```
 function pay(

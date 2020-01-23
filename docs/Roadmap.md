@@ -3,7 +3,7 @@
 | Phase | Description                                                                                                    | Status                                             |
 | ----- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | 1     | Bonded Dividend Token Module                                                                                   | Funded and underway; target completion in Feb 2020 |
-| 2     | DAICO support (governance, milestone disbursement, tap) + New Features (vesting, multi-token dividend support) | Not funded                                         |
+| 2     | DAICO support (governance, milestone disbursement, tap) + New Features (vesting, multi-token dividend support) | Seeking Funding                                    |
 | 3     | DAO Framework Integrations (DAOstack, Aragon, Moloch)                                                          | Future                                             |
 | 4     | Legal Compliance & Fiat On-ramps                                                                               | Future                                             |
 
@@ -42,7 +42,9 @@
 - Refactor into Fundraise and Reward components
 - Add Vesting component
 - Multi-token dividend support
-- Dapp (DAICO)
+
+#### Dapp (DAICO)
+
 - React component library
 - DAICO investor UI
 - Governance UI

@@ -1,6 +1,6 @@
 # Dividend Bearing Tokens
 
-Dividend tokens distributed pro-rata dividends among token holders in real time. Token holders can claim what they are entitled to at any time. When tokens are traded, the new owner gets rights to future claims.
+ERC20-compliant tokens that distribute pro-rata dividend payments among token holders in real time. Token holders can claim what they are entitled to at any time. When tokens are traded, the new owner gets rights to future claims.
 
 ## Current Limitations
 
