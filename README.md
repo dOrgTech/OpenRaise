@@ -163,7 +163,7 @@ We envision the following features may be useful to DAOs implementing bonding cu
 - **Hatching** - An initial buying phase where selling is disabled up until a certain amount of tokens are bought. This helps ensure a certain amount of return for early investors.
 - **Vesting** - Vesting periods can be added to minted tokens, which helps fight against pumping and dumping.
 - **Taxes** - A % fee for selling back to the market can be added to encourage secondary market trading.
-- **Governance via BondedTokens** - Voting power can be granted to token holders, which can help further insulate their potentially risky investment.
+- **Governance via BondedTokens** - Voting power can be granted to token holders, which gives investors a say in how their money is being used.
 - **Multicurrency Reserve** - Allow multiple tokens to be added to reserve as collateralTokens.
 
 ### Regulatory Features
