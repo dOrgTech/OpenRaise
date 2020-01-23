@@ -152,7 +152,7 @@ function pay(
 
   - We believe that the chances of such a coordinated attack will remain extremely low – as long as the prospects for continued funding are valued more than the present level of cash-flows. If the DAO was detected trying to "cheat" its token-holders in this way, we would expect a chain reaction of sell-offs and little to no prospect for future buys. Thus, the DAO would short-sightedly lose all ability to fundraise and would need to rely solely on its existing sources of revenue.
 
-  - We have an open discussion on this issue [here](https://github.com/dOrgTech/BC-DAO/issues/4).
+  - We have an open discussion on this issue [here](https://github.com/dOrgTech/OpenRaise/issues/4).
 
 ## Future Plans
 
