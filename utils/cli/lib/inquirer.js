@@ -6,7 +6,7 @@ const actions = {
 };
 
 const curveTypes = {
-  STATIC: 'Static',
+  CONSTANT: 'Constant',
   BANCOR: 'Bancor'
 };
 
@@ -34,8 +34,8 @@ module.exports = {
         type: 'list',
         name: 'curveType',
         message: 'Curve Logic',
-        choices: [curveTypes.STATIC, curveTypes.BANCOR],
-        default: curveTypes.STATIC
+        choices: [curveTypes.CONSTANT, curveTypes.BANCOR],
+        default: curveTypes.CONSTANT
       },
       {
         type: 'list',

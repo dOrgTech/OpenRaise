@@ -82,8 +82,8 @@ const deployCurve = async () => {
     type: 'input',
     name: 'owner',
     message: 'Curve Beneficiary',
-    choices: [CurveTypes.STATIC, CurveTypes.BANCOR],
-    default: CurveTypes.STATIC
+    choices: [CurveTypes.CONSTANT, CurveTypes.BANCOR],
+    default: CurveTypes.CONSTANT
   });
   prompts.next({
     /* question... */
