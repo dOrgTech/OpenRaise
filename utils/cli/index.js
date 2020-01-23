@@ -115,5 +115,5 @@ const run = async () => {
 };
 
 clear();
-console.log(chalk.yellow(figlet.textSync('BC-DAO', {horizontalLayout: 'full'})));
+console.log(chalk.yellow(figlet.textSync('OpenRaise', {horizontalLayout: 'full'})));
 run();
