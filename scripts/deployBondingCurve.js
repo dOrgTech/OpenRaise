@@ -6,7 +6,7 @@ const {bn} = require("../test/helpers/utils");
 const config = {
     deployParams: {
         collateralType: TokenType.ERC20,
-        curveLogicType: CurveLogicType.STATIC,
+        curveLogicType: CurveLogicType.CONSTANT,
         curveParams: {
             reservePercentage: bn(10),
             dividendPercentage: bn(50),

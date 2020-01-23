@@ -1,12 +1,8 @@
-`NOTE: Do not use these contracts in production! All contracts in this repository are currently in alpha stage unless stated otherwise.`
+# Bonding Curve Fundraising
 
-# Fundraising Module For DAOs
+The bonding curve fundraising module enables projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon de la Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
 
-BC-DAO is evolving scope into OpenRaise! Check out our new overview and roadmap [here](./docs/Basics.md).
-
-BC-DAO is a fundraising module for projects and organizations to issue tokens and raise money to fund their vision. The core of this implementation is a **bonding curve**, or automated market maker - as conceptualized by individuals such as [Simon de la Rouviere](https://medium.com/@simondlr/tokens-2-0-curved-token-bonding-in-curation-markets-1764a2e0bee5), [Billy Rennekamp](https://medium.com/@billyrennekamp/converting-between-bancor-and-bonding-curve-price-formulas-9c11309062f5) and [Thibauld Favre](https://github.com/C-ORG/whitepaper) to enable continuous funding for organizations, coupled with guaranteed liquidity for investors without relying on exchanges.
-
-Tokens issued via BC-DAO can offer rights in the DAO, such as **dividends** on future revenue or **governance rights**.
+Tokens issued via bonding curves can offer rights in the organization, such as **dividends** on future revenue or **governance rights**.
 
 This type of fundraising might allow for more flexibility, accountability, and alignment of incentives than alternative methods (such as ICOs or private fundraising).
 
@@ -16,28 +12,24 @@ This type of fundraising might allow for more flexibility, accountability, and a
 - The **bonding curve** is an automated market maker contract that mints tokens to buyers at an algorithmically determined price. The automated market maker allows users to buy or sell tokens at any time for known prices with minimal slippage.
 - When a user **buys** bonded tokens with collateral tokens: The collateral tokens are split between the beneficiary treasury (to fund the organization) and the reserve (to facilitate liquidity for sells). The buyer receives bonded tokens based on the current price.
 
-![](./docs/diagrams/out/bonding_curve_buy_flow.png)
+![](./diagrams/out/bonding_curve_buy_flow.png)
 
 - When a user **sells** bonded tokens: The bonded tokens are burned and the seller receives collateral tokens based on the current price.
 
-![](./docs/diagrams/out/bonding_curve_sell_flow.png)
+![](./diagrams/out/bonding_curve_sell_flow.png)
 
-- When the DAO earns **revenue:** the income is split between direct income to the DAO treasury and **dividends** for the bonded token holders.
+- When the beneficiary earns **revenue:** the income is split between direct income to the beneficiary treasury and **dividends** for the bonded token holders.
 
-![](./docs/diagrams/out/bonding_curve_pay_flow.png)
+![](./diagrams/out/bonding_curve_pay_flow.png)
 
 ## Curve Economics
 
 - The specifics of curve design are an area of active research. A common general principle is to reward earlier contributors without inflating the buy price so high that it disincentivizes later participation.
 
 - Our current curve implementation is based on the **bancor formula**, which allows for a wide variety of potential curves with simple parameters.
-  ![](./docs/diagrams/out/bancor_curve_examples.png)
+  ![](./diagrams/out/bancor_curve_examples.png)
 
 [Bancor Whitepaper](https://storage.googleapis.com/website-bancor/2018/04/01ba8253-bancor_protocol_whitepaper_en.pdf)
-
-## Dividend Tracking
-
-- We allow for scalable, purely on-chain tracking of dividends. [More information here](./docs/DividendToken).
 
 # Implementation
 
@@ -53,7 +45,7 @@ Our initial bonding curve implementation supports:
 - **bondedToken**: Token native to the curve. The bondingCurve contract has exclusive rights to mint and burn tokens.
 - **collateralToken**: Token accepted as collateral by the curve. (e.g. ETH or DAI)
 - **reserve**: Balance of collateralTokens that the curve holds. The reserve is used to pay bondedToken holders when they want to liquidate and sell their tokens back to the curve.
-- **beneficiary**: Entity that receives funding from the purchase of bondedTokens. This would typically be the DAO Avatar.
+- **beneficiary**: Entity that receives funding from the purchase of bondedTokens.
 - **reservePercentage**: Percentage of incoming collateralTokens sent to reserve on buy(). The remainder is sent to beneficiary.
 - **dividendPercentage**: Percentage of incoming collateralTokens distributed to bondedToken holders on pay(). The remainder is sent to beneficiary.
 
@@ -70,15 +62,15 @@ The following chart describes the actions users can take to interact with the Bo
 
 #### Buy Flow
 
-![Architecture Diagram](./docs/diagrams/out/bonding_curve_architecture_buy.png)
+![Architecture Diagram](./diagrams/out/bonding_curve_architecture_buy.png)
 
 #### Payment Flow
 
-![Architecture Diagram](./docs/diagrams/out/bonding_curve_architecture_pay.png)
+![Architecture Diagram](./diagrams/out/bonding_curve_architecture_pay.png)
 
 ## Setup
 
-Bonding Curves can be deployed by a DAO via a Factory. We will provide a factory for this "one-click deployment", though users can of course choose to deploy how they see fit.
+Bonding Curves can be deployed by an organization via a Factory. We will provide a factory for this "one-click deployment", though users can of course choose to deploy how they see fit.
 
 Bonding Curves are composed of several contracts, though the factory abstracts the need to know about them individually:
 
@@ -132,7 +124,7 @@ function sell(
 ) public
 ```
 
-[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the DAO in collateralTokens. Revenue sent in this method is distributed between the beneficiary and the bondedToken holders according to the dividendPercentage parameter;
+[**`pay`**](./contracts/BondingCurve/BondingCurve.sol): Pay the beneficiary in collateralTokens. Revenue sent in this method is distributed between the beneficiary and the bondedToken holders according to the dividendPercentage parameter;
 
 ```
 function pay(
@@ -140,23 +132,22 @@ function pay(
 ) public
 ```
 
-## Current Limitations
+### Dividend Pool
 
-- **Dividends are only distributed on pay()** - Without hooks on ERC20 transfers, we can't execute distribution logic when ERC20 tokens are transferred to the BondingCurve via the standard transfer() method. Ideally, we could allow 'native' ERC20 payments to function just as pay() does.
+Users interact with this contract to claim their dividend allocations.
 
-  - We'll be incorporating ERC777 hooks, which will alleviate this issue for tokens that adopt that standard.
+[**`withdraw`**](./contracts/BondingCurve/BondingCurve.sol): Withdraw collateralToken dividends sender is entitled to for a given period, in blocks.
 
-- **Payments directly to DAO Avatar can circumvent dividends** - It's possible for actors to bypass the bonding curve and send payments directly to the DAO Avatar. If customers pay the DAO directly rather than sending payment with the pay() function to the bonding curve, then the DAO would receive 100% of the payment, effectively cutting out token holders from receiving their portion.
-
-  - For instance, DutchX fees might initially be configured to hit the pay() function on the bonding curve, resulting in continuous cash-flows to both token-holders (in the form of claimable dividends) and the DAO according to **dividendPercentage**. However, the DAO might vote to re-route the fees directly to itself, avoiding the pay split with token holders.
-
-  - We believe that the chances of such a coordinated attack will remain extremely low – as long as the prospects for continued funding are valued more than the present level of cash-flows. If the DAO was detected trying to "cheat" its token-holders in this way, we would expect a chain reaction of sell-offs and little to no prospect for future buys. Thus, the DAO would short-sightedly lose all ability to fundraise and would need to rely solely on its existing sources of revenue.
-
-  - We have an open discussion on this issue [here](https://github.com/dOrgTech/OpenRaise/issues/4).
+```
+function withdraw(
+ uint start,
+ uint end
+) public
+```
 
 ## Future Plans
 
-We envision the following features may be useful to DAOs implementing bonding curves.
+We envision the following features may be useful to organizations implementing bonding curves.
 
 ### Financial Features
 
@@ -168,7 +159,7 @@ We envision the following features may be useful to DAOs implementing bonding cu
 
 ### Regulatory Features
 
-- **KYC / Whitelisting** - DAOs may wish to ensure that bonding curve investments only come from KYC'ed ethereum addresses. The [TPL standard](https://tplprotocol.org/) designed by Open Zeppelin offers a standard to incorporate this functionality.
+- **KYC / Whitelisting** - Organizations may wish to ensure that bonding curve investments only come from KYC'ed ethereum addresses. The [TPL standard](https://tplprotocol.org/) designed by Open Zeppelin offers a standard to incorporate this functionality.
 
 ### Security Features
 

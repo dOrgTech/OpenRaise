@@ -20,7 +20,8 @@
     "solhint": "./node_modules/.bin/solhint contracts/**/*.sol",
     "prettier:solidity": "./node_modules/.bin/prettier --write contracts/**/*.sol",
     "solium": "./node_modules/.bin/solium -d contracts/",
-    "solium:fix": "./node_modules/.bin/solium -d contracts/ --fix"
+    "solium:fix": "./node_modules/.bin/solium -d contracts/ --fix",
+    "cli": "node ./utils/cli/index.js"
   },
   "repository": {
     "type": "git",
@@ -36,9 +37,17 @@
     "@babel/register": "7.5.5",
     "@openzeppelin/contracts-ethereum-package": "2.2.3",
     "@openzeppelin/upgrades": "2.5.2",
+    "chalk": "^3.0.0",
+    "clear": "^0.1.0",
+    "clui": "^0.3.6",
+    "configstore": "^5.0.0",
     "dotenv": "6.2.0",
+    "figlet": "^1.2.4",
+    "inquirer": "^7.0.3",
+    "minimist": "^1.2.0",
     "openzeppelin-test-helpers": "0.4.2",
-    "truffle-hdwallet-provider": "1.0.3"
+    "truffle-hdwallet-provider": "1.0.3",
+    "web3": "^1.2.4"
   },
   "devDependencies": {
     "@babel/core": "7.5.5",

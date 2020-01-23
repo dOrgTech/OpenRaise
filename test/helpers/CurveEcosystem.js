@@ -112,7 +112,7 @@ class CurveEcosystem {
 
         let buyCurve;
 
-        if (curveLogicType === CurveLogicType.STATIC) {
+        if (curveLogicType === CurveLogicType.CONSTANT) {
             buyCurve = await this.deployStaticCurveLogic();
         } else if (curveLogicType === CurveLogicType.BANCOR) {
             buyCurve = (await this.deployBancorCurveLogic()).buyCurve;
@@ -165,7 +165,7 @@ class CurveEcosystem {
 
         let buyCurve;
 
-        if (curveLogicType === CurveLogicType.STATIC) {
+        if (curveLogicType === CurveLogicType.CONSTANT) {
             buyCurve = await this.deployStaticCurveLogic();
         } else if (curveLogicType === CurveLogicType.BANCOR) {
             buyCurve = (await this.deployBancorCurveLogic()).buyCurve;
