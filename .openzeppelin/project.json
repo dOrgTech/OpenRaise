@@ -9,6 +9,7 @@
     "BondedToken": "BondedToken",
     "RewardsDistributor": "RewardsDistributor",
     "BondingCurve": "BondingCurve",
+    "BondingCurveEther": "BondingCurveEther",
     "BondingCurveFactory": "BondingCurveFactory",
     "BancorCurveService": "BancorCurveService"
   },

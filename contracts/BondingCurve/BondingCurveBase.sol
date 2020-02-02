@@ -12,7 +12,7 @@ import "contracts/BondingCurve/interface/ICurveLogic.sol";
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurveBase is Initializable, Ownable, Pausable {
+contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     using SafeMath for uint256;
 
     BondedToken internal _bondedToken;
@@ -119,6 +119,58 @@ contract BondingCurveBase is Initializable, Ownable, Pausable {
     function rewardForSell(uint256 numTokens) public view returns (uint256) {
         uint256 buyPrice = priceToBuy(numTokens);
         return (buyPrice.mul(_reservePercentage)).div(MAX_PERCENTAGE);
+    }
+
+    /*
+        Abstract Functions
+    */
+
+    /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
+    /// @param numTokens    The number of bondedTokens to sell
+    /// @param minPrice     Minimum total price allowable to receive in collateralTokens
+    /// @param recipient    Address to send the new bondedTokens to
+    function sell(
+        uint256 numTokens,
+        uint256 minPrice,
+        address recipient
+    ) public returns(uint256 collateralReceived);
+
+    /*
+        Internal Functions
+    */
+
+    function _preBuy(
+        uint256 amount,
+        uint256 maxPrice
+    ) internal returns (
+        uint256 buyPrice,
+        uint256 toReserve,
+        uint256 toBeneficiary
+    ) {
+        require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
+
+        buyPrice = priceToBuy(amount);
+
+        if (maxPrice != 0) {
+            require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
+        }
+
+        toReserve = rewardForSell(amount);
+        toBeneficiary = buyPrice.sub(toReserve);
+    }
+
+    function _postBuy(
+        address buyer,
+        address recipient,
+        uint256 amount,
+        uint256 buyPrice,
+        uint256 toReserve,
+        uint256 toBeneficiary
+    ) internal {
+        _reserveBalance = _reserveBalance.add(toReserve);
+        _bondedToken.mint(recipient, amount);
+
+        emit Buy(buyer, recipient, amount, buyPrice, toReserve, toBeneficiary);
     }
 
     /*

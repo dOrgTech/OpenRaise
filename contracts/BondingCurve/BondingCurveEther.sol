@@ -6,12 +6,12 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/lifecycle/Pausable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "contracts/BondingCurve/BondingCurveBase.sol";
-import "contracts/BondingCurve/interface/IBondingCurve.sol";
+import "contracts/BondingCurve/interface/IBondingCurveEther.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses Ether as reserve currency
-contract BondingCurveEther is Initializable, BondingCurveBase {
+contract BondingCurveEther is Initializable, BondingCurveBase, IBondingCurveEther {
   using SafeMath for uint256;
 
   string internal constant INSUFFICENT_ETHER = "Insufficent Ether";
@@ -43,31 +43,36 @@ contract BondingCurveEther is Initializable, BondingCurveBase {
     );
   }
 
-  function buy(uint256 amount, uint256 maxPrice, address recipient) public payable whenNotPaused {
-    require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
-    require(msg.value == maxPrice, INCORRECT_ETHER_SENT);
+  function buy(
+    uint256 amount,
+    uint256 maxPrice,
+    address recipient
+  ) public payable whenNotPaused returns (
+    uint256 collateralSent
+  ) {
+    require(maxPrice != 0 && msg.value == maxPrice, INCORRECT_ETHER_SENT);
 
-    uint256 buyPrice = priceToBuy(amount);
-    require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
+    (uint256 buyPrice, uint256 toReserve, uint256 toBeneficiary) = _preBuy(amount, maxPrice);
 
-    uint256 etherToReserve = rewardForSell(amount);
-    uint256 etherToBeneficiary = buyPrice.sub(etherToReserve);
+    address(uint160(_beneficiary)).transfer(toBeneficiary);
 
-    uint256 remainder = maxPrice.sub(etherToReserve).sub(etherToBeneficiary);
+    uint256 refund = maxPrice.sub(toReserve).sub(toBeneficiary);
 
-    _reserveBalance = _reserveBalance.add(etherToReserve);
-    _bondedToken.mint(recipient, amount);
-
-    address(uint160(_beneficiary)).transfer(etherToBeneficiary);
-
-    if (remainder > 0) {
-      msg.sender.transfer(remainder);
+    if (refund > 0) {
+      msg.sender.transfer(refund);
     }
 
-    emit Buy(msg.sender, recipient, amount, buyPrice, etherToReserve, etherToBeneficiary);
+    _postBuy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
+    return buyPrice;
   }
 
-  function sell(uint256 amount, uint256 minReturn, address recipient) public whenNotPaused {
+  function sell(
+    uint256 amount,
+    uint256 minReturn,
+    address recipient
+  ) public whenNotPaused returns (
+    uint256 collateralReceived
+  ) {
     require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
     require(_bondedToken.balanceOf(msg.sender) >= amount, INSUFFICENT_TOKENS);
 
@@ -80,6 +85,7 @@ contract BondingCurveEther is Initializable, BondingCurveBase {
     _bondedToken.burn(msg.sender, amount);
 
     emit Sell(msg.sender, recipient, amount, burnReward);
+    return burnReward;
   }
 
   function pay(uint256 amount) public payable {

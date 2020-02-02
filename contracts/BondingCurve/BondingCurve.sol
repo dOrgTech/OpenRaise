@@ -6,12 +6,12 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/lifecycle/Pausable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "contracts/BondingCurve/BondingCurveBase.sol";
-import "contracts/BondingCurve/interface/IBondingCurve.sol";
+import "contracts/BondingCurve/interface/IBondingCurveERC20.sol";
 
 /// @title A bonding curve implementation for buying a selling bonding curve tokens.
 /// @author dOrg
 /// @notice Uses a defined ERC20 token as reserve currency
-contract BondingCurve is Initializable, BondingCurveBase {
+contract BondingCurve is Initializable, BondingCurveBase, IBondingCurveERC20 {
   using SafeMath for uint256;
 
   IERC20 internal _collateralToken;
@@ -44,35 +44,37 @@ contract BondingCurve is Initializable, BondingCurveBase {
     _collateralToken = collateralToken;
   }
 
-  function buy(uint256 amount, uint256 maxPrice, address recipient) public whenNotPaused {
-    require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
+  function buy(
+    uint256 amount,
+    uint256 maxPrice,
+    address recipient
+  ) public whenNotPaused returns (
+    uint256 collateralSent
+  ) {
 
-    uint256 buyPrice = priceToBuy(amount);
-
-    if (maxPrice != 0) {
-      require(buyPrice <= maxPrice, MAX_PRICE_EXCEEDED);
-    }
-
-    uint256 tokensToReserve = rewardForSell(amount);
-    uint256 tokensToBeneficiary = buyPrice.sub(tokensToReserve);
-
-    _reserveBalance = _reserveBalance.add(tokensToReserve);
-    _bondedToken.mint(recipient, amount);
+    (uint256 buyPrice, uint256 toReserve, uint256 toBeneficiary) = _preBuy(amount, maxPrice);
 
     require(
       _collateralToken.transferFrom(msg.sender, address(this), buyPrice),
       TRANSFER_FROM_FAILED
     );
-    _collateralToken.transfer(_beneficiary, tokensToBeneficiary);
+    _collateralToken.transfer(_beneficiary, toBeneficiary);
 
-    emit Buy(msg.sender, recipient, amount, buyPrice, tokensToReserve, tokensToBeneficiary);
+    _postBuy(msg.sender, recipient, amount, buyPrice, toReserve, toBeneficiary);
+    return buyPrice;
   }
 
   /// @dev                Sell a given number of bondedTokens for a number of collateralTokens determined by the current rate from the sell curve.
   /// @param amount       The number of bondedTokens to sell
   /// @param minReturn    Minimum total price allowable to receive in collateralTokens
   /// @param recipient    Address to send the new bondedTokens to
-  function sell(uint256 amount, uint256 minReturn, address recipient) public whenNotPaused {
+  function sell(
+    uint256 amount,
+    uint256 minReturn,
+    address recipient
+  ) public whenNotPaused returns (
+    uint256 collateralReceived
+  ) {
     require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
     require(_bondedToken.balanceOf(msg.sender) >= amount, INSUFFICENT_TOKENS);
 
@@ -85,6 +87,7 @@ contract BondingCurve is Initializable, BondingCurveBase {
     _collateralToken.transfer(recipient, burnReward);
 
     emit Sell(msg.sender, recipient, amount, burnReward);
+    return burnReward;
   }
 
   /// @notice             Pay the DAO in the specified payment token. They will be distributed between the DAO beneficiary and bonded token holders
