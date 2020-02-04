@@ -129,24 +129,18 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     /// @param numTokens    The number of bondedTokens to sell
     /// @param minPrice     Minimum total price allowable to receive in collateralTokens
     /// @param recipient    Address to send the new bondedTokens to
-    function sell(
-        uint256 numTokens,
-        uint256 minPrice,
-        address recipient
-    ) public returns(uint256 collateralReceived);
+    function sell(uint256 numTokens, uint256 minPrice, address recipient)
+        public
+        returns (uint256 collateralReceived);
 
     /*
         Internal Functions
     */
 
-    function _preBuy(
-        uint256 amount,
-        uint256 maxPrice
-    ) internal returns (
-        uint256 buyPrice,
-        uint256 toReserve,
-        uint256 toBeneficiary
-    ) {
+    function _preBuy(uint256 amount, uint256 maxPrice)
+        internal
+        returns (uint256 buyPrice, uint256 toReserve, uint256 toBeneficiary)
+    {
         require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
 
         buyPrice = priceToBuy(amount);
@@ -171,6 +165,26 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
         _bondedToken.mint(recipient, amount);
 
         emit Buy(buyer, recipient, amount, buyPrice, toReserve, toBeneficiary);
+    }
+
+    function _preSell(address seller, uint256 amount, uint256 minReturn)
+        internal
+        returns (uint256 burnReward)
+    {
+        require(amount > 0, REQUIRE_NON_ZERO_NUM_TOKENS);
+        require(_bondedToken.balanceOf(seller) >= amount, INSUFFICENT_TOKENS);
+
+        burnReward = rewardForSell(amount);
+        require(burnReward >= minReturn, PRICE_BELOW_MIN);
+    }
+
+    function _postSell(address seller, uint256 amount, uint256 burnReward, address recipient)
+        internal
+    {
+        _reserveBalance = _reserveBalance.sub(burnReward);
+        _bondedToken.burn(seller, amount);
+
+        emit Sell(seller, recipient, amount, burnReward);
     }
 
     /*
