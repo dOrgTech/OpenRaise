@@ -27,17 +27,17 @@ contract('RewardsDistributor', accounts => {
   let acct_c = accounts[4];
   let acct_d = accounts[5];
 
-  beforeEach(async function() {
+  beforeEach(async () => {
     project = await deployProject();
     rd = await deployRewardsDistributor(project, [creator]);
     ELIGIBLE_UNIT = rd.ELIGIBLE_UNIT;
   });
 
-  it('deploys and initializes', async function() {
+  it('deploys and initializes', async () => {
     expect(await rd.methods.getStakeTotal().call({from: creator})).to.be.equal('0');
   });
 
-  it('withdraws ZERO reward', async function() {
+  it('withdraws ZERO reward', async () => {
     tx = await rd.methods.withdrawReward(acct_a).send({from: creator});
     expectEvent.inLogs(tx.events, 'RewardWithdrawalMade', {
       to: acct_a,
@@ -45,15 +45,15 @@ contract('RewardsDistributor', accounts => {
     });
   });
 
-  it('reads ZERO stake', async function() {
+  it('reads ZERO stake', async () => {
     expect(await rd.methods.getStake(acct_a).call({from: creator})).to.be.equal('0');
   });
 
-  it('reverts if trying to withdraw amount > stake', async function() {
+  it('reverts if trying to withdraw amount > stake', async () => {
     await expectRevert.unspecified(rd.methods.withdrawStake(acct_a, '1').send({from: creator}));
   });
 
-  it('updates total stake after deposit > ELIGIBLE_UNIT', async function() {
+  it('updates total stake after deposit > ELIGIBLE_UNIT', async () => {
     var amount = new BN('100').mul(TEN18);
 
     tx = await rd.methods.deposit(acct_a, amount.toString()).send({from: creator});
@@ -66,7 +66,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getStakeTotal().call({from: creator})).to.be.equal(amount.toString());
   });
 
-  it("doesn't update total stake after deposit < ELIGIBLE_UNIT", async function() {
+  it("doesn't update total stake after deposit < ELIGIBLE_UNIT", async () => {
     var amount = new BN('100');
 
     tx = await rd.methods.deposit(acct_a, amount.toString()).send({from: creator});
@@ -74,7 +74,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getStakeTotal().call({from: creator})).to.be.equal('0');
   });
 
-  it('deposits A, gets stake, withdraws all stake, gets stake again', async function() {
+  it('deposits A, gets stake, withdraws all stake, gets stake again', async () => {
     var amount = new BN('100').mul(TEN18);
 
     tx = await rd.methods.deposit(acct_a, amount.toString()).send({from: creator});
@@ -86,7 +86,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getStake(acct_a).call({from: creator})).to.be.equal('0');
   });
 
-  it('does no distribution if no stake >= ELIGIBLE_UNIT', async function() {
+  it('does no distribution if no stake >= ELIGIBLE_UNIT', async () => {
     await rd.methods.deposit(acct_a, '1234').send({from: creator});
 
     await rd.methods.distribute(creator, '1234000').send({from: creator});
@@ -94,7 +94,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getReward(acct_a).call({from: creator})).to.be.equal('0');
   });
 
-  it('does no distribution if stake becomes ineligible after withdrawl', async function() {
+  it('does no distribution if stake becomes ineligible after withdrawl', async () => {
     var amountDeposit = new BN('100').mul(TEN18);
     var amountWithdraw = new BN('100').mul(TEN18).sub(new BN('10000'));
 
@@ -117,7 +117,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getStakeTotal().call({from: creator})).to.be.equal('0');
   });
 
-  it('allocates all reward to a single staker and allow its withdrawl', async function() {
+  it('allocates all reward to a single staker and allow its withdrawl', async () => {
     var amountDeposit = new BN('100').mul(TEN18);
     var amountDistribute = new BN('200').mul(TEN18);
 
@@ -142,7 +142,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getReward(acct_a).call({from: creator})).to.be.equal('0');
   });
 
-  it('allocates no reward to stake <= ELIGIBLE_UNIT', async function() {
+  it('allocates no reward to stake <= ELIGIBLE_UNIT', async () => {
     await rd.methods.deposit(acct_a, String(10 ** 9)).send({from: creator});
     await rd.methods.deposit(acct_b, String(100)).send({from: creator});
 
@@ -157,7 +157,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getReward(acct_b).call({from: creator})).to.be.equal('0');
   });
 
-  it('allocates 1st reward proportionally to 2 stakers and 2nd reward to remaining staker after the other withdrew', async function() {
+  it('allocates 1st reward proportionally to 2 stakers and 2nd reward to remaining staker after the other withdrew', async () => {
     var depositA = new BN(String(10 * 10 ** 9)); // 10 ELIGIBLE_UNITS
     var depositB = new BN(String(30 * 10 ** 9));
     var distribute1 = new BN('400'); // notice this is in wei
@@ -176,7 +176,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getReward(acct_a).call({from: creator})).to.be.equal('100');
   });
 
-  it('withdraws reward after proportional reward distribution', async function() {
+  it('withdraws reward after proportional reward distribution', async () => {
     var depositA = new BN('100').mul(TEN18);
     var depositB = new BN('300').mul(TEN18);
     var distribute1 = new BN('40').mul(TEN18);
@@ -192,7 +192,7 @@ contract('RewardsDistributor', accounts => {
     });
   });
 
-  it('withdraws reward after two consecutive reward distributions', async function() {
+  it('withdraws reward after two consecutive reward distributions', async () => {
     var depositA = new BN('100').mul(TEN18);
     var depositB = new BN('300').mul(TEN18);
     var distribute1 = new BN('400').mul(TEN18);
@@ -223,7 +223,7 @@ contract('RewardsDistributor', accounts => {
     });
   });
 
-  it('distributes after partial stake withdrawal and reads reward', async function() {
+  it('distributes after partial stake withdrawal and reads reward', async () => {
     var depositA = new BN('100').mul(TEN18);
     var depositB = new BN('300').mul(TEN18);
     var distribute1 = new BN('100').mul(TEN18);
@@ -255,7 +255,7 @@ contract('RewardsDistributor', accounts => {
     );
   });
 
-  it('withdraws reward after stake has been withdrawn', async function() {
+  it('withdraws reward after stake has been withdrawn', async () => {
     var depositA = new BN('100').mul(TEN18);
     var distribute1 = new BN('10').mul(TEN18);
 
@@ -277,7 +277,7 @@ contract('RewardsDistributor', accounts => {
     expect(await rd.methods.getStakeTotal().call({from: creator})).to.be.equal('0');
   });
 
-  it('handles magnitude: A deposits 9999, B deposits 1, distribute, withdraw stake, distribute, withdraw reward', async function() {
+  it('handles magnitude: A deposits 9999, B deposits 1, distribute, withdraw stake, distribute, withdraw reward', async () => {
     var depositA = new BN('9999').mul(TEN18);
     var depositB = new BN('1').mul(TEN18);
     var distribute1 = new BN('1').mul(TEN18);
@@ -295,7 +295,7 @@ contract('RewardsDistributor', accounts => {
     );
   });
 
-  it('handles magnitude: deposit 10**6 10**9 10**12 10**15, distribute, withdraw reward', async function() {
+  it('handles magnitude: deposit 10**6 10**9 10**12 10**15, distribute, withdraw reward', async () => {
     await rd.methods.deposit(acct_a, String(10 ** 6)).send({from: creator});
     await rd.methods.deposit(acct_b, String(10 ** 9)).send({from: creator});
     await rd.methods.deposit(acct_c, String(10 ** 12)).send({from: creator});
@@ -316,7 +316,7 @@ contract('RewardsDistributor', accounts => {
     );
   });
 
-  it('carries remainder to second distribution and withdraws reward', async function() {
+  it('carries remainder to second distribution and withdraws reward', async () => {
     await rd.methods.deposit(acct_a, String(10 ** 9)).send({from: creator});
     await rd.methods.deposit(acct_b, String(9 * 10 ** 9)).send({from: creator});
 

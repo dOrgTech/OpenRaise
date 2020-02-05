@@ -9,7 +9,7 @@ const should = require('chai').should();
 const deploy = require('../../index.js');
 const contractConstants = require('../constants/contractConstants.js');
 const {defaultTestConfig} = require('../helpers/ecosystemConfigs');
-const {str, bn} = require("../helpers/utils");
+const {str, bn} = require('../helpers/utils');
 
 async function shouldBehaveLikeBondingCurve(context, parameters) {
   const {adminAccount, curveOwner, tokenMinter, userAccounts, miscUser} = context;
@@ -27,7 +27,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
   //   // Deploy bondingCurve proxy w/o initialization (check service for example)
   //   // Call initialize and expect revert
 
-  beforeEach(async function() {
+  beforeEach(async () => {
     project = await deploy.deployProject();
 
     // TODO: Use an ERC20Mintable instead of a BondedToken here!
@@ -80,8 +80,6 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
   });
 
   describe('Initialization', async () => {
-
-
     it('should fail on invalid dividendPercentage', async () => {
       const invalidDividendPercentage = new BN(101);
 
@@ -116,13 +114,13 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
     const maxBuyPrice = new BN(0); //We don't want a max price unless we're specifically testing that
     const minSellPrice = new BN(0); //We don't want a min price unless we're specifically testing that
 
-    it('should show buy price correctly', async function() {
+    it('should show buy price correctly', async () => {
       result = await bondingCurve.methods.priceToBuy(numTokens.toString()).call({from: miscUser});
 
       expect(new BN(result)).to.be.bignumber.equal(expectedBuyPrice);
     });
 
-    it('should show sell reward correctly', async function() {
+    it('should show sell reward correctly', async () => {
       result = await bondingCurve.methods
         .rewardForSell(numTokens.toString())
         .call({from: miscUser});
@@ -130,26 +128,26 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       expect(new BN(result)).to.be.bignumber.equal(expectedSellReward);
     });
 
-    it('should not allow bondingCurve owner to mint bondedTokens', async function() {
+    it('should not allow bondingCurve owner to mint bondedTokens', async () => {
       await expectRevert.unspecified(
         bondedToken.methods.mint(curveOwner, 100).send({from: curveOwner})
       );
     });
 
-    it('should not allow other addresses to mint bondedTokens', async function() {
+    it('should not allow other addresses to mint bondedTokens', async () => {
       await expectRevert.unspecified(
         bondedToken.methods.mint(userAccounts[3], 100).send({from: userAccounts[3]})
       );
     });
 
     describe('Buy Failure Cases', async () => {
-      it('should not allow to buy with 0 tokens specified', async function() {
+      it('should not allow to buy with 0 tokens specified', async () => {
         await expectRevert.unspecified(
           bondingCurve.methods.buy(0, maxBuyPrice.toString(), buyer).send({from: buyer})
         );
       });
 
-      it('should not allow user without collateralTokens approved to buy bondedTokens', async function() {
+      it('should not allow user without collateralTokens approved to buy bondedTokens', async () => {
         await expectRevert.unspecified(
           bondingCurve.methods
             .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
@@ -157,7 +155,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         );
       });
 
-      it('should not allow buy if current price exceeds specified max price', async function() {
+      it('should not allow buy if current price exceeds specified max price', async () => {
         await expectRevert.unspecified(
           bondingCurve.methods.buy(numTokens.toString(), '1', buyer).send({
             from: buyer
@@ -180,7 +178,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         });
       });
 
-      it('should not allow owner to buy when paused', async function() {
+      it('should not allow owner to buy when paused', async () => {
         await bondingCurve.methods.pause().send({from: curveOwner});
         await expectRevert.unspecified(
           bondingCurve.methods.buy(numTokens.toString(), maxBuyPrice.toString(), buyer).send({
@@ -189,7 +187,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         );
       });
 
-      it('should not allow user to buy when paused', async function() {
+      it('should not allow user to buy when paused', async () => {
         await bondingCurve.methods.pause().send({from: curveOwner});
         await expectRevert.unspecified(
           bondingCurve.methods.buy(numTokens.toString(), maxBuyPrice.toString(), buyer).send({
@@ -198,7 +196,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         );
       });
 
-      it('should mint bondedTokens correctly on buy', async function() {
+      it('should mint bondedTokens correctly on buy', async () => {
         const beforeBalance = new BN(
           await bondedToken.methods.balanceOf(buyer).call({from: miscUser})
         );
@@ -216,7 +214,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(numTokens));
       });
 
-      it('should transfer collateral tokens from buyer correctly on buy', async function() {
+      it('should transfer collateral tokens from buyer correctly on buy', async () => {
         const beforeBalance = new BN(
           await paymentToken.methods.balanceOf(buyer).call({from: miscUser})
         );
@@ -234,7 +232,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(expectedBuyPrice));
       });
 
-      it('should transfer collateral tokens to reserve correctly on buy', async function() {
+      it('should transfer collateral tokens to reserve correctly on buy', async () => {
         const beforeBalance = new BN(
           await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
         );
@@ -256,7 +254,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(reserveAmount));
       });
 
-      it('should record reserve balance correctly on buy', async function() {
+      it('should record reserve balance correctly on buy', async () => {
         const beforeBalance = new BN(
           await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
         );
@@ -278,7 +276,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(reserveBalance).to.be.bignumber.equal(beforeBalance.add(reserveAmount));
       });
 
-      it('should transfer collateral tokens to beneficiary correctly on buy', async function() {
+      it('should transfer collateral tokens to beneficiary correctly on buy', async () => {
         const beforeBalance = new BN(
           await paymentToken.methods.balanceOf(deployParams.beneficiary).call({from: miscUser})
         );
@@ -300,7 +298,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(beneficiaryAmount));
       });
 
-      it('should register buy event on buy', async function() {
+      it('should register buy event on buy', async () => {
         tx = await bondingCurve.methods
           .buy(numTokens.toString(), maxBuyPrice.toString(), buyer)
           .send({
@@ -314,7 +312,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         });
       });
 
-      it('should allow buy if current price is below max price specified', async function() {
+      it('should allow buy if current price is below max price specified', async () => {
         tx = await bondingCurve.methods
           .buy(numTokens.toString(), '1000000000000000000000000', buyer)
           .send({
@@ -328,7 +326,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         });
       });
 
-      it('should allow user to buy for a different recipient', async function() {
+      it('should allow user to buy for a different recipient', async () => {
         tx = await bondingCurve.methods
           .buy(numTokens.toString(), maxBuyPrice.toString(), userAccounts[1])
           .send({
@@ -344,13 +342,13 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
     });
 
     describe('Sell Failure Cases', async () => {
-      it('should not allow to sell with 0 tokens specified', async function() {
+      it('should not allow to sell with 0 tokens specified', async () => {
         await expectRevert.unspecified(
           bondingCurve.methods.sell(0, maxBuyPrice.toString(), buyer).send({from: buyer})
         );
       });
 
-      it('should not allow user without bondedTokens to sell', async function() {
+      it('should not allow user without bondedTokens to sell', async () => {
         //TODO: Test, REMOVE
         await expectRevert.unspecified(
           bondingCurve.methods
@@ -387,7 +385,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         });
       });
 
-      it('should not allow owner to sell when paused', async function() {
+      it('should not allow owner to sell when paused', async () => {
         await bondingCurve.methods.pause().send({from: curveOwner});
         await expectRevert.unspecified(
           bondingCurve.methods.sell(numTokens.toString(), minSellPrice.toString(), buyer).send({
@@ -396,7 +394,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         );
       });
 
-      it('should not allow user to sell when paused', async function() {
+      it('should not allow user to sell when paused', async () => {
         await bondingCurve.methods.pause().send({from: curveOwner});
         await expectRevert.unspecified(
           bondingCurve.methods.sell(numTokens.toString(), minSellPrice.toString(), buyer).send({
@@ -405,7 +403,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         );
       });
 
-      it('should allow user with bondedTokens to sell all bondedTokens', async function() {
+      it('should allow user with bondedTokens to sell all bondedTokens', async () => {
         tx = await bondingCurve.methods
           .sell(numTokens.toString(), minSellPrice.toString(), buyer)
           .send({
@@ -419,7 +417,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         });
       });
 
-      it('should allow user with bondedTokens to sell some bondedTokens', async function() {
+      it('should allow user with bondedTokens to sell some bondedTokens', async () => {
         const tokensToSell = numTokens.div(new BN(2));
 
         tx = await bondingCurve.methods
@@ -435,7 +433,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         });
       });
 
-      it('should burn tokens from seller on sell', async function() {
+      it('should burn tokens from seller on sell', async () => {
         const beforeBalance = new BN(
           await bondedToken.methods.balanceOf(buyer).call({from: miscUser})
         );
@@ -452,7 +450,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(numTokens));
       });
 
-      it('should transfer collateral tokens from reserve on sell', async function() {
+      it('should transfer collateral tokens from reserve on sell', async () => {
         const beforeBalance = new BN(
           await paymentToken.methods.balanceOf(bondingCurve.address).call({from: miscUser})
         );
@@ -469,7 +467,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.sub(expectedSellReward));
       });
 
-      it('should transfer collateral tokens to seller on sell', async function() {
+      it('should transfer collateral tokens to seller on sell', async () => {
         const beforeBalance = new BN(
           await paymentToken.methods.balanceOf(buyer).call({from: miscUser})
         );
@@ -486,7 +484,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(afterBalance).to.be.bignumber.equal(beforeBalance.add(expectedSellReward));
       });
 
-      it('should allow user to sell and send reward to different recipient', async function() {
+      it('should allow user to sell and send reward to different recipient', async () => {
         const recipient = userAccounts[2];
 
         const recipientBeforeBalance = new BN(
@@ -512,7 +510,7 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
         expect(recipientAfterBalance).to.be.bignumber.above(recipientBeforeBalance);
       });
 
-      it('should not allow sell if current reward is lower than specified min reward', async function() {
+      it('should not allow sell if current reward is lower than specified min reward', async () => {
         const result = await bondingCurve.methods
           .rewardForSell(numTokens.toString())
           .call({from: miscUser});
