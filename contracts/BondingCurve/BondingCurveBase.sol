@@ -81,7 +81,8 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
         IBondedToken bondedToken,
         ICurveLogic buyCurve,
         uint256 reservePercentage,
-        uint256 dividendPercentage
+        uint256 dividendPercentage,
+        uint256 preMintAmount
     ) public initializer {
         _isValiddividendPercentage(reservePercentage);
         _isValidreservePercentage(dividendPercentage);
@@ -94,13 +95,10 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
         _buyCurve = buyCurve;
         _bondedToken = bondedToken;
 
+        _preMintAmount = preMintAmount;
+
         _reservePercentage = reservePercentage;
         _dividendPercentage = dividendPercentage;
-        _preMintAmount = 1 ether;
-
-        // if (_hasPreMint()) {
-        //     _bondedToken.mint(_beneficiary, _preMintAmount);
-        // }
 
         emit BuyCurveSet(address(_buyCurve));
         emit BeneficiarySet(_beneficiary);

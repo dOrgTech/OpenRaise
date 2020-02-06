@@ -21,9 +21,19 @@ contract BondedTokenEther is Initializable, BondedTokenBase {
         string memory symbol,
         uint8 decimals,
         address minter,
+        address initialHolder,
+        uint256 initialSupply,
         RewardsDistributor rewardsDistributor
     ) public initializer {
-        BondedTokenBase.initialize(name, symbol, decimals, minter, rewardsDistributor);
+        BondedTokenBase.initialize(
+            name,
+            symbol,
+            decimals,
+            minter,
+            initialHolder,
+            initialSupply,
+            rewardsDistributor
+        );
     }
 
     function _validateComponentAddresses() internal returns (bool) {

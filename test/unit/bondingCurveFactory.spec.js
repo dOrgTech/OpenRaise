@@ -9,7 +9,7 @@ const {expect} = require('chai');
 const {ZWeb3} = require('@openzeppelin/upgrades');
 const deploy = require('../../index.js');
 const {defaultTestConfig} = require('../helpers/ecosystemConfigs');
-const {str, bn, CurveTypes, CollateralTypes} = require('../helpers/utils');
+const {str, bn, toWad, CurveTypes, CollateralTypes} = require('../helpers/utils');
 
 contract('BondingCurveFactory', accounts => {
   let tx;
@@ -49,6 +49,8 @@ contract('BondingCurveFactory', accounts => {
       collateralTokenParams.symbol,
       collateralTokenParams.decimals,
       tokenMinter,
+      ZERO_ADDRESS,
+      str(0),
       ZERO_ADDRESS,
       ZERO_ADDRESS
     ]);
@@ -117,11 +119,12 @@ contract('BondingCurveFactory', accounts => {
       deployTx = await factory.methods
         .deploy(
           [CollateralTypes.ERC20, CurveTypes.Static],
-          [curveOwner, curveOwner, paymentToken.address],
+          [curveOwner, curveOwner, paymentToken.address, curveOwner],
           [
             str(curveLogicParams.tokenRatio),
             str(curveParams.reservePercentage),
-            str(curveParams.dividendPercentage)
+            str(curveParams.dividendPercentage),
+            str(curveParams.preMintAmount)
           ],
           bondedTokenParams.name,
           bondedTokenParams.symbol
@@ -192,7 +195,7 @@ contract('BondingCurveFactory', accounts => {
         ).to.be.bignumber.equal(bn(18));
         expect(
           bn(await bondedToken.methods.totalSupply().call({from: miscUser}))
-        ).to.be.bignumber.equal(bn(0));
+        ).to.be.bignumber.equal(str(curveParams.preMintAmount));
       });
 
       it('should correctly initialize reward distributor parameters', async () => {
@@ -221,6 +224,9 @@ contract('BondingCurveFactory', accounts => {
         expect(
           bn(await bondingCurve.methods.dividendPercentage().call({from: miscUser}))
         ).to.be.bignumber.equal(curveParams.dividendPercentage);
+        expect(
+          bn(await bondingCurve.methods.preMintAmount().call({from: miscUser}))
+        ).to.be.bignumber.equal(curveParams.preMintAmount);
       });
     });
   });
@@ -232,11 +238,12 @@ contract('BondingCurveFactory', accounts => {
       deployTx = await factory.methods
         .deploy(
           [CollateralTypes.Ether, CurveTypes.Static],
-          [curveOwner, curveOwner, ZERO_ADDRESS],
+          [curveOwner, curveOwner, ZERO_ADDRESS, curveOwner],
           [
             str(curveLogicParams.tokenRatio),
             str(curveParams.reservePercentage),
-            str(curveParams.dividendPercentage)
+            str(curveParams.dividendPercentage),
+            str(curveParams.preMintAmount)
           ],
           bondedTokenParams.name,
           bondedTokenParams.symbol
@@ -307,7 +314,7 @@ contract('BondingCurveFactory', accounts => {
         ).to.be.bignumber.equal(bn(18));
         expect(
           bn(await bondedToken.methods.totalSupply().call({from: miscUser}))
-        ).to.be.bignumber.equal(bn(0));
+        ).to.be.bignumber.equal(str(curveParams.preMintAmount));
       });
 
       it('should correctly initialize reward distributor parameters', async () => {
@@ -352,11 +359,12 @@ contract('BondingCurveFactory', accounts => {
       deployTx = await factory.methods
         .deploy(
           [CollateralTypes.ERC20, CurveTypes.Bancor],
-          [curveOwner, curveOwner, paymentToken.options.address],
+          [curveOwner, curveOwner, paymentToken.options.address, curveOwner],
           [
             str(bancorTestValues.connectorWeight),
             str(curveParams.reservePercentage),
-            str(curveParams.dividendPercentage)
+            str(curveParams.dividendPercentage),
+            str(curveParams.preMintAmount)
           ],
           bondedTokenParams.name,
           bondedTokenParams.symbol
@@ -431,7 +439,7 @@ contract('BondingCurveFactory', accounts => {
         ).to.be.bignumber.equal(bn(18));
         expect(
           bn(await bondedToken.methods.totalSupply().call({from: miscUser}))
-        ).to.be.bignumber.equal(bn(0));
+        ).to.be.bignumber.equal(str(curveParams.preMintAmount));
       });
 
       it('should correctly initialize reward distributor parameters', async () => {
@@ -479,11 +487,12 @@ contract('BondingCurveFactory', accounts => {
       deployTx = await factory.methods
         .deploy(
           [CollateralTypes.Ether, CurveTypes.Bancor],
-          [curveOwner, curveOwner, paymentToken.options.address],
+          [curveOwner, curveOwner, paymentToken.options.address, curveOwner],
           [
             str(bancorTestValues.connectorWeight),
             str(curveParams.reservePercentage),
-            str(curveParams.dividendPercentage)
+            str(curveParams.dividendPercentage),
+            str(curveParams.preMintAmount)
           ],
           bondedTokenParams.name,
           bondedTokenParams.symbol
@@ -558,7 +567,7 @@ contract('BondingCurveFactory', accounts => {
         ).to.be.bignumber.equal(bn(18));
         expect(
           bn(await bondedToken.methods.totalSupply().call({from: miscUser}))
-        ).to.be.bignumber.equal(bn(0));
+        ).to.be.bignumber.equal(str(curveParams.preMintAmount));
       });
 
       it('should correctly initialize reward distributor parameters', async () => {

@@ -24,11 +24,17 @@ contract BondedTokenBase is Initializable, ERC20Detailed, ERC20Mintable {
         string memory symbol,
         uint8 decimals,
         address minter,
+        address initialHolder,
+        uint256 initialSupply,
         RewardsDistributor rewardsDistributor
     ) public initializer {
         ERC20Detailed.initialize(name, symbol, decimals);
         ERC20Mintable.initialize(minter);
         _rewardsDistributor = rewardsDistributor;
+
+        if (initialSupply > 0) {
+            _mint(initialHolder, initialSupply);
+        }
     }
 
     /**

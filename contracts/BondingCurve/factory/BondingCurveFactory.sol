@@ -111,10 +111,12 @@ contract BondingCurveFactory is Initializable {
             [0]: Owner
             [1]: Beneficiary
             [2]: Collateral Token
+            [3]: Initial Bonded Token Holder
         uintParams
             [0]: buyCurveParams
             [1]: reservePercentage
             [2]: dividendPercentage
+            [3]: Initial Bonded Token Supply (Pre-mint Amount)
         bondedTokenName
         bondedTokenSymbol
     */
@@ -160,6 +162,8 @@ contract BondingCurveFactory is Initializable {
                 bondedTokenSymbol,
                 18,
                 proxies[2], // minter is the BondingCurve
+                addressParams[3],
+                uintParams[3],
                 RewardsDistributor(proxies[3])
             );
             BondingCurveEther(proxies[2]).initialize(
@@ -168,7 +172,8 @@ contract BondingCurveFactory is Initializable {
                 IBondedToken(proxies[1]),
                 ICurveLogic(proxies[0]),
                 uintParams[1],
-                uintParams[2]
+                uintParams[2],
+                uintParams[3]
             );
         } else if (deployParams[0] == uint256(CollateralTypes.ERC20)) {
             BondedToken(proxies[1]).initialize(
@@ -176,6 +181,8 @@ contract BondingCurveFactory is Initializable {
                 bondedTokenSymbol,
                 18,
                 proxies[2], // minter is the BondingCurve
+                addressParams[3],
+                uintParams[3],
                 RewardsDistributor(proxies[3]),
                 IERC20(addressParams[2])
             );
@@ -186,7 +193,8 @@ contract BondingCurveFactory is Initializable {
                 IBondedToken(proxies[1]),
                 ICurveLogic(proxies[0]),
                 uintParams[1],
-                uintParams[2]
+                uintParams[2],
+                uintParams[3]
             );
         }
 

@@ -1,5 +1,5 @@
 const {CurveLogicType, TokenType} = require('./CurveEcosystemConfig');
-const {bn} = require('./utils');
+const {bn, toWad} = require('./utils');
 
 const defaultTestConfig = {
   deployParams: {
@@ -7,7 +7,8 @@ const defaultTestConfig = {
     curveLogicType: CurveLogicType.CONSTANT,
     curveParams: {
       reservePercentage: bn(10),
-      dividendPercentage: bn(50)
+      dividendPercentage: bn(50),
+      preMintAmount: toWad(1)
     },
     bondedTokenParams: {
       name: 'BondedToken',
@@ -32,7 +33,8 @@ const defaultTestConfigERC20Static = {
     curveLogicType: CurveLogicType.CONSTANT,
     curveParams: {
       reservePercentage: bn(10),
-      dividendPercentage: bn(50)
+      dividendPercentage: bn(50),
+      preMintAmount: toWad(1)
     },
     bondedTokenParams: {
       name: 'BondedToken',
@@ -57,7 +59,8 @@ const defaultTestConfigEtherStatic = {
     curveLogicType: CurveLogicType.CONSTANT,
     curveParams: {
       reservePercentage: bn(10),
-      dividendPercentage: bn(50)
+      dividendPercentage: bn(50),
+      preMintAmount: toWad(1)
     },
     bondedTokenParams: {
       name: 'BondedToken',

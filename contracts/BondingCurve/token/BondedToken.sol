@@ -25,10 +25,20 @@ contract BondedToken is Initializable, BondedTokenBase {
         string memory symbol,
         uint8 decimals,
         address minter,
+        address initialHolder,
+        uint256 initialSupply,
         RewardsDistributor rewardsDistributor,
         IERC20 dividendToken
     ) public initializer {
-        BondedTokenBase.initialize(name, symbol, decimals, minter, rewardsDistributor);
+        BondedTokenBase.initialize(
+            name,
+            symbol,
+            decimals,
+            minter,
+            initialHolder,
+            initialSupply,
+            rewardsDistributor
+        );
         // TODO: uncomment below line once this contract is no longer used as PaymentToken in tests.
         // require(address(dividendToken) != address(0), "No dividend ERC20 contract provided.");
         _dividendToken = dividendToken;
