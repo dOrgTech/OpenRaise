@@ -5,17 +5,16 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/lifecycle/Pausable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "contracts/BondingCurve/token/BondedToken.sol";
+import "contracts/BondingCurve/interface/IBondedToken.sol";
 import "contracts/BondingCurve/interface/IBondingCurve.sol";
 import "contracts/BondingCurve/interface/ICurveLogic.sol";
 
-/// @title A bonding curve implementation for buying a selling bonding curve tokens.
+/// @title A bonding curve implementation.
 /// @author dOrg
-/// @notice Uses a defined ERC20 token as reserve currency
 contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     using SafeMath for uint256;
 
-    BondedToken internal _bondedToken;
+    IBondedToken internal _bondedToken;
 
     ICurveLogic internal _buyCurve;
     address internal _beneficiary;
@@ -23,6 +22,9 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     uint256 internal _reserveBalance;
     uint256 internal _reservePercentage;
     uint256 internal _dividendPercentage;
+    uint256 internal _preMintAmount;
+    uint256 internal _milestoneCap;
+    uint256 internal _totalRaised;
 
     uint256 internal constant MAX_PERCENTAGE = 100;
     uint256 internal constant MICRO_PAYMENT_THRESHOLD = 100;
@@ -41,12 +43,15 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     string internal constant NO_MICRO_PAYMENTS = "Payment amount must be greater than 100 'units' for calculations to work correctly";
     string internal constant TOKEN_BURN_FAILED = "bondedToken burn failed";
     string internal constant TRANSFER_TO_RECIPIENT_FAILED = "Transfer to recipient failed";
+    string internal constant MILESTONE_CAP_INVALID = "milestoneCap must be set to a valid value";
+    string internal constant MILESTONE_CAP_EXCEEDED = "milestoneCap exceeded";
 
     event BeneficiarySet(address beneficiary);
     event BuyCurveSet(address buyCurve);
     event SellCurveSet(address sellCurve);
     event DividendPercentageSet(uint256 dividendPercentage);
     event ReservePercentageSet(uint256 reservePercentage);
+    event MilestoneCapSet(uint256 milestoneCap);
 
     event Buy(
         address indexed buyer,
@@ -75,10 +80,11 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     function initialize(
         address owner,
         address beneficiary,
-        BondedToken bondedToken,
+        IBondedToken bondedToken,
         ICurveLogic buyCurve,
         uint256 reservePercentage,
-        uint256 dividendPercentage
+        uint256 dividendPercentage,
+        uint256 preMintAmount
     ) public initializer {
         _isValiddividendPercentage(reservePercentage);
         _isValidreservePercentage(dividendPercentage);
@@ -90,6 +96,8 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
 
         _buyCurve = buyCurve;
         _bondedToken = bondedToken;
+
+        _preMintAmount = preMintAmount;
 
         _reservePercentage = reservePercentage;
         _dividendPercentage = dividendPercentage;
@@ -108,10 +116,35 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
         require(dividendPercentage <= MAX_PERCENTAGE, SPLIT_ON_PAY_INVALID);
     }
 
+    function _isValidMilestoneCap(uint256 milestoneCap) internal view {
+        require(milestoneCap >= _totalRaised, MILESTONE_CAP_INVALID);
+    }
+
+    function _isUnderMilestoneCap(uint256 amount) internal view {
+        require(amount <= _milestoneCap, MILESTONE_CAP_EXCEEDED);
+    }
+
+    function _hasPreMint() internal view returns (bool) {
+        return _preMintAmount > 0;
+    }
+
+    function _hasMilestoneCap() internal view returns (bool) {
+        return _milestoneCap > 0;
+    }
+
+    function _totalSupplyWithoutPreMint() internal view returns (uint256) {
+        if (_hasPreMint()) {
+            return _bondedToken.totalSupply().sub(_preMintAmount);
+        } else {
+            return _bondedToken.totalSupply();
+        }
+
+    }
+
     /// @notice             Get the price in ether to mint tokens
     /// @param numTokens    The number of tokens to calculate price for
     function priceToBuy(uint256 numTokens) public view returns (uint256) {
-        return _buyCurve.calcMintPrice(_bondedToken.totalSupply(), _reserveBalance, numTokens);
+        return _buyCurve.calcMintPrice(_totalSupplyWithoutPreMint(), _reserveBalance, numTokens);
     }
 
     /// @notice             Get the reward in ether to burn tokens
@@ -151,6 +184,11 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
 
         toReserve = rewardForSell(amount);
         toBeneficiary = buyPrice.sub(toReserve);
+
+        _totalRaised = _totalRaised.add(toBeneficiary);
+        if (_hasMilestoneCap()) {
+            _isUnderMilestoneCap(_totalRaised);
+        }
     }
 
     function _postBuy(
@@ -221,12 +259,18 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
         emit DividendPercentageSet(_dividendPercentage);
     }
 
+    function setMilestoneCap(uint256 milestoneCap) public onlyOwner {
+        _isValidMilestoneCap(milestoneCap);
+        _milestoneCap = milestoneCap;
+        emit MilestoneCapSet(_milestoneCap);
+    }
+
     /*
         Getter Functions
     */
 
     /// @notice Get bonded token contract
-    function bondedToken() public view returns (BondedToken) {
+    function bondedToken() public view returns (IBondedToken) {
         return _bondedToken;
     }
 
@@ -253,6 +297,21 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     /// @notice Get split on pay parameter
     function dividendPercentage() public view returns (uint256) {
         return _dividendPercentage;
+    }
+
+    /// @notice Get pre mint amount
+    function preMintAmount() public view returns (uint256) {
+        return _preMintAmount;
+    }
+
+    /// @notice Get milestone cap
+    function milestoneCap() public view returns (uint256) {
+        return _milestoneCap;
+    }
+
+    /// @notice Get total sent to beneficiary
+    function totalRaised() public view returns (uint256) {
+        return _totalRaised;
     }
 
     /// @notice Get minimum value accepted for payments

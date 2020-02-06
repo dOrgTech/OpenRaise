@@ -28,10 +28,11 @@ contract BondingCurve is Initializable, BondingCurveBase, IBondingCurveERC20 {
         address owner,
         address beneficiary,
         IERC20 collateralToken,
-        BondedToken bondedToken,
+        IBondedToken bondedToken,
         ICurveLogic buyCurve,
         uint256 reservePercentage,
-        uint256 dividendPercentage
+        uint256 dividendPercentage,
+        uint256 preMintAmount
     ) public initializer {
         BondingCurveBase.initialize(
             owner,
@@ -39,7 +40,8 @@ contract BondingCurve is Initializable, BondingCurveBase, IBondingCurveERC20 {
             bondedToken,
             buyCurve,
             reservePercentage,
-            dividendPercentage
+            dividendPercentage,
+            preMintAmount
         );
         _collateralToken = collateralToken;
     }

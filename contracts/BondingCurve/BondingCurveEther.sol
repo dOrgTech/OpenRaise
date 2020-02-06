@@ -28,7 +28,7 @@ contract BondingCurveEther is Initializable, BondingCurveBase, IBondingCurveEthe
     function initialize(
         address owner,
         address beneficiary,
-        BondedToken bondedToken,
+        IBondedToken bondedToken,
         ICurveLogic buyCurve,
         uint256 reservePercentage,
         uint256 dividendPercentage,
@@ -40,7 +40,8 @@ contract BondingCurveEther is Initializable, BondingCurveBase, IBondingCurveEthe
             bondedToken,
             buyCurve,
             reservePercentage,
-            dividendPercentage
+            dividendPercentage,
+            preMintAmount
         );
     }
 

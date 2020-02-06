@@ -9,7 +9,7 @@ const should = require('chai').should();
 const deploy = require('../../index.js');
 const contractConstants = require('../constants/contractConstants.js');
 const {defaultTestConfig} = require('../helpers/ecosystemConfigs');
-const {str, bn} = require("../helpers/utils");
+const {str, bn} = require('../helpers/utils');
 
 async function shouldBehaveLikeBondingCurve(context, parameters) {
   const {adminAccount, curveOwner, tokenMinter, userAccounts, miscUser} = context;
@@ -37,6 +37,8 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       paymentTokenValues.parameters.decimals,
       tokenMinter,
       ZERO_ADDRESS,
+      str(0),
+      ZERO_ADDRESS,
       ZERO_ADDRESS
     ]);
 
@@ -53,6 +55,8 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
       bondedTokenValues.parameters.symbol,
       bondedTokenValues.parameters.decimals,
       tokenMinter,
+      ZERO_ADDRESS,
+      str(0),
       rewardsDistributor.address,
       paymentToken.address
     ]);
@@ -80,8 +84,6 @@ async function shouldBehaveLikeBondingCurve(context, parameters) {
   });
 
   describe('Initialization', async () => {
-
-
     it('should fail on invalid dividendPercentage', async () => {
       const invalidDividendPercentage = new BN(101);
 
