@@ -9,26 +9,32 @@ const BancorFormula = Contracts.getFromLocal('BancorFormula');
 const BancorCurveLogic = Contracts.getFromLocal('BancorCurveLogic');
 const BancorCurveService = Contracts.getFromLocal('BancorCurveService');
 const BondingCurve = Contracts.getFromLocal('BondingCurve');
+const BondingCurveEther = Contracts.getFromLocal('BondingCurveEther');
 const BondingCurveFactory = Contracts.getFromLocal('BondingCurveFactory');
 const BondedToken = Contracts.getFromLocal('BondedToken');
+const BondedTokenEther = Contracts.getFromLocal('BondedTokenEther');
 const RewardsDistributor = Contracts.getFromLocal('RewardsDistributor');
 
 const CONTRACT_ABIS = {
   BondingCurve,
+  BondingCurveEther,
   BondingCurveFactory,
   BancorCurveLogic,
   StaticCurveLogic,
   BondedToken,
+  BondedTokenEther,
   BancorCurveService,
   RewardsDistributor
 };
 
 const CONTRACT_NAMES = {
   BondingCurve: 'BondingCurve',
+  BondingCurveEther: 'BondingCurveEther',
   BondingCurveFactory: 'BondingCurveFactory',
   BancorCurveLogic: 'BancorCurveLogic',
   StaticCurveLogic: 'StaticCurveLogic',
   BondedToken: 'BondedToken',
+  BondedTokenEther: 'BondedTokenEther',
   BancorCurveService: 'BancorCurveService',
   RewardsDistributor: 'RewardsDistributor'
 };
@@ -53,10 +59,12 @@ async function setupApp(txParams) {
 
   // Add all implementations
   await appProject.setImplementation(BondingCurve, CONTRACT_NAMES.BondingCurve);
+  await appProject.setImplementation(BondingCurveEther, CONTRACT_NAMES.BondingCurveEther);
   await appProject.setImplementation(BondingCurveFactory, CONTRACT_NAMES.BondingCurveFactory);
   await appProject.setImplementation(BancorCurveLogic, CONTRACT_NAMES.BancorCurveLogic);
   await appProject.setImplementation(StaticCurveLogic, CONTRACT_NAMES.StaticCurveLogic);
   await appProject.setImplementation(BondedToken, CONTRACT_NAMES.BondedToken);
+  await appProject.setImplementation(BondedTokenEther, CONTRACT_NAMES.BondedTokenEther);
   await appProject.setImplementation(BancorCurveService, CONTRACT_NAMES.BancorCurveService);
   await appProject.setImplementation(RewardsDistributor, CONTRACT_NAMES.RewardsDistributor);
 
