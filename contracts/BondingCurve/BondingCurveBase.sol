@@ -43,6 +43,8 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     string internal constant NO_MICRO_PAYMENTS = "Payment amount must be greater than 100 'units' for calculations to work correctly";
     string internal constant TOKEN_BURN_FAILED = "bondedToken burn failed";
     string internal constant TRANSFER_TO_RECIPIENT_FAILED = "Transfer to recipient failed";
+    string internal constant MILESTONE_CAP_INVALID = "milestoneCap must be set to a valid value";
+    string internal constant MILESTONE_CAP_EXCEEDED = "milestoneCap exceeded";
 
     event BeneficiarySet(address beneficiary);
     event BuyCurveSet(address buyCurve);
@@ -115,15 +117,19 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
     }
 
     function _isValidMilestoneCap(uint256 milestoneCap) internal view {
-        require(milestoneCap >= _totalRaised);
+        require(milestoneCap >= _totalRaised, MILESTONE_CAP_INVALID);
     }
 
     function _isUnderMilestoneCap(uint256 amount) internal view {
-        require(amount <= _milestoneCap);
+        require(amount <= _milestoneCap, MILESTONE_CAP_EXCEEDED);
     }
 
     function _hasPreMint() internal view returns (bool) {
         return _preMintAmount > 0;
+    }
+
+    function _hasMilestoneCap() internal view returns (bool) {
+        return _milestoneCap > 0;
     }
 
     function _totalSupplyWithoutPreMint() internal view returns (uint256) {
@@ -180,7 +186,9 @@ contract BondingCurveBase is IBondingCurve, Initializable, Ownable, Pausable {
         toBeneficiary = buyPrice.sub(toReserve);
 
         _totalRaised = _totalRaised.add(toBeneficiary);
-        _isUnderMilestoneCap(_totalRaised);
+        if (_hasMilestoneCap()) {
+            _isUnderMilestoneCap(_totalRaised);
+        }
     }
 
     function _postBuy(

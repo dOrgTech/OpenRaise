@@ -122,7 +122,8 @@ class CurveEcosystem {
       bondedToken.address,
       buyCurve.address,
       curveParams.reservePercentage,
-      curveParams.dividendPercentage
+      curveParams.dividendPercentage,
+      str(0)
     );
 
     await bondedToken.contract.methods
@@ -188,7 +189,8 @@ class CurveEcosystem {
       bondedToken.address,
       buyCurve.address,
       curveParams.reservePercentage,
-      curveParams.dividendPercentage
+      curveParams.dividendPercentage,
+      str(0)
     );
 
     await bondedToken.contract.methods
