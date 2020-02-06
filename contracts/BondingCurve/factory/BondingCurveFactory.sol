@@ -15,6 +15,7 @@ import "contracts/BondingCurve/dividend/RewardsDistributor.sol";
 import "contracts/BondingCurve/token/BondedToken.sol";
 import "contracts/BondingCurve/token/BondedTokenEther.sol";
 import "contracts/BondingCurve/interface/ICurveLogic.sol";
+import "contracts/BondingCurve/interface/IBondedToken.sol";
 
 /**
  * @title Combined Factory
@@ -164,7 +165,7 @@ contract BondingCurveFactory is Initializable {
             BondingCurveEther(proxies[2]).initialize(
                 addressParams[0],
                 addressParams[1],
-                BondedToken(proxies[1]),
+                IBondedToken(proxies[1]),
                 ICurveLogic(proxies[0]),
                 uintParams[1],
                 uintParams[2]
@@ -182,7 +183,7 @@ contract BondingCurveFactory is Initializable {
                 addressParams[0],
                 addressParams[1],
                 IERC20(addressParams[2]),
-                BondedToken(proxies[1]),
+                IBondedToken(proxies[1]),
                 ICurveLogic(proxies[0]),
                 uintParams[1],
                 uintParams[2]
