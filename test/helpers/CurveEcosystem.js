@@ -1,9 +1,9 @@
-const {CurveLogicType, TokenType} = require('../helpers/CurveEcosystemConfig');
+const {CurveLogicType, TokenType, DeployMode} = require('../helpers/CurveEcosystemConfig');
 const {bn, str} = require('./utils');
 const {constants} = require('openzeppelin-test-helpers');
 const {ZERO_ADDRESS} = constants;
 const deploy = require('../../index.js');
-
+const {BaseEcosystem} = require('./BaseEcosystem');
 const BondedToken = artifacts.require('BondedToken.sol');
 const BondingCurve = artifacts.require('BondingCurve.sol');
 const BondingCurveEther = artifacts.require('BondingCurveEther.sol');
@@ -12,21 +12,7 @@ const BancorCurveService = artifacts.require('BancorCurveService.sol');
 const BancorCurveLogic = artifacts.require('BancorCurveLogic.sol');
 const StaticCurveLogic = artifacts.require('StaticCurveLogic.sol');
 
-class CurveEcosystem {
-  constructor(accounts, config) {
-    this.config = config;
-    this.accounts = accounts;
-    this.contracts = {};
-  }
-
-  async initStaticEther() {}
-
-  async initStaticERC20() {}
-
-  async initBancorEther() {}
-
-  async initBancorERC20() {}
-
+class CurveEcosystem extends BaseEcosystem {
   async deployStaticCurveLogic() {
     const {curveLogicParams} = this.config.deployParams;
     const buyCurve = await StaticCurveLogic.new();
@@ -49,7 +35,7 @@ class CurveEcosystem {
   }
 
   async deployPaymentToken() {
-    const accounts = this.accounts;
+    const {accounts} = this;
     const {collateralTokenParams} = this.config.deployParams;
 
     const paymentToken = await BondedToken.new();
@@ -76,16 +62,16 @@ class CurveEcosystem {
   async init(web3) {
     const {collateralType, curveLogicType} = this.config.deployParams;
     if (collateralType === TokenType.ETHER) {
-      return await this.initEther();
+      return this.initEther(web3);
     }
 
     if (collateralType === TokenType.ERC20) {
-      return await this.initERC20(web3);
+      return this.initERC20(web3);
     }
   }
 
-  async initEther() {
-    const accounts = this.accounts;
+  async initShared(web3) {
+    const {accounts} = this;
     const {curveParams, curveLogicType, bondedTokenParams} = this.config.deployParams;
 
     const rewardsDistributor = await RewardsDistributor.new();
@@ -115,6 +101,18 @@ class CurveEcosystem {
       buyCurve = (await this.deployBancorCurveLogic()).buyCurve;
     }
 
+    return {
+      rewardsDistributor,
+      bondedToken,
+      buyCurve
+    };
+  }
+
+  async initEther(web3) {
+    const {accounts} = this;
+    const {curveParams, curveLogicType, bondedTokenParams} = this.config.deployParams;
+
+    const {rewardsDistributor, bondedToken, buyCurve} = await this.initShared(web3);
     const bondingCurve = await BondingCurveEther.new();
     await bondingCurve.initialize(
       accounts.curveOwner,
@@ -142,7 +140,7 @@ class CurveEcosystem {
   }
 
   async initERC20(web3) {
-    const accounts = this.accounts;
+    const {accounts} = this;
     const {
       curveParams,
       curveLogicType,
@@ -153,33 +151,7 @@ class CurveEcosystem {
     } = this.config.deployParams;
     // TODO: Use an ERC20Mintable instead of a BondedToken here!
     const paymentToken = await this.deployPaymentToken();
-
-    const rewardsDistributor = await RewardsDistributor.new();
-    await rewardsDistributor.initialize(accounts.curveOwner);
-
-    const bondedToken = await BondedToken.new();
-    await bondedToken.initialize(
-      bondedTokenParams.name,
-      bondedTokenParams.symbol,
-      bondedTokenParams.decimals,
-      accounts.minter,
-      ZERO_ADDRESS,
-      str(0),
-      rewardsDistributor.address,
-      paymentToken.address
-    );
-
-    await rewardsDistributor.contract.methods
-      .transferOwnership(bondedToken.address)
-      .send({from: accounts.curveOwner});
-
-    let buyCurve;
-
-    if (curveLogicType === CurveLogicType.CONSTANT) {
-      buyCurve = await this.deployStaticCurveLogic();
-    } else if (curveLogicType === CurveLogicType.BANCOR) {
-      buyCurve = (await this.deployBancorCurveLogic()).buyCurve;
-    }
+    const {rewardsDistributor, bondedToken, buyCurve} = await this.initShared(web3);
 
     const bondingCurve = await BondingCurve.new();
     await bondingCurve.initialize(
