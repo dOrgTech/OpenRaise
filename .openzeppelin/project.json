@@ -7,11 +7,13 @@
     "StaticCurveLogic": "StaticCurveLogic",
     "BancorCurveLogic": "BancorCurveLogic",
     "BondedToken": "BondedToken",
+    "BondedTokenEther": "BondedTokenEther",
     "RewardsDistributor": "RewardsDistributor",
     "BondingCurve": "BondingCurve",
     "BondingCurveEther": "BondingCurveEther",
     "BondingCurveFactory": "BondingCurveFactory",
-    "BancorCurveService": "BancorCurveService"
+    "BancorCurveService": "BancorCurveService",
+    "PolynomialCurveLogic": "PolynomialCurveLogic"
   },
   "dependencies": {
     "@openzeppelin/contracts-ethereum-package": "^2.2.3"

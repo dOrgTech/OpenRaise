@@ -5,43 +5,51 @@ const {bondingCurvePaymentTests} = require('../behaviors/bondingCurvePayment');
 const {bondingCurveBuySellTests} = require('../behaviors/bondingCurveBuySell');
 const {bondingCurveBuySellEtherTests} = require('../behaviors/bondingCurveBuySellEther');
 const {bondingCurveMilestoneCapTests} = require('../behaviors/bondingCurveMilestoneCap');
-const {defaultTestConfig, defaultTestConfigEtherStatic} = require('../helpers/ecosystemConfigs');
-/*
-  Uses StaticCurveLogic for simpler tests.
-*/
+const {
+  defaultTestConfig,
+  defaultTestConfigEtherStatic,
+  defaultTestConfigBancor
+} = require('../helpers/ecosystemConfigs');
+// /*
+//   Uses StaticCurveLogic for simpler tests.
+// */
 
-/*
-  ERC20 Collateral.
-*/
+// /*
+//   ERC20 Collateral.
+// */
 
-bondingCurveDeployTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
-bondingCurveAdminTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
-// bondingCurvePaymentTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
-bondingCurveBuySellTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
-// bondingCurveMilestoneCapTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+// bondingCurveDeployTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+// bondingCurveAdminTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+// // bondingCurvePaymentTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+// bondingCurveBuySellTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+// // bondingCurveMilestoneCapTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
 
-/*
-  Ether Collateral.
-*/
+// /*
+//   Ether Collateral.
+// */
 
-bondingCurveDeployTests(
-  'Bonding Curve - Static Curve, Ether Collateral',
-  defaultTestConfigEtherStatic
-);
-bondingCurveAdminTests(
-  'Bonding Curve - Static Curve, Ether Collateral',
-  defaultTestConfigEtherStatic
-);
-bondingCurveBuySellEtherTests(
-  'Bonding Curve - Static Curve, Ether Collateral',
-  defaultTestConfigEtherStatic
-);
-
+// bondingCurveDeployTests(
+//   'Bonding Curve - Static Curve, Ether Collateral',
+//   defaultTestConfigEtherStatic
+// );
+// bondingCurveAdminTests(
+//   'Bonding Curve - Static Curve, Ether Collateral',
+//   defaultTestConfigEtherStatic
+// );
 // bondingCurveBuySellEtherTests(
 //   'Bonding Curve - Static Curve, Ether Collateral',
 //   defaultTestConfigEtherStatic
 // );
 
+// // bondingCurveBuySellEtherTests(
+// //   'Bonding Curve - Static Curve, Ether Collateral',
+// //   defaultTestConfigEtherStatic
+// // );
+
 /*
   Uses BancorCurveLogic
 */
+
+bondingCurveDeployTests('Bonding Curve - Bancor Curve, ERC20 Collateral', defaultTestConfigBancor);
+bondingCurveAdminTests('Bonding Curve - Bancor Curve, ERC20 Collateral', defaultTestConfigBancor);
+bondingCurveBuySellTests('Bonding Curve - Bancor Curve, ERC20 Collateral', defaultTestConfigBancor);

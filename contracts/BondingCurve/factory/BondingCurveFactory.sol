@@ -83,7 +83,7 @@ contract BondingCurveFactory is Initializable {
     }
 
     function _deployBancorCurveLogic() internal returns (address) {
-        return _createProxy(_staticCurveLogicImpl, address(0), "");
+        return _createProxy(_bancorCurveLogicImpl, address(0), "");
     }
 
     function _deployPolynomialCurveLogic() internal returns (address) {

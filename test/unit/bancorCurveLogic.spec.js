@@ -21,7 +21,7 @@ contract('BancorCurveLogic', accounts => {
   let bancorCurveService;
 
   const reserveRatio = new BN(1000);
-  beforeEach(async function() {
+  beforeEach(async () => {
     project = await deployProject();
     bancorCurveService = await deployBancorCurveService(project);
     curve = await deployBancorCurveLogic(project, [
@@ -30,19 +30,19 @@ contract('BancorCurveLogic', accounts => {
     ]);
   });
 
-  it('initializes reserve ratio parameter correctly', async function() {
+  it('initializes reserve ratio parameter correctly', async () => {
     const result = await curve.methods.reserveRatio().call({from: initializer});
 
     expect(new BN(result)).to.be.bignumber.equal(reserveRatio);
   });
 
-  it('initializes curve service parameter correctly', async function() {
+  it('initializes curve service parameter correctly', async () => {
     const result = await curve.methods.bancorService().call({from: initializer});
 
     expect(result).to.be.equal(bancorCurveService.address);
   });
 
-  it('calculates correct buy results for all value sets', async function() {
+  it('calculates correct buy results for all value sets', async () => {
     for (let i = 0; i < values.length; i++) {
       const valueSet = values[i];
       const result = await curve.methods
@@ -53,7 +53,7 @@ contract('BancorCurveLogic', accounts => {
     }
   });
 
-  it('calculates correct sell results for all value sets', async function() {
+  it('calculates correct sell results for all value sets', async () => {
     let valueSet = values[0];
     const result = await curve.methods
       .calcBurnReward(valueSet.supply, valueSet.connectorBalance, valueSet.depositAmount)

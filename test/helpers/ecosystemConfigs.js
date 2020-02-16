@@ -79,8 +79,35 @@ const defaultTestConfigEtherPolynomial = {
   }
 };
 
+const defaultTestConfigBancor = {
+  deployParams: {
+    collateralType: TokenType.ERC20,
+    curveLogicType: CurveLogicType.BANCOR,
+    curveParams: {
+      reservePercentage: bn(10),
+      dividendPercentage: bn(50),
+      preMintAmount: toWad(0)
+    },
+    bondedTokenParams: {
+      name: 'BondedToken',
+      symbol: 'BND',
+      decimals: bn(18)
+    },
+    collateralTokenParams: {
+      name: 'PaymentToken',
+      symbol: 'Pay',
+      decimals: 18,
+      initialSupply: bn(1000000000)
+    },
+    curveLogicParams: {
+      tokenRatio: bn(500000)
+    }
+  }
+};
+
 module.exports = {
   defaultTestConfig,
   defaultTestConfigEtherStatic,
-  defaultTestConfigEtherPolynomial
+  defaultTestConfigEtherPolynomial,
+  defaultTestConfigBancor
 };

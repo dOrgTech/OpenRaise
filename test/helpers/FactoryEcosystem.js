@@ -4,6 +4,7 @@ const {CurveLogicType, TokenType} = require('../helpers/CurveEcosystemConfig');
 const {bn, str} = require('./utils');
 const expectEvent = require('../expectEvent');
 const deploy = require('../../index.js');
+const {hasStaticCurve, hasBancorCurve, hasPolynomialCurve} = require('./BaseEcosystem');
 
 const {ZERO_ADDRESS} = constants;
 require('../setup');
@@ -125,12 +126,7 @@ class FactoryEcosystem {
     const deployTx = await factory.methods
       .deploy(
         [collateralType, curveLogicType],
-        [
-          curveOwner,
-          curveOwner,
-          paymentToken ? paymentToken.address : ZERO_ADDRESS,
-          curveOwner
-        ],
+        [curveOwner, curveOwner, paymentToken ? paymentToken.address : ZERO_ADDRESS, curveOwner],
         [
           str(curveLogicParams.tokenRatio),
           str(curveParams.reservePercentage),
@@ -143,7 +139,7 @@ class FactoryEcosystem {
       .send({from: curveOwner});
 
     const createdEvent = expectEvent.inLogs(deployTx.events, 'BondingCurveDeployed');
-    const deployedContracts = await this.getContractsFromDeployedEvent(createdEvent);
+    const deployedContracts = await this.getContractsFromDeployedEvent(this.config, createdEvent);
 
     this.contracts = {
       bondingCurve: deployedContracts.bondingCurve,
@@ -156,7 +152,7 @@ class FactoryEcosystem {
     return this.contracts;
   }
 
-  async getContractsFromDeployedEvent(event) {
+  async getContractsFromDeployedEvent(config, event) {
     const contracts = {
       bondingCurve: undefined,
       bondedToken: undefined,
@@ -172,10 +168,24 @@ class FactoryEcosystem {
       await deploy.getAbi(deploy.CONTRACT_NAMES.BondedToken),
       await expectEvent.getParameter(event, 'bondedToken')
     );
-    contracts.buyCurve = await ZWeb3.contract(
-      await deploy.getAbi(deploy.CONTRACT_NAMES.StaticCurveLogic),
-      await expectEvent.getParameter(event, 'buyCurve')
-    );
+
+    if (hasBancorCurve(config)) {
+      contracts.buyCurve = await ZWeb3.contract(
+        await deploy.getAbi(deploy.CONTRACT_NAMES.BancorCurveLogic),
+        await expectEvent.getParameter(event, 'buyCurve')
+      );
+    } else if (hasStaticCurve(config)) {
+      contracts.buyCurve = await ZWeb3.contract(
+        await deploy.getAbi(deploy.CONTRACT_NAMES.StaticCurveLogic),
+        await expectEvent.getParameter(event, 'buyCurve')
+      );
+    } else if (hasPolynomialCurve(config)) {
+      contracts.buyCurve = await ZWeb3.contract(
+        await deploy.getAbi(deploy.CONTRACT_NAMES.PolynomialCurveLogic),
+        await expectEvent.getParameter(event, 'buyCurve')
+      );
+    }
+
     contracts.rewardsDistributor = await ZWeb3.contract(
       await deploy.getAbi(deploy.CONTRACT_NAMES.RewardsDistributor),
       await expectEvent.getParameter(event, 'rewardsDistributor')
