@@ -10,11 +10,6 @@ function calculatePurchaseReturn(supply, balance, ratio, amount) {
   ratio = new Decimal(ratio.toString());
   amount = new Decimal(amount.toString());
 
-  console.log({
-    supply: supply.toString(),
-    balanceThing: amount.div(balance).toString(),
-    CW: ratio.div(MAX_RATIO).toString()
-  });
   return supply
     .mul(
       ONE.plus(amount.div(balance))

@@ -100,7 +100,7 @@ const defaultTestConfigBancor = {
       initialSupply: bn(1000000000)
     },
     curveLogicParams: {
-      tokenRatio: bn(1000)
+      tokenRatio: bn(500000)
     }
   }
 };
