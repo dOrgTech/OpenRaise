@@ -11,7 +11,7 @@ const {
   hasEtherCollateral,
   hasBancorCurve
 } = require('../../helpers/BaseEcosystem');
-
+const {calculatePurchaseReturn, calculateSaleReturn} = require('../../helpers/BancorSimulator');
 const {FactoryEcosystem} = require('../../helpers/FactoryEcosystem');
 
 const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
@@ -105,7 +105,7 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
         const {buyCurve} = await eco.deployBondingCurve(project, factory);
 
         const tokenAmount = WAD;
-        const expectedPrice = bn(100000);
+        let expectedPrice = bn(100000);
 
         let result;
         console.log('hasBancorCurve', hasBancorCurve(config));
@@ -118,6 +118,10 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
           expect(
             bn(await buyCurve.methods.reserveRatio().call({from: miscUser}))
           ).to.be.bignumber.equal(bn(config.deployParams.curveLogicParams.tokenRatio));
+
+          expectedPrice = calculatePurchaseReturn(WAD, WAD, bn(1000), tokenAmount);
+
+          console.log(expectedPrice);
 
           result = await buyCurve.methods
             .calcMintPrice(WAD.toString(), WAD.toString(), tokenAmount.toString())

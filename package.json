@@ -41,6 +41,7 @@
     "clear": "^0.1.0",
     "clui": "^0.3.6",
     "configstore": "^5.0.0",
+    "decimal.js": "^10.2.0",
     "dotenv": "6.2.0",
     "figlet": "^1.2.4",
     "inquirer": "^7.0.3",
