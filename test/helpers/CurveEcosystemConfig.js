@@ -1,6 +1,7 @@
 const CurveLogicType = {
   CONSTANT: 0,
-  BANCOR: 1
+  BANCOR: 1,
+  POLYNOMIAL: 2
 };
 
 const TokenType = {

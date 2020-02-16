@@ -8,33 +8,7 @@ const defaultTestConfig = {
     curveParams: {
       reservePercentage: bn(10),
       dividendPercentage: bn(50),
-      preMintAmount: toWad(1)
-    },
-    bondedTokenParams: {
-      name: 'BondedToken',
-      symbol: 'BND',
-      decimals: bn(18)
-    },
-    collateralTokenParams: {
-      name: 'PaymentToken',
-      symbol: 'Pay',
-      decimals: 18,
-      initialSupply: bn(1000000000)
-    },
-    curveLogicParams: {
-      tokenRatio: bn(100000000)
-    }
-  }
-};
-
-const defaultTestConfigERC20Static = {
-  deployParams: {
-    collateralType: TokenType.ERC20,
-    curveLogicType: CurveLogicType.CONSTANT,
-    curveParams: {
-      reservePercentage: bn(10),
-      dividendPercentage: bn(50),
-      preMintAmount: toWad(1)
+      preMintAmount: toWad(0)
     },
     bondedTokenParams: {
       name: 'BondedToken',
@@ -60,7 +34,33 @@ const defaultTestConfigEtherStatic = {
     curveParams: {
       reservePercentage: bn(10),
       dividendPercentage: bn(50),
-      preMintAmount: toWad(1)
+      preMintAmount: toWad(0)
+    },
+    bondedTokenParams: {
+      name: 'BondedToken',
+      symbol: 'BND',
+      decimals: bn(18)
+    },
+    collateralTokenParams: {
+      name: 'PaymentToken',
+      symbol: 'Pay',
+      decimals: 18,
+      initialSupply: bn(1000000000)
+    },
+    curveLogicParams: {
+      tokenRatio: bn(100000000)
+    }
+  }
+};
+
+const defaultTestConfigEtherPolynomial = {
+  deployParams: {
+    collateralType: TokenType.ETHER,
+    curveLogicType: CurveLogicType.POLYNOMIAL,
+    curveParams: {
+      reservePercentage: bn(10),
+      dividendPercentage: bn(50),
+      preMintAmount: toWad(0)
     },
     bondedTokenParams: {
       name: 'BondedToken',
@@ -80,5 +80,7 @@ const defaultTestConfigEtherStatic = {
 };
 
 module.exports = {
-  defaultTestConfig
+  defaultTestConfig,
+  defaultTestConfigEtherStatic,
+  defaultTestConfigEtherPolynomial
 };

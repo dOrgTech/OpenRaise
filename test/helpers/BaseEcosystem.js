@@ -49,8 +49,26 @@ class BaseEcosystem {
       await token.approve(recipient, amount, {from: account});
     }
   }
+
+  async getEtherBalance(account) {
+    return bn(await web3.eth.getBalance(account));
+  }
+
+  async getTokenBalance(tokenContract, account) {
+    return bn(await tokenContract.balanceOf(account, {from: account}));
+  }
+}
+
+function hasERC20Collateral(config) {
+  return config.deployParams.collateralType === TokenType.ERC20;
+}
+
+function hasEtherCollateral(config) {
+  return config.deployParams.collateralType === TokenType.ETHER;
 }
 
 module.exports = {
-  BaseEcosystem
+  BaseEcosystem,
+  hasERC20Collateral,
+  hasEtherCollateral
 };

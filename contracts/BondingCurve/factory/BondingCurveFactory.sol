@@ -11,6 +11,7 @@ import "contracts/BondingCurve/BondingCurveEther.sol";
 import "contracts/BondingCurve/curve/BancorCurveLogic.sol";
 import "contracts/BondingCurve/curve/BancorCurveService.sol";
 import "contracts/BondingCurve/curve/StaticCurveLogic.sol";
+import "contracts/BondingCurve/curve/PolynomialCurveLogic.sol";
 import "contracts/BondingCurve/dividend/RewardsDistributor.sol";
 import "contracts/BondingCurve/token/BondedToken.sol";
 import "contracts/BondingCurve/token/BondedTokenEther.sol";
@@ -25,6 +26,7 @@ import "contracts/BondingCurve/interface/IBondedToken.sol";
 contract BondingCurveFactory is Initializable {
     address internal _staticCurveLogicImpl;
     address internal _bancorCurveLogicImpl;
+    address internal _polynomialCurveLogicImpl;
     address internal _bondedTokenImpl;
     address internal _bondedTokenEtherImpl;
     address internal _bondingCurveImpl;
@@ -33,7 +35,7 @@ contract BondingCurveFactory is Initializable {
     address internal _bancorCurveServiceImpl; //Must already be initialized
 
     enum CollateralTypes {Ether, ERC20}
-    enum CurveTypes {Static, Bancor}
+    enum CurveTypes {Static, Bancor, Polynomial}
 
     event ProxyCreated(address proxy);
 
@@ -48,6 +50,7 @@ contract BondingCurveFactory is Initializable {
     function initialize(
         address staticCurveLogicImpl,
         address bancorCurveLogicImpl,
+        address polynomialCurveLogicImpl,
         address bondedTokenImpl,
         address bondedTokenEtherImpl,
         address bondingCurveImpl,
@@ -57,6 +60,7 @@ contract BondingCurveFactory is Initializable {
     ) public initializer {
         _staticCurveLogicImpl = staticCurveLogicImpl;
         _bancorCurveLogicImpl = bancorCurveLogicImpl;
+        _polynomialCurveLogicImpl = polynomialCurveLogicImpl;
         _bondedTokenImpl = bondedTokenImpl;
         _bondedTokenEtherImpl = bondedTokenEtherImpl;
         _bondingCurveImpl = bondingCurveImpl;
@@ -80,6 +84,10 @@ contract BondingCurveFactory is Initializable {
 
     function _deployBancorCurveLogic() internal returns (address) {
         return _createProxy(_staticCurveLogicImpl, address(0), "");
+    }
+
+    function _deployPolynomialCurveLogic() internal returns (address) {
+        return _createProxy(_polynomialCurveLogicImpl, address(0), "");
     }
 
     function _deployBondedToken() internal returns (address) {
@@ -134,6 +142,8 @@ contract BondingCurveFactory is Initializable {
             proxies[0] = _deployStaticCurveLogic();
         } else if (deployParams[1] == uint256(CurveTypes.Bancor)) {
             proxies[0] = _deployBancorCurveLogic();
+        } else if (deployParams[1] == uint256(CurveTypes.Polynomial)) {
+            proxies[0] = _deployPolynomialCurveLogic();
         }
 
         if (deployParams[0] == uint256(CollateralTypes.Ether)) {
@@ -154,6 +164,8 @@ contract BondingCurveFactory is Initializable {
                 BancorCurveService(_bancorCurveServiceImpl),
                 uint32(uintParams[0])
             );
+        } else if (deployParams[1] == uint256(CurveTypes.Polynomial)) {
+            PolynomialCurveLogic(proxies[0]).initialize(uint8(uintParams[0]));
         }
 
         if (deployParams[0] == uint256(CollateralTypes.Ether)) {
@@ -208,6 +220,7 @@ contract BondingCurveFactory is Initializable {
         returns (
             address staticCurveLogicImpl,
             address bancorCurveLogicImpl,
+            address polynomialCurveLogicImpl,
             address bondedTokenImpl,
             address bondedTokenEtherImpl,
             address bondingCurveImpl,
@@ -219,6 +232,7 @@ contract BondingCurveFactory is Initializable {
         return (
             _staticCurveLogicImpl,
             _bancorCurveLogicImpl,
+            _polynomialCurveLogicImpl,
             _bondedTokenImpl,
             _bondedTokenEtherImpl,
             _bondingCurveImpl,
