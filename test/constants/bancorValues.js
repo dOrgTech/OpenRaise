@@ -1,14 +1,6 @@
-const { BN } = require("openzeppelin-test-helpers");
+const {BN} = require('openzeppelin-test-helpers');
 
 module.exports.values = [
-  {
-    supply: 0,
-    connectorBalance: 1,
-    connectorWeight: 1000,
-    depositAmount: 1000,
-    expectedBuyResult: new BN(0),
-    expectedSaleResult: new BN(1)
-  },
   {
     supply: 1,
     connectorBalance: 1,
