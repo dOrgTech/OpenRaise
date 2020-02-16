@@ -3,12 +3,45 @@ const {bondingCurveDeployTests} = require('../behaviors/bondingCurveDeploy');
 const {bondingCurveAdminTests} = require('../behaviors/bondingCurveAdmin');
 const {bondingCurvePaymentTests} = require('../behaviors/bondingCurvePayment');
 const {bondingCurveBuySellTests} = require('../behaviors/bondingCurveBuySell');
-const {defaultTestConfig} = require('../helpers/ecosystemConfigs');
+const {bondingCurveBuySellEtherTests} = require('../behaviors/bondingCurveBuySellEther');
+const {bondingCurveMilestoneCapTests} = require('../behaviors/bondingCurveMilestoneCap');
+const {defaultTestConfig, defaultTestConfigEtherStatic} = require('../helpers/ecosystemConfigs');
 /*
   Uses StaticCurveLogic for simpler tests.
 */
 
-bondingCurveDeployTests('Bonding Curve - Static Curve, Typical Values', defaultTestConfig);
-bondingCurveAdminTests('Bonding Curve - Static Curve, Typical Values', defaultTestConfig);
-bondingCurvePaymentTests('Bonding Curve - Static Curve, Typical Values', defaultTestConfig);
-bondingCurveBuySellTests('Bonding Curve - Static Curve, Typical Values', defaultTestConfig);
+/*
+  ERC20 Collateral.
+*/
+
+bondingCurveDeployTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+bondingCurveAdminTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+// bondingCurvePaymentTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+bondingCurveBuySellTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+// bondingCurveMilestoneCapTests('Bonding Curve - Static Curve, ERC20 Collateral', defaultTestConfig);
+
+/*
+  Ether Collateral.
+*/
+
+bondingCurveDeployTests(
+  'Bonding Curve - Static Curve, Ether Collateral',
+  defaultTestConfigEtherStatic
+);
+bondingCurveAdminTests(
+  'Bonding Curve - Static Curve, Ether Collateral',
+  defaultTestConfigEtherStatic
+);
+bondingCurveBuySellEtherTests(
+  'Bonding Curve - Static Curve, Ether Collateral',
+  defaultTestConfigEtherStatic
+);
+
+// bondingCurveBuySellEtherTests(
+//   'Bonding Curve - Static Curve, Ether Collateral',
+//   defaultTestConfigEtherStatic
+// );
+
+/*
+  Uses BancorCurveLogic
+*/

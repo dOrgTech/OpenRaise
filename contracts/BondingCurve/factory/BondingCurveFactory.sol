@@ -164,6 +164,8 @@ contract BondingCurveFactory is Initializable {
                 BancorCurveService(_bancorCurveServiceImpl),
                 uint32(uintParams[0])
             );
+        } else if (deployParams[1] == uint256(CurveTypes.Polynomial)) {
+            PolynomialCurveLogic(proxies[0]).initialize(uint8(uintParams[0]));
         }
 
         if (deployParams[0] == uint256(CollateralTypes.Ether)) {

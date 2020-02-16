@@ -5,7 +5,8 @@ const WAD = new BN(10).pow(new BN(18));
 
 const CurveTypes = {
   Static: 0,
-  Bancor: 1
+  Bancor: 1,
+  Polynomial: 2
 };
 
 const CollateralTypes = {
