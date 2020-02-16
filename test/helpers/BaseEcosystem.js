@@ -1,4 +1,4 @@
-const {CurveLogicType, TokenType, DeployMode} = require('../helpers/CurveEcosystemConfig');
+const {CurveLogicType, TokenType} = require('../helpers/CurveEcosystemConfig');
 const {bn, str} = require('./utils');
 const {constants} = require('openzeppelin-test-helpers');
 const {ZERO_ADDRESS} = constants;
@@ -67,8 +67,23 @@ function hasEtherCollateral(config) {
   return config.deployParams.collateralType === TokenType.ETHER;
 }
 
+function hasStaticCurve(config) {
+  return config.deployParams.curveLogicType === CurveLogicType.CONSTANT;
+}
+
+function hasBancorCurve(config) {
+  return config.deployParams.curveLogicType === CurveLogicType.BANCOR;
+}
+
+function hasPolynomialCurve(config) {
+  return config.deployParams.curveTypecurveLogicType === CurveLogicType.POLYNOMIAL;
+}
+
 module.exports = {
   BaseEcosystem,
   hasERC20Collateral,
-  hasEtherCollateral
+  hasEtherCollateral,
+  hasStaticCurve,
+  hasBancorCurve,
+  hasPolynomialCurve
 };

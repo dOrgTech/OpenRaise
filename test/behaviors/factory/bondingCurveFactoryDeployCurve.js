@@ -2,13 +2,15 @@ const {BN, constants, shouldFail, expectRevert} = require('openzeppelin-test-hel
 const {ZERO_ADDRESS} = constants;
 const {expect} = require('chai');
 const {ZWeb3} = require('@openzeppelin/upgrades');
-const BondedToken = artifacts.require('BondedToken.sol');
 require('../../setup');
 const expectEvent = require('../../expectEvent');
 const deploy = require('../../../index.js');
-const {defaultTestConfig} = require('../../helpers/ecosystemConfigs');
-const {str, bn, toWad, CurveTypes, CollateralTypes} = require('../../helpers/utils');
-const {hasERC20Collateral, hasEtherCollateral} = require('../..//helpers/BaseEcosystem');
+const {str, bn, WAD} = require('../../helpers/utils');
+const {
+  hasERC20Collateral,
+  hasEtherCollateral,
+  hasBancorCurve
+} = require('../../helpers/BaseEcosystem');
 
 const {FactoryEcosystem} = require('../../helpers/FactoryEcosystem');
 
@@ -41,7 +43,9 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
         } = await eco.deployBondingCurve(project, factory);
 
         expect(await bondingCurve.methods.owner().call({from: miscUser})).to.be.equal(curveOwner);
-        expect(await bondingCurve.methods.beneficiary().call({from: miscUser})).to.be.equal(curveOwner);
+        expect(await bondingCurve.methods.beneficiary().call({from: miscUser})).to.be.equal(
+          curveOwner
+        );
 
         if (hasERC20Collateral(config)) {
           expect(await bondingCurve.methods.collateralToken().call({from: miscUser})).to.be.equal(
@@ -49,18 +53,24 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
           );
         }
 
-        expect(await bondingCurve.methods.bondedToken().call({from: miscUser})).to.be.equal(bondedToken.options.address);
-        expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(buyCurve.options.address);
+        expect(await bondingCurve.methods.bondedToken().call({from: miscUser})).to.be.equal(
+          bondedToken.options.address
+        );
+        expect(await bondingCurve.methods.buyCurve().call({from: miscUser})).to.be.equal(
+          buyCurve.options.address
+        );
         expect(
           bn(await bondingCurve.methods.reservePercentage().call({from: miscUser}))
         ).to.be.bignumber.equal(bn(config.deployParams.curveParams.reservePercentage));
         expect(
           bn(await bondingCurve.methods.dividendPercentage().call({from: miscUser}))
         ).to.be.bignumber.equal(bn(config.deployParams.curveParams.dividendPercentage));
-        expect(bn(await bondingCurve.methods.reserveBalance().call({from: miscUser}))).to.be.bignumber.equal(bn(0));
-        expect(bn(await bondingCurve.methods.getPaymentThreshold().call({from: miscUser}))).to.be.bignumber.equal(
-          bn(100)
-        );
+        expect(
+          bn(await bondingCurve.methods.reserveBalance().call({from: miscUser}))
+        ).to.be.bignumber.equal(bn(0));
+        expect(
+          bn(await bondingCurve.methods.getPaymentThreshold().call({from: miscUser}))
+        ).to.be.bignumber.equal(bn(100));
       });
 
       it('should deploy contracts on deploy', async () => {
@@ -92,20 +102,31 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
       it('should correctly initialize buy curve parameters', async () => {
         const eco = new FactoryEcosystem(accountsConfig, config);
         const {project, factory} = await eco.deployFactoryEcosystem(web3);
-        const {
-          bondingCurve,
-          bondedToken,
-          paymentToken,
-          rewardsDistributor,
-          buyCurve
-        } = await eco.deployBondingCurve(project, factory);
+        const {buyCurve} = await eco.deployBondingCurve(project, factory);
 
-        const tokenAmount = bn(1000);
+        const tokenAmount = WAD;
         const expectedPrice = bn(100000);
 
-        const result = await buyCurve.methods
-          .calcMintPrice(0, 0, tokenAmount.toString())
-          .call({from: miscUser});
+        let result;
+        console.log('hasBancorCurve', hasBancorCurve(config));
+
+        if (hasBancorCurve(config)) {
+          const implmentations = await factory.methods.getImplementations().call({from: miscUser});
+          expect(await buyCurve.methods.bancorService().call({from: miscUser})).to.be.equal(
+            implmentations.bancorCurveServiceImpl
+          );
+          expect(
+            bn(await buyCurve.methods.reserveRatio().call({from: miscUser}))
+          ).to.be.bignumber.equal(bn(config.deployParams.curveLogicParams.tokenRatio));
+
+          result = await buyCurve.methods
+            .calcMintPrice(WAD.toString(), WAD.toString(), tokenAmount.toString())
+            .call({from: miscUser});
+        } else {
+          result = await buyCurve.methods
+            .calcMintPrice(0, 0, tokenAmount.toString())
+            .call({from: miscUser});
+        }
 
         expect(bn(result)).to.be.bignumber.equal(expectedPrice);
       });
@@ -113,13 +134,7 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
       it('should correctly initialize bonded token parameters', async () => {
         const eco = new FactoryEcosystem(accountsConfig, config);
         const {project, factory} = await eco.deployFactoryEcosystem(web3);
-        const {
-          bondingCurve,
-          bondedToken,
-          paymentToken,
-          rewardsDistributor,
-          buyCurve
-        } = await eco.deployBondingCurve(project, factory);
+        const {bondedToken} = await eco.deployBondingCurve(project, factory);
 
         const {bondedTokenParams, curveParams} = config.deployParams;
 
@@ -156,7 +171,7 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
       it('should correctly initialize bonding curve parameters', async () => {
         const eco = new FactoryEcosystem(accountsConfig, config);
         const {project, factory} = await eco.deployFactoryEcosystem(web3);
-        
+
         const {
           bondingCurve,
           bondedToken,
