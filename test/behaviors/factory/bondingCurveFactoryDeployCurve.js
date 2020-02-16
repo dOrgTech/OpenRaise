@@ -108,7 +108,6 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
         let expectedPrice = bn(100000);
 
         let result;
-        console.log('hasBancorCurve', hasBancorCurve(config));
 
         if (hasBancorCurve(config)) {
           const implmentations = await factory.methods.getImplementations().call({from: miscUser});
@@ -119,12 +118,12 @@ const bondingCurveFactoryCurveDeployTests = async (suiteName, config) => {
             bn(await buyCurve.methods.reserveRatio().call({from: miscUser}))
           ).to.be.bignumber.equal(bn(config.deployParams.curveLogicParams.tokenRatio));
 
-          expectedPrice = calculatePurchaseReturn(WAD, WAD, bn(1000), tokenAmount);
+          expectedPrice = calculatePurchaseReturn(1, 1, bn(500000), tokenAmount);
 
           console.log(expectedPrice);
 
           result = await buyCurve.methods
-            .calcMintPrice(WAD.toString(), WAD.toString(), tokenAmount.toString())
+            .calcMintPrice(1, 1, tokenAmount.toString())
             .call({from: miscUser});
         } else {
           result = await buyCurve.methods
