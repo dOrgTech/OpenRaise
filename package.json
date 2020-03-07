@@ -35,8 +35,8 @@
   "dependencies": {
     "@babel/polyfill": "7.4.4",
     "@babel/register": "7.5.5",
-    "@openzeppelin/contracts-ethereum-package": "2.2.3",
-    "@openzeppelin/upgrades": "2.5.2",
+    "@openzeppelin/contracts-ethereum-package": "^2.2.3",
+    "@openzeppelin/upgrades": "^2.5.2",
     "chalk": "^3.0.0",
     "clear": "^0.1.0",
     "clui": "^0.3.6",
@@ -46,8 +46,8 @@
     "figlet": "^1.2.4",
     "inquirer": "^7.0.3",
     "minimist": "^1.2.0",
-    "openzeppelin-test-helpers": "0.4.2",
-    "truffle-hdwallet-provider": "1.0.3",
+    "openzeppelin-test-helpers": "^0.4.2",
+    "truffle-hdwallet-provider": "^1.0.3",
     "web3": "^1.2.4"
   },
   "devDependencies": {
@@ -56,7 +56,7 @@
     "@nomiclabs/buidler": "^1.0.1",
     "@nomiclabs/buidler-truffle5": "^1.0.1",
     "@nomiclabs/buidler-web3": "^1.0.1",
-    "@openzeppelin/cli": "2.5.1",
+    "@openzeppelin/cli": "^2.7.1",
     "chai": "4.2.0",
     "eslint": "5.16.0",
     "eslint-config-airbnb-base": "13.2.0",

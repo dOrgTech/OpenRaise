@@ -13,14 +13,15 @@
     "BondingCurveEther": "BondingCurveEther",
     "BondingCurveFactory": "BondingCurveFactory",
     "BancorCurveService": "BancorCurveService",
-    "PolynomialCurveLogic": "PolynomialCurveLogic"
+    "PolynomialCurveLogic": "PolynomialCurveLogic",
+    "LinearCurveLogic": "LinearCurveLogic"
   },
   "dependencies": {
     "@openzeppelin/contracts-ethereum-package": "^2.2.3"
   },
   "compiler": {
     "manager": "openzeppelin",
-    "solcVersion": "0.5.10",
+    "solcVersion": "0.5.15",
     "compilerSettings": {
       "optimizer": {
         "enabled": false,
