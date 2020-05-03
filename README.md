@@ -6,9 +6,9 @@ Blockchain, and Ethereum in particular, promises to reshape capital formation. H
 
 ## Fundraising Mechanisms
 
-- [Bonding Curves](./BondingCurve.md)
-- [DAICO](./DAICO.md)
+- [Bonding Curves](./docs/BondingCurve.md)
+- [DAICO](./docs/DAICO.md)
 
 ## Token Features
 
-- [Dividend Claims](./DividendToken.md)
+- [Dividend Claims](./docs/DividendToken.md)
