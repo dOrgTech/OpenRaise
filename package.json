@@ -44,7 +44,7 @@
     "dotenv": "6.2.0",
     "figlet": "^1.2.4",
     "inquirer": "^7.0.3",
-    "minimist": "^1.2.0",
+    "minimist": "^1.2.3",
     "openzeppelin-test-helpers": "0.4.2",
     "truffle-hdwallet-provider": "1.0.3",
     "web3": "^1.2.4"
